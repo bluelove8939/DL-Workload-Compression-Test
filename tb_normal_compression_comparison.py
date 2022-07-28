@@ -9,12 +9,13 @@ parser.add_argument('-cs', '--csize', default=64, help='Cache line size (int)', 
 parser.add_argument('-mi', '--maxiter', default=5000, help='Max iteration of the file fetch (int)', dest='maxiter')
 comp_args, _ = parser.parse_known_args()
 
-tb_name = 'tb_csv.exe'
+tb_codename = 'tb_file'
+tb_name = f'{tb_codename}.exe'
 if 'linux' in platform.platform().lower():
-    tb_name = './tb_csv'
+    tb_name = f'./{tb_codename}'
 
-print(f"gcc -o tb_csv ./tb_csv.c ./compression.c ./bdi_zerovec.c -lm -Wformat=0")
-subprocess.run(f"gcc -o tb_csv ./tb_csv.c ./compression.c ./bdi_zerovec.c -lm -Wformat=0", shell=True, check=True)
+print(f"gcc -o {tb_codename} ./{tb_codename}.c ./compression.c -lm -Wformat=0")
+subprocess.run(f"gcc -o {tb_codename} ./{tb_codename}.c ./compression.c -lm -Wformat=0", shell=True, check=True)
 #
 # out = subprocess.run(f"tb_csv.exe "
 #                f"{os.path.join(os.curdir, 'extractions', 'ResNet50_Imagenet', 'filelist.txt')} "
