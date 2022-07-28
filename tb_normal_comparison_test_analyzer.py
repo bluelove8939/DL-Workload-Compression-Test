@@ -14,12 +14,14 @@ for model_name in os.listdir(os.path.join(os.curdir, 'extractions')):
 
     algo_indexes = list(map(lambda x: x.strip(), content[0].split(',')))[1:]
     avg_cratio = np.array([0] * len(algo_indexes), dtype=float)
+    size_sum = 0
 
     for line in content[1:]:
         lineparsed = line.split(',')
-        avg_cratio += np.array(list(map(lambda x: float(x.strip()), lineparsed[1:])))
+        avg_cratio += np.array(list(map(lambda x: float(x.strip()), lineparsed[1:]))) * os.path.getsize(lineparsed[0])
+        size_sum += os.path.getsize(lineparsed[0])
 
-    avg_cratio /= (len(content) - 1)
+    avg_cratio /= size_sum
 
     categories.append(model_name.split('_')[0])
 

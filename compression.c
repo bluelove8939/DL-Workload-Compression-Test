@@ -536,9 +536,13 @@ CompressionResult bitplane_compression(CacheLine original) {
 
         // Uncompressed
         set_value_bitwise(result.compressed.body, 1, result.compressed.valid_bitwidth, 1);
-        set_value_bitwise(result.compressed.body, buffer, result.compressed.valid_bitwidth + 1, 31);
-        result.compressed.valid_bitwidth += 32;
+        set_value_bitwise(result.compressed.body, buffer, result.compressed.valid_bitwidth + 1, dstep * BYTE_BITWIDTH - 1);
+        result.compressed.valid_bitwidth += dstep * BYTE_BITWIDTH;
     }
+
+    buffer = get_value_bitwise(dbx_transformed.compressed.body, dbx_transformed.compressed.valid_bitwidth - (dstep * BYTE_BITWIDTH - 1), dstep * BYTE_BITWIDTH - 1);
+    set_value_bitwise(result.compressed.body, buffer, result.compressed.valid_bitwidth, dstep * BYTE_BITWIDTH - 1);
+    result.compressed.valid_bitwidth += dstep * BYTE_BITWIDTH - 1;
 
     remove_compression_result(dbp_transformed);
     remove_compression_result(dbx_transformed);
