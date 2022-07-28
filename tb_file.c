@@ -21,8 +21,8 @@ int main(int argc, char const *argv[]) {
     char const *logfilename = "./logs/comparison.csv";
 
     char *algo_names[ALGO_NUM] = {"BDI", "BPC"};
-    int   algo_sizes[ALGO_NUM];
-    int   original_size;
+    long long int algo_sizes[ALGO_NUM];
+    long long int original_size;
 
     CompressionResult (*algo_funcs[ALGO_NUM]) (CacheLine original) = {
         bdi_compression,      // BDI
@@ -77,7 +77,7 @@ int main(int argc, char const *argv[]) {
 #endif
             for (int j = 0; j < ALGO_NUM; j++) {
                 result = algo_funcs[j](chunk);
-                algo_sizes[j] += result.compressed.size;
+                algo_sizes[j] += result.compressed.valid_bitwidth;
 #ifdef VERBOSE
                 printf("%8s size: %dBytes  result: ", algo_names[j], result.compressed.size);
                 print_memory_chunk(result.compressed);
@@ -93,14 +93,14 @@ int main(int argc, char const *argv[]) {
 #endif
             remove_memory_chunk(chunk);
             iter += 1;
-            original_size += chunksize;
+            original_size += chunksize * BYTE_BITWIDTH;
         }
 
         printf("\ncompression ratio: ");
         fprintf(logfilefp, "%s", datafilename);
         for (int i = 0; i < ALGO_NUM; i++) {
-            printf("%.4f(%s) ", (double)original_size / algo_sizes[i], algo_names[i]);
-            fprintf(logfilefp, ",%.4f", (double)original_size / algo_sizes[i]);
+            printf("%.8f(%s) ", (double)original_size / algo_sizes[i], algo_names[i]);
+            fprintf(logfilefp, ",%.8f", (double)original_size / algo_sizes[i]);
         }
         printf("\n");
         fprintf(logfilefp, "\n");
