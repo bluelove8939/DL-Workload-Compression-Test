@@ -78,7 +78,7 @@ if __name__ == '__main__':
     print(f"- save fullpath:  {save_fullpath}\n")
 
     model_config = imagenet_pretrained[model_type]
-    model = model_config.generate()
+    model = model_config.generate().to(device)
     torch.save(model.state_dict(), save_fullpath)
 
     save_extraction_dir = os.path.join(comp_args.extdir, full_modelname)
