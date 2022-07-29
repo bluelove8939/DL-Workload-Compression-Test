@@ -129,6 +129,11 @@ class QuantModelExtractor(Interpreter):
         self._verbose = verbose
         self.device = 'cpu'
 
+    def reset(self):
+        self._params = {}
+        self._activation = {}
+        self._traces = []
+
     def add_param_trace(self, trace: Callable):
         if trace not in self._traces:
             self._traces.append(trace)
