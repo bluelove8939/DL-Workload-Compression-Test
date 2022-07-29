@@ -95,9 +95,10 @@ class ModelExtractor(object):
         os.makedirs(savepath, exist_ok=True)
 
         for param_name in self._params.keys():
-            barr = self._params[param_name].detach().numpy()
+            barr = self._params[param_name].detach()
+            if self.device != 'cpu': barr = barr.cpu()
             with open(os.path.join(savepath, f"{param_name}"), 'wb') as file:
-                file.write(barr)
+                file.write(barr.numpy())
 
         with open(os.path.join(savepath, 'filelist.txt'), 'wt') as filelist:
             filelist.write('\n'.join([os.path.join(savepath, layer_name) for layer_name in self._params.keys()]))
@@ -108,9 +109,10 @@ class ModelExtractor(object):
         os.makedirs(savepath, exist_ok=True)
 
         for layer_name in self._activation.keys():
-            barr = self._activation[layer_name].detach().numpy()
+            barr = self._activation[layer_name].detach()
+            if self.device != 'cpu': barr = barr.cpu()
             with open(os.path.join(savepath, f"{layer_name}"), 'wb') as file:
-                file.write(barr)
+                file.write(barr.numpy())
 
         with open(os.path.join(savepath, 'filelist.txt'), 'wt') as filelist:
             filelist.write('\n'.join([os.path.join(savepath, layer_name) for layer_name in self._activation.keys()]))
