@@ -468,7 +468,7 @@ CompressionResult bitplane_compression(CacheLine original) {
     set_value(result.compressed.body, get_value(dbx_transformed.compressed.body, 0, dstep), 0, dstep);  // save base value
     result.compressed.valid_bitwidth = dstep * BYTE_BITWIDTH;
     
-    for (int i = dstep * BYTE_BITWIDTH; i < dbx_transformed.compressed.valid_bitwidth - (dstep * BYTE_BITWIDTH - 1); i += dstep * BYTE_BITWIDTH - 1) {
+    for (int i = dstep * BYTE_BITWIDTH; i < dbx_transformed.compressed.valid_bitwidth; i += dstep * BYTE_BITWIDTH - 1) {
         buffer = get_value_bitwise(dbx_transformed.compressed.body, i, dstep * BYTE_BITWIDTH - 1);
         dbp_buffer = get_value_bitwise(dbp_transformed.compressed.body, i, dstep * BYTE_BITWIDTH - 1);
 
@@ -539,10 +539,6 @@ CompressionResult bitplane_compression(CacheLine original) {
         set_value_bitwise(result.compressed.body, buffer, result.compressed.valid_bitwidth + 1, dstep * BYTE_BITWIDTH - 1);
         result.compressed.valid_bitwidth += dstep * BYTE_BITWIDTH;
     }
-
-    buffer = get_value_bitwise(dbx_transformed.compressed.body, dbx_transformed.compressed.valid_bitwidth - (dstep * BYTE_BITWIDTH - 1), dstep * BYTE_BITWIDTH - 1);
-    set_value_bitwise(result.compressed.body, buffer, result.compressed.valid_bitwidth, dstep * BYTE_BITWIDTH - 1);
-    result.compressed.valid_bitwidth += dstep * BYTE_BITWIDTH - 1;
 
     remove_compression_result(dbp_transformed);
     remove_compression_result(dbx_transformed);
