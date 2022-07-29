@@ -34,11 +34,11 @@ class QuantizationModule(object):
         return model_quantized
 
     def calibrate(self, model, citer, verbose=2, device="auto"):
+        maxiter = min(len(self.tuning_dataloader), citer)
         if verbose == 1:
-            print(f'\r{progressbar(0, len(self.tuning_dataloader), 50)}'
-                  f'  calibration iter: {0:3d}/{len(self.tuning_dataloader):3d}', end='')
+            print(f'\r{progressbar(0, maxiter, 50)}  calibration iter: {0:3d}/{maxiter:3d}', end='')
         elif verbose:
-            print(f'calibration iter: {0:3d}/{len(self.tuning_dataloader):3d}')
+            print(f'calibration iter: {0:3d}/{maxiter:3d}')
 
         cnt = 1
         model.eval()                                      # set to evaluation mode
@@ -49,10 +49,9 @@ class QuantizationModule(object):
                 model(image)                              # forward propagation
 
                 if verbose == 1:
-                    print(f'\r{progressbar(cnt, len(self.tuning_dataloader), 50)}'
-                          f'  calibration iter: {cnt:3d}/{min(citer, len(self.tuning_dataloader)):3d}', end='')
+                    print(f'\r{progressbar(cnt, maxiter, 50)}  calibration iter: {cnt:3d}/{maxiter:3d}', end='')
                 elif verbose:
-                    print(f'calibration iter: {cnt:3d}/{min(citer, len(self.tuning_dataloader)):3d}', end='')
+                    print(f'calibration iter: {cnt:3d}/{maxiter:3d}', end='')
 
                 cnt += 1
                 if cnt > citer: break
