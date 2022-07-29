@@ -1,14 +1,19 @@
 import os
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+
+
+parser = argparse.ArgumentParser(description='Extraction Configs')
+parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extractions'), help='Directory of model extraction files', dest='extdir')
+comp_args, _ = parser.parse_known_args()
 
 
 categories = []
 results = {}
 
-
-for model_name in os.listdir(os.path.join(os.curdir, 'extractions')):
-    result_path = os.path.join(os.curdir, 'extractions', model_name, 'comparison_results.csv')
+for model_name in os.listdir(comp_args.extdir):
+    result_path = os.path.join(comp_args.extdir, model_name, 'comparison_results.csv')
     with open(result_path, 'rt') as file:
         content = file.readlines()
 

@@ -80,7 +80,7 @@ if __name__ == '__main__':
         model = model_config.generate()
         torch.save(model.state_dict(), save_fullpath)
 
-        save_extraction_dir = os.path.join(os.curdir, 'extractions', full_modelname)
+        save_extraction_dir = os.path.join(comp_args.extdir, full_modelname)
         os.makedirs(save_extraction_dir, exist_ok=True)
 
         print(f"extracting '{full_modelname}' at {save_extraction_dir}")
