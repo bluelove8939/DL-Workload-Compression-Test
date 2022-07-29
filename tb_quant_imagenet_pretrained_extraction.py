@@ -85,7 +85,7 @@ if __name__ == '__main__':
         loss_fn = nn.CrossEntropyLoss().to(device)
 
         qmodule = QuantizationModule(train_loader, loss_fn=loss_fn, optimizer=optimizer)
-        quant_model = qmodule.quantize(model, default_qconfig='fbgemm', citer=100, verbose=1, device='cpu')
+        quant_model = qmodule.quantize(model, default_qconfig='fbgemm', citer=100, verbose=1)
         torch.save(quant_model.state_dict(), save_fullpath)
 
         save_extraction_dir = os.path.join(comp_args.extdir, full_modelname)
