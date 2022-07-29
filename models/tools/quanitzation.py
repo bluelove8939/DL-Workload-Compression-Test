@@ -11,7 +11,7 @@ class QuantizationModule(object):
         self.loss_fn = loss_fn
         self.optimizer = optimizer
 
-    def quantize(self, model, default_qconfig='fbgemm', calib=True, verbose=2, device="auto"):
+    def quantize(self, model, default_qconfig='fbgemm', citer=0, verbose=2, device="auto"):
         if device == "auto":
             device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -29,11 +29,11 @@ class QuantizationModule(object):
         model_prepared = quantize_fx.prepare_fx(quant_model, qconfig_dict)
         if verbose == 2: print(model_prepared)
 
-        if calib: self.calibrate(model_prepared, verbose=verbose, device=device)
+        if citer: self.calibrate(model_prepared, citer=citer, verbose=verbose, device=device)
         model_quantized = quantize_fx.convert_fx(model_prepared)
         return model_quantized
 
-    def calibrate(self, model, verbose=2, device="auto"):
+    def calibrate(self, model, citer, verbose=2, device="auto"):
         if verbose == 1:
             print(f'\r{progressbar(0, len(self.tuning_dataloader), 50)}'
                   f'  calibration iter: {0:3d}/{len(self.tuning_dataloader):3d}', end='')
@@ -50,11 +50,12 @@ class QuantizationModule(object):
 
                 if verbose == 1:
                     print(f'\r{progressbar(cnt, len(self.tuning_dataloader), 50)}'
-                          f'  calibration iter: {cnt:3d}/{len(self.tuning_dataloader):3d}', end='')
+                          f'  calibration iter: {cnt:3d}/{min(citer, len(self.tuning_dataloader)):3d}', end='')
                 elif verbose:
-                    print(f'calibration iter: {cnt:3d}/{len(self.tuning_dataloader):3d}', end='')
+                    print(f'calibration iter: {cnt:3d}/{min(citer, len(self.tuning_dataloader)):3d}', end='')
 
                 cnt += 1
+                if cnt > citer: break
 
         if verbose == 1: print('\n')
         elif verbose: print()
