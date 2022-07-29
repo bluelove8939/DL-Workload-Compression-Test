@@ -11,29 +11,28 @@ class QuantizationModule(object):
         self.loss_fn = loss_fn
         self.optimizer = optimizer
 
-    def quantize(self, model, default_qconfig='fbgemm', citer=0, verbose=2, device="auto"):
-        if device == "auto":
-            device = "cuda" if torch.cuda.is_available() else "cpu"
+    def quantize(self, model, default_qconfig='fbgemm', citer=0, verbose=2):
+        device = 'cpu'
+        quant_model = copy.deepcopy(model)
+        quant_model.eval()
+        qconfig = torch.quantization.get_default_qconfig(default_qconfig)
+        qconfig_dict = {"": qconfig}
 
         print("\nQuantization Configs")
         print(f"- loss_fn: {self.loss_fn}")
         print(f"- qconfig: {default_qconfig}")
         print(f"- device:  {device}")
 
-        quant_model = copy.deepcopy(model)
-        quant_model.eval()
-        qconfig = torch.quantization.get_default_qconfig(default_qconfig)
-        qconfig_dict = {"": qconfig}
-
         if verbose: print("preparing quantization (symbolic tracing)")
         model_prepared = quantize_fx.prepare_fx(quant_model, qconfig_dict)
         if verbose == 2: print(model_prepared)
 
-        if citer: self.calibrate(model_prepared, citer=citer, verbose=verbose, device=device)
+        if citer: self.calibrate(model_prepared, citer=citer, verbose=verbose)
         model_quantized = quantize_fx.convert_fx(model_prepared)
         return model_quantized
 
-    def calibrate(self, model, citer, verbose=2, device="auto"):
+    def calibrate(self, model, citer, verbose=2):
+        device = 'cpu'
         maxiter = min(len(self.tuning_dataloader), citer)
         if verbose == 1:
             print(f'\r{progressbar(0, maxiter, 50)}  calibration iter: {0:3d}/{maxiter:3d}', end='')
