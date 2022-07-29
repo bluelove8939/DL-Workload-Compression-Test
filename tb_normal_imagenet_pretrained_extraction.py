@@ -14,9 +14,8 @@ from models.model_presets import imagenet_pretrained
 from models.tools.extractor import ModelExtractor, weight_trace, bias_trace
 
 
-parser = argparse.ArgumentParser(description='Comparison Test Configs')
-parser.add_argument('-cs', '--csize', default=64, help='Cache line size (int)', dest='csize')
-parser.add_argument('-mi', '--maxiter', default=5000, help='Max iteration of the file fetch (int)', dest='maxiter')
+parser = argparse.ArgumentParser(description='Extraction Configs')
+parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extractions'), help='Directory of model extraction files', dest='extdir')
 comp_args, _ = parser.parse_known_args()
 
 
@@ -68,13 +67,6 @@ if __name__ == '__main__':
     extractor_module = ModelExtractor()
     extracted_resultfiles = []
 
-    tb_name = 'tb_csv.exe'
-    if 'linux' in platform.platform().lower():
-        tb_name = './tb_csv'
-
-    print(f"gcc -o tb_csv ./tb_csv.c ./compression.c ./bdi_zerovec.c -lm -Wformat=0")
-    subprocess.run(f"gcc -o tb_csv ./tb_csv.c ./compression.c ./bdi_zerovec.c -lm -Wformat=0", shell=True, check=True)
-
     for model_type, model_config in imagenet_pretrained.items():
         full_modelname = f"{model_type}_Imagenet"
         save_modelname = f"{model_type}_Imagenet.pth"
@@ -102,15 +94,3 @@ if __name__ == '__main__':
         extractor_module.save_params(savepath=save_extraction_dir)  # save extracted parameters
 
         print(f"extracting '{full_modelname}' completed")
-        print(f"generating comparison test results")
-
-        filelist_path = os.path.join(os.curdir, 'extractions', full_modelname, 'filelist.txt')
-        result_path = os.path.join(os.curdir, 'extractions', full_modelname, 'comparison_results.csv')
-        print(f"\n{tb_name} {filelist_path} {comp_args.csize} {comp_args.maxiter} {result_path}")
-        tb_result = subprocess.run(f"{tb_name} {filelist_path} {comp_args.csize} {comp_args.maxiter} {result_path}",
-                                   shell=True)
-
-        if tb_result.returncode != 0:
-            print('Error occurred on running compression algorithm testbench')
-        else:
-            print(f"compression algorithm comparison test completed\n")

@@ -37,10 +37,14 @@ width = width_max / len(results.keys())
 
 x_axis = np.arange(len(categories))
 for idx, (key, val) in enumerate(results.items()):
-    plt.bar(x_axis + ((idx - (len(results.keys()) / 2) + 0.5) * width), val, width=width, label=key)
+    xval = x_axis + ((idx - (len(results.keys()) / 2) + 0.5) * width)
+    plt.bar(xval, val, width=width, label=key)
+    for i, j in zip(xval, val):
+        plt.annotate(f"{j:.2f}", xy=(i, j+0.2), ha='center')
 plt.xticks(x_axis, categories, rotation=0, ha='center')
-plt.ylim([0, 10])
+plt.ylim([0, 6])
 
+plt.title("Compression algorithm comparison on DL weight (FP32)")
 plt.legend()
 plt.tight_layout()
 plt.show()
