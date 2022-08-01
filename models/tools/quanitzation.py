@@ -46,7 +46,6 @@ class QuantizationModule(object):
             for image, target in self.tuning_dataloader:  # extract input and output data
                 image = image.to(device)
                 model(image)                              # forward propagation
-
                 if verbose == 1:
                     print(f'\r{progressbar(cnt, maxiter, 50)}  calibration iter: {cnt:3d}/{maxiter:3d}', end='')
                 elif verbose:
