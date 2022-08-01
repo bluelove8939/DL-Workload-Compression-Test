@@ -25,6 +25,8 @@ print(f"Using {device} device")
 
 # Dataset configuration
 dataset_dirname = args.data
+if not os.path.isdir(dataset_dirname):
+    dataset_dirname = os.path.join('..', '..', 'data', 'imagenet')
 
 train_dataset = datasets.ImageFolder(
         os.path.join(dataset_dirname, 'train'),
@@ -81,7 +83,7 @@ if __name__ == '__main__':
     model = model_config.generate().to(device)
     torch.save(model.state_dict(), save_fullpath)
 
-    save_extraction_dir = os.path.join(comp_args.extdir, full_modelname)
+    save_extraction_dir = os.path.join(comp_args.extdir, full_modelname + '_output')
     os.makedirs(save_extraction_dir, exist_ok=True)
 
     print(f"extracting '{full_modelname}' at {save_extraction_dir}")

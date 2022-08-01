@@ -12,22 +12,24 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 
 from models.tools.imagenet_utils.args_generator import args
-from models.model_presets import imagenet_pretrained
-from models.tools.extractor import QuantModelExtractor, weight_trace, bias_trace
+from models.model_presets import imagenet_quant_pretrained
+from models.tools.extractor import QuantModelExtractor, ModelExtractor, weight_trace, bias_trace
 from models.tools.quanitzation import QuantizationModule
 
 
 parser = argparse.ArgumentParser(description='Extraction Configs')
-parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extractions'), help='Directory of model extraction files', dest='extdir')
+parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extractions_quant'), help='Directory of model extraction files', dest='extdir')
 comp_args, _ = parser.parse_known_args()
 
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-print(f"Using {device} device")
+# print(f"Using {device} device")
 
 
 # Dataset configuration
 dataset_dirname = args.data
+if not os.path.isdir(dataset_dirname):
+    dataset_dirname = os.path.join(os.sep, 'Users', 'user', "Desktop", "study", "data", "imagenet")
 
 train_dataset = datasets.ImageFolder(
         os.path.join(dataset_dirname, 'train'),
@@ -69,7 +71,7 @@ if __name__ == '__main__':
 
     extracted_resultfiles = []
 
-    for model_type, model_config in imagenet_pretrained.items():
+    for model_type, model_config in imagenet_quant_pretrained.items():
         full_modelname = f"{model_type}_quant_Imagenet"
         save_modelname = f"{model_type}_quant_Imagenet.pth"
         save_fullpath = os.path.join(save_dirpath, save_modelname)
@@ -80,24 +82,24 @@ if __name__ == '__main__':
         print(f"- save fullpath:  {save_fullpath}\n")
 
         model = model_config.generate()
-        lr = 0.0001
-        optimizer = optim.Adam(model.parameters(), lr=lr)
-        loss_fn = nn.CrossEntropyLoss().to(device)
+        # lr = 0.0001
+        # optimizer = optim.Adam(model.parameters(), lr=lr)
+        # loss_fn = nn.CrossEntropyLoss().to(device)
 
-        qmodule = QuantizationModule(train_loader, loss_fn=loss_fn, optimizer=optimizer)
-        quant_model = qmodule.quantize(model, default_qconfig='fbgemm', citer=100, verbose=1)
-        torch.save(quant_model.state_dict(), save_fullpath)
+        # qmodule = QuantizationModule(train_loader, loss_fn=loss_fn, optimizer=optimizer)
+        # quant_model = qmodule.quantize(model, default_qconfig='fbgemm', citer=0, verbose=1)
+        # torch.save(quant_model.state_dict(), save_fullpath)
 
         save_extraction_dir = os.path.join(comp_args.extdir, full_modelname)
         os.makedirs(save_extraction_dir, exist_ok=True)
 
         print(f"extracting '{full_modelname}' at {save_extraction_dir}")
 
-        extractor_module = QuantModelExtractor(target_model=quant_model, output_modelname=full_modelname, verbose=False)
+        extractor_module = ModelExtractor(target_model=model, output_modelname=full_modelname, verbose=False)
         extractor_module.reset()
         extractor_module.add_param_trace(weight_trace)
         extractor_module.add_param_trace(bias_trace)
         extractor_module.extract_params()
-        extractor_module.save_params(savepath=save_extraction_dir)
+        extractor_module.save_params(savepath=save_extraction_dir, only_quant=True)
 
         print(f"extracting '{full_modelname}' completed")

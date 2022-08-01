@@ -5,14 +5,19 @@ import matplotlib.pyplot as plt
 
 
 parser = argparse.ArgumentParser(description='Extraction Configs')
-parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extractions'), help='Directory of model extraction files', dest='extdir')
+parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extractions_quant'), help='Directory of model extraction files', dest='extdir')
 comp_args, _ = parser.parse_known_args()
 
 
 categories = []
 results = {}
 
-for model_name in os.listdir(comp_args.extdir):
+model_list = list(os.listdir(comp_args.extdir))
+if 'ResNet50_Imagenet_output' in model_list:
+    model_list.remove('ResNet50_Imagenet_output')
+    model_list.append('ResNet50_Imagenet_output')
+
+for model_name in model_list:
     result_path = os.path.join(comp_args.extdir, model_name, 'comparison_results.csv')
     with open(result_path, 'rt') as file:
         content = file.readlines()
