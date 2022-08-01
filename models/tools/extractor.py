@@ -1,5 +1,7 @@
 import os
 from typing import Callable
+
+import numpy as np
 import torch
 from torch.fx import Interpreter
 
@@ -89,33 +91,47 @@ class ModelExtractor(object):
                         print(f"error occurred on extracting {parsed_name}")
                     break
 
-    def save_params(self, savepath: str=AUTO):
+    def save_params(self, savepath: str=AUTO, only_quant=True):
         if savepath == AUTO:
             savepath = os.path.join(os.curdir, 'extraced_output', self.output_modelname, 'params')
         os.makedirs(savepath, exist_ok=True)
 
+        saved_params = []
+
         for param_name in self._params.keys():
             barr = self._params[param_name].detach()
-            if self.device != 'cpu': barr = barr.cpu()
+            if self.device != 'cpu': barr = barr.to('cpu')
+            if barr.dtype in (torch.qint8, torch.qint32, torch.quint8):
+                barr = barr.int_repr()
+            elif only_quant:
+                continue
             with open(os.path.join(savepath, f"{param_name}"), 'wb') as file:
-                file.write(barr.numpy())
+                saved_params.append(param_name)
+                file.write(barr.numpy().tobytes())
 
         with open(os.path.join(savepath, 'filelist.txt'), 'wt') as filelist:
-            filelist.write('\n'.join([os.path.join(savepath, layer_name) for layer_name in self._params.keys()]))
+            filelist.write('\n'.join([os.path.join(savepath, layer_name) for layer_name in saved_params]))
 
-    def save_activation(self, savepath: str=AUTO):
+    def save_activation(self, savepath: str=AUTO, only_quant=True):
         if savepath == AUTO:
             savepath = os.path.join(os.curdir, 'extraced_output', self.output_modelname, 'activations')
         os.makedirs(savepath, exist_ok=True)
 
+        saved_acts = []
+
         for layer_name in self._activation.keys():
             barr = self._activation[layer_name].detach()
-            if self.device != 'cpu': barr = barr.cpu()
+            if self.device != 'cpu': barr = barr.to('cpu')
+            if barr.dtype in (torch.qint8, torch.qint32, torch.quint8):
+                barr = barr.int_repr()
+            elif only_quant:
+                continue
             with open(os.path.join(savepath, f"{layer_name}"), 'wb') as file:
-                file.write(barr.numpy())
+                saved_acts.append(layer_name)
+                file.write(barr.numpy().tobytes())
 
         with open(os.path.join(savepath, 'filelist.txt'), 'wt') as filelist:
-            filelist.write('\n'.join([os.path.join(savepath, layer_name) for layer_name in self._activation.keys()]))
+            filelist.write('\n'.join([os.path.join(savepath, layer_name) for layer_name in saved_acts]))
 
 
 class QuantModelExtractor(Interpreter):
@@ -175,9 +191,9 @@ class QuantModelExtractor(Interpreter):
                     try:
                         if self._verbose:
                             print(f"extracting {parsed_name}")
-                        self._params[parsed_name] = self.target_model.state_dict()[param_name].detach()
-                    except:
-                        print(f"error occurred on extracting {parsed_name}")
+                        self._params[parsed_name] = self.target_model.state_dict()[param_name].detach().cpu().int_repr()
+                    except Exception as error:
+                        print(f"error occurred on extracting {parsed_name} ({error}")
                     break
 
     def save_params(self, savepath: str=AUTO):
