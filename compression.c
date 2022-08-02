@@ -175,31 +175,39 @@ MemoryChunk file2memorychunk(char const *filename, int offset, int size) {
  */
 
 CompressionResult bdi_compression(CacheLine original) {
-    CompressionResult result;
+    CompressionResult result, uni_result, mult_result;
+    int best = original.size;
 
     result = bdi_zero_packing(original);
     if (result.is_compressed) return result;
+    else remove_compression_result(result);
 
     result = bdi_repeating(original);
     if (result.is_compressed) return result;
 
-    result = bdi_uni_base_packing(original, 8, 1);
-    if (result.is_compressed) return result;
+    for (int d = 1; d < 8; d *= 2) {
+        for (int k = 8; k > d; k /= 2) {
+            uni_result = bdi_uni_base_packing(original, k, d);
+            if (uni_result.compressed.size < best) {
+                remove_compression_result(result);
+                best = uni_result.compressed.size;
+                result = uni_result;
+                continue;
+            } else {
+                remove_compression_result(uni_result);
+            }
 
-    result = bdi_uni_base_packing(original, 4, 1);
-    if (result.is_compressed) return result;
-
-    result = bdi_uni_base_packing(original, 2, 1);
-    if (result.is_compressed) return result;
-
-    result = bdi_uni_base_packing(original, 8, 2);
-    if (result.is_compressed) return result;
-
-    result = bdi_uni_base_packing(original, 4, 2);
-    if (result.is_compressed) return result;
-
-    result = bdi_uni_base_packing(original, 8, 4);
-    if (result.is_compressed) return result;
+            mult_result = bdi_multi_base_packing(original, k, d);
+            if (mult_result.compressed.size < best) {
+                remove_compression_result(result);
+                best = mult_result.compressed.size;
+                result = mult_result;
+                continue;
+            } else {
+                remove_compression_result(mult_result);
+            }
+        }
+    }
 
     return result;
 }
@@ -281,15 +289,9 @@ CompressionResult bdi_uni_base_packing(CacheLine original, int k, int d) {
         if (d >= 2) bmask += 0xff00;
         if (d >= 4) bmask += 0xffff0000;
         if (delta != SIGNEX(delta & bmask, (d * BYTE_BITWIDTH) - 1)) {
-            result.original = original;
-            result.compression_type = "BDI (failed)";
             remove_memory_chunk(result.compressed);
             result.compressed = copy_memory_chunk(original);
-            result.is_compressed = FALSE;
-            result.overhead = make_memory_chunk(2, 0);
-            result.overhead.valid_bitwidth = 11;
-
-            return result;
+            break;
         }
 
         set_value(result.compressed.body, delta, result.compressed.size, d);
@@ -299,7 +301,58 @@ CompressionResult bdi_uni_base_packing(CacheLine original, int k, int d) {
     result.original = original;
     result.compression_type = "BDI (uni-base packing)";
     result.compressed.valid_bitwidth = result.compressed.size * BYTE_BITWIDTH;
-    result.is_compressed = TRUE;
+    result.is_compressed = result.compressed.size < original.size ? TRUE : FALSE;
+    result.overhead = make_memory_chunk(2, 0);
+    result.overhead.valid_bitwidth = 11;
+
+    return result;
+}
+
+CompressionResult bdi_multi_base_packing(CacheLine original, int k, int d) {
+    CompressionResult result;
+    ValueBuffer base, buffer, delta, bmask;
+    Bool base_selected = FALSE;
+    int base_mask_offset = original.size / k;  // bits
+
+    result.compressed = make_memory_chunk(original.size * 2, 0);
+    result.compressed.size = base_mask_offset / BYTE_BITWIDTH;
+
+    for (int i = 0; i < original.size / k; i++) {
+        buffer = get_value(original.body, i * k, k);
+
+        if (buffer == SIGNEX(buffer, d * BYTE_BITWIDTH - 1)) {
+            set_value(result.compressed.body, buffer, result.compressed.size, d);  // set as narrow delta
+            result.compressed.size += d;
+            continue;
+        }
+
+        if (!base_selected) {
+            base = buffer;
+            base_selected = TRUE;
+        }
+
+        delta = buffer - base;
+        bmask = 0x00;
+        if (d >= 1) bmask += 0xff;
+        if (d >= 2) bmask += 0xff00;
+        if (d >= 4) bmask += 0xffff0000;
+
+        if (delta == SIGNEX(delta & bmask, d * BYTE_BITWIDTH - 1)) {
+            set_value(result.compressed.body, delta, result.compressed.size, d);  // set as delta
+            set_value_bitwise(result.compressed.body, 1, i, 1);                   // set bitmask
+            result.compressed.size += d;
+            continue;
+        } else {
+            remove_memory_chunk(result.compressed);
+            result.compressed = copy_memory_chunk(original);
+            break;
+        }
+    }
+
+    result.original = original;
+    result.compression_type = "BDI (multi-base packing)";
+    result.compressed.valid_bitwidth = result.compressed.size * BYTE_BITWIDTH;
+    result.is_compressed = result.compressed.size < original.size ? TRUE : FALSE;
     result.overhead = make_memory_chunk(2, 0);
     result.overhead.valid_bitwidth = 11;
 

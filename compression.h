@@ -80,6 +80,7 @@ CompressionResult bdi_compression(CacheLine original);
 CompressionResult bdi_zero_packing(CacheLine original);
 CompressionResult bdi_repeating(CacheLine original);
 CompressionResult bdi_uni_base_packing(CacheLine original, int k, int d);
+CompressionResult bdi_multi_base_packing(CacheLine original, int k, int d);
 
 // BPC algorithm
 CompressionResult dbp_transformation(CacheLine original, int dstep);
