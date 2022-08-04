@@ -533,13 +533,11 @@ CompressionResult bitplane_compression(CacheLine original) {
             set_value_bitwise(result.compressed.body, 1, result.compressed.valid_bitwidth, 3);
             result.compressed.valid_bitwidth += 3;
             run_length = 0;
-            continue;
-        } else {
+        } else if (run_length > 1) {
             set_value_bitwise(result.compressed.body, 1, result.compressed.valid_bitwidth, 2);
             set_value_bitwise(result.compressed.body, run_length-2, result.compressed.valid_bitwidth + 2, 5);
             result.compressed.valid_bitwidth += 7;
             run_length = 0;
-            continue;
         }
 
         // All 1’s
