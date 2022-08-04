@@ -18,7 +18,7 @@ from models.tools.quanitzation import QuantizationModule
 
 
 parser = argparse.ArgumentParser(description='Extraction Configs')
-parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extractions_quant'), help='Directory of model extraction files', dest='extdir')
+parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, '../extractions_quant'), help='Directory of model extraction files', dest='extdir')
 comp_args, _ = parser.parse_known_args()
 
 
@@ -66,7 +66,7 @@ test_loader = torch.utils.data.DataLoader(
 
 
 if __name__ == '__main__':
-    save_dirpath = os.path.join(os.curdir, 'model_output')
+    save_dirpath = os.path.join(os.curdir, '../model_output')
     os.makedirs(save_dirpath, exist_ok=True)
 
     extracted_resultfiles = []

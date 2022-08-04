@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 
 parser = argparse.ArgumentParser(description='Extraction Configs')
-parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extractions_quant'), help='Directory of model extraction files', dest='extdir')
+parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, '../extractions_quant'), help='Directory of model extraction files', dest='extdir')
 comp_args, _ = parser.parse_known_args()
 
 
@@ -22,6 +22,7 @@ for model_name in model_list:
     with open(result_path, 'rt') as file:
         content = file.readlines()
 
+    print(model_name)
     algo_indexes = list(map(lambda x: x.strip(), content[0].split(',')))[1:]
     avg_cratio = np.array([0] * len(algo_indexes), dtype=float)
     size_sum = 0
