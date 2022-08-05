@@ -12,10 +12,7 @@ comp_args, _ = parser.parse_known_args()
 categories = []
 results = {}
 
-model_list = list(os.listdir(comp_args.extdir))
-if 'ResNet50_Imagenet_output' in model_list:
-    model_list.remove('ResNet50_Imagenet_output')
-    model_list.append('ResNet50_Imagenet_output')
+model_list = sorted(list(os.listdir(comp_args.extdir)))
 
 for model_name in model_list:
     result_path = os.path.join(comp_args.extdir, model_name, 'comparison_results.csv')
@@ -53,7 +50,7 @@ for idx, (key, val) in enumerate(results.items()):
     for i, j in zip(xval, val):
         plt.annotate(f"{j:.2f}", xy=(i, j+0.2), ha='center')
 plt.xticks(x_axis, categories, rotation=0, ha='center')
-plt.ylim([0, 6])
+plt.ylim([0, 10])
 
 plt.title("Compression algorithm comparison on DL weight (FP32)")
 plt.legend()

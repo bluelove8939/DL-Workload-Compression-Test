@@ -36,6 +36,7 @@ cnt, tmp = 2, logfilename
 while tmp in os.listdir(logdirname):
     name, extn = logfilename.split('.')
     tmp = '.'.join([name + str(cnt),  extn])
+    cnt += 1
 logfilename = tmp
 
 print("Compression Test Config")

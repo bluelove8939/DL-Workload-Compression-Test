@@ -58,7 +58,7 @@ def print_binary(binstr: str, swidth: int=8, startswith='', endswith='\n') -> No
 
 def delta_transform(arr: np.ndarray, wordwidth: int) -> Iterable:
     base = array2binary(arr[0], wordwidth)
-    diffs = [array2binary(d, wordwidth+1) for d in arr[1:] - arr[0:1]]
+    diffs = [array2binary(d, wordwidth+1) for d in arr[1:] - arr[0:-1]]
     return base, diffs
 
 def dbp_transform(arr: np.ndarray, wordwidth: int) -> Iterable:
@@ -135,7 +135,7 @@ class Compressor(object):
 
         return binarr
 
-    def calc_compression_ratio(self, maxiter: int=None, verbose: int=1) -> float:
+    def calc_compression_ratio(self, maxiter: int=-1, verbose: int=1) -> float:
         total_original_size = 0
         total_compressed_size = 0
         cntiter = 0
@@ -160,7 +160,7 @@ class Compressor(object):
                 print(f"\rcursor: {self.stream.cursor}/{self.stream.fullsize()} "
                       f"(maxiter {'N/A' if maxiter is None else maxiter})  "
                       f"compression ratio: {original_size / compressed_size:.6f} "
-                      f"({total_original_size / total_compressed_size:.6f})", end='')
+                      f"({total_original_size / total_compressed_size:.6f})", end='          ')
             elif verbose == 2:
                 print(f"\rcursor: {self.stream.cursor}/{self.stream.fullsize()} "
                       f"(maxiter {'N/A' if maxiter is None else maxiter})  "
