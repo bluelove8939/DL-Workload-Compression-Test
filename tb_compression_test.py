@@ -7,14 +7,16 @@ from custom_streams import FileStream
 
 
 parser = argparse.ArgumentParser(description='Extraction Configs')
-parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extractions'),
+parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extractions'), type=str,
                     help='Directory of model extraction files', dest='dirname')
-parser.add_argument('-cs', '--chunksize', default=128, help='Size of a chunk (Bytes)', dest='chunksize')
-parser.add_argument('-wd', '--wordwidth', default=32, help='Bitwidth of a word (Bits)', dest='wordwidth')
-parser.add_argument('-mi', '--maxiter', default=10, help='Number of maximum iteration', dest='maxiter')
+parser.add_argument('-cs', '--chunksize', default=128, type=int, help='Size of a chunk (Bytes)', dest='chunksize')
+parser.add_argument('-wd', '--wordwidth', default=32, type=int, help='Bitwidth of a word (Bits)', dest='wordwidth')
+parser.add_argument('-mi', '--maxiter', default=-1, type=int,
+                    help='Number of maximum iteration (-1 for no limitation)', dest='maxiter')
+parser.add_argument('-dt', '--dtype', default='float32', type=str, help='Dtype of numpy array', dest='dtypename')
 parser.add_argument('-ld', '--logdirname', default=os.path.join(os.curdir, 'logs'),
                     help='Directory of output log files', dest='logdirname')
-parser.add_argument('-lf', '--logfilename', default='compression_test_result.csv',
+parser.add_argument('-lf', '--logfilename', default='compression_test_result.csv', type=str,
                     help='Name of logfile', dest='logfilename')
 comp_args, _ = parser.parse_known_args()
 
@@ -22,7 +24,8 @@ comp_args, _ = parser.parse_known_args()
 dirname = comp_args.dirname
 chunksize = comp_args.chunksize
 wordwidth = comp_args.wordwidth
-maxiter = comp_args.maxiter
+maxiter = comp_args.maxiter if comp_args.maxiter != -1 else None
+dtypename = comp_args.dtypename
 logdirname = comp_args.logdirname
 logfilename = comp_args.logfilename
 
@@ -31,6 +34,7 @@ print(f"- dirname: {dirname}")
 print(f"- chunksize: {chunksize}")
 print(f"- wordwidth: {wordwidth}")
 print(f"- maxiter: {'undefined' if maxiter is None else maxiter}")
+print(f"- dtype: {dtypename}")
 print(f"- logfilepath: {os.path.join(logdirname, logfilename)}\n")
 
 results = {}
@@ -44,10 +48,10 @@ for modelname in os.listdir(dirname):
 
         file_fullpath = os.path.join(dirname, modelname, filename)
         stream = FileStream()
-        stream.load_filepath(filepath=file_fullpath, dtype=np.dtype('<f'))
+        stream.load_filepath(filepath=file_fullpath, dtype=np.dtype(dtypename))
 
         compressor = BitPlaneCompressor(stream=stream, bandwidth=chunksize, wordbitwidth=wordwidth)
-        comp_ratio = compressor.calc_compression_ratio(verbose=1)
+        comp_ratio = compressor.calc_compression_ratio(maxiter=maxiter, verbose=1)
         results[file_fullpath] = ','.join(list(map(str, [modelname, filename, stream.fullsize(), comp_ratio])))
 
         print(f"\ntotal compression ratio: {comp_ratio:.6f}\n")

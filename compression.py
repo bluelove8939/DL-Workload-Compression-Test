@@ -168,7 +168,7 @@ class Compressor(object):
                       f"({total_original_size / total_compressed_size:.6f})")
 
             cntiter += 1
-            if maxiter is not None and cntiter > maxiter:
+            if maxiter is not None and cntiter >= maxiter:
                 break
 
         return original_size / compressed_size
