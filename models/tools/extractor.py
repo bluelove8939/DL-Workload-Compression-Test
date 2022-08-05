@@ -91,7 +91,7 @@ class ModelExtractor(object):
                         print(f"error occurred on extracting {parsed_name}")
                     break
 
-    def save_params(self, savepath: str=AUTO, only_quant=True):
+    def save_params(self, savepath: str=AUTO, only_quant=False):
         if savepath == AUTO:
             savepath = os.path.join(os.curdir, 'extraced_output', self.output_modelname, 'params')
         os.makedirs(savepath, exist_ok=True)
@@ -112,7 +112,7 @@ class ModelExtractor(object):
         with open(os.path.join(savepath, 'filelist.txt'), 'wt') as filelist:
             filelist.write('\n'.join([os.path.join(savepath, layer_name) for layer_name in saved_params]))
 
-    def save_activation(self, savepath: str=AUTO, only_quant=True):
+    def save_activation(self, savepath: str=AUTO, only_quant=False):
         if savepath == AUTO:
             savepath = os.path.join(os.curdir, 'extraced_output', self.output_modelname, 'activations')
         os.makedirs(savepath, exist_ok=True)
