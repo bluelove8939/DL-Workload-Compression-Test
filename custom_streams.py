@@ -8,6 +8,7 @@ import numpy as np
 class CustomStream(metaclass=abc.ABCMeta):
     def __init__(self):
         self.cursor = None
+        self.name = "CustomStream"
 
     @abc.abstractmethod
     def reset(self):
@@ -21,18 +22,23 @@ class CustomStream(metaclass=abc.ABCMeta):
     def fullsize(self):
         pass
 
+    def __str__(self):
+        return self.name
+
 
 class FileStream(CustomStream):
     def __init__(self, filepath: str=None, dtype: np.dtype=None) -> None:
         super(FileStream, self).__init__()
-        self.filepath = filepath
+        self._filepath = filepath
         self.dtype = dtype
         self.cursor = 0
+        self.name = f"FileStream: {filepath}"
 
     def load_filepath(self, filepath: str, dtype: np.dtype) -> None:
-        self.filepath = filepath
+        self._filepath = filepath
         self.dtype = dtype
         self.reset()
+        self.name = f"FileStream: {filepath}"
 
     def reset(self) -> None:
         self.cursor = 0
@@ -41,7 +47,7 @@ class FileStream(CustomStream):
         if self.cursor + size > self.fullsize():
             return None
 
-        with open(self.filepath, 'rb') as file:
+        with open(self._filepath, 'rb') as file:
             file.seek(self.cursor)
             content = file.read(size)
             arr = np.frombuffer(content, dtype=self.dtype)
@@ -50,7 +56,7 @@ class FileStream(CustomStream):
         return arr
 
     def fullsize(self):
-        return os.path.getsize(self.filepath)
+        return os.path.getsize(self._filepath)
 
 
 class DataStream(CustomStream):
@@ -58,6 +64,7 @@ class DataStream(CustomStream):
         super(DataStream, self).__init__()
         self._rawdata = rawdata
         self.cursor = 0
+        self.name = "DataStream"
 
     def load_rawdata(self, rawdata: np.ndarray) -> None:
         self._rawdata = rawdata

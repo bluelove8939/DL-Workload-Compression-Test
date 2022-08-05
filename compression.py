@@ -120,8 +120,8 @@ class Compressor(object):
         self.wordbitwidth = wordbitwidth  # wordwidth in bits
         self.stream = stream              # to fetch chunk from data or file
 
-    def step(self, verbose=1) -> str:
-        stepsiz = int(self.bandwidth / (self.wordbitwidth / 8))
+    def step(self, verbose: int=1) -> str:
+        stepsiz = int(self.bandwidth)
         arr = self.stream.fetch(size=stepsiz)
 
         if arr is None:
@@ -135,12 +135,15 @@ class Compressor(object):
 
         return binarr
 
-    def calc_compression_ratio(self, maxiter: int=None, verbose=1) -> float:
+    def calc_compression_ratio(self, maxiter: int=None, verbose: int=1) -> float:
         total_original_size = 0
         total_compressed_size = 0
         cntiter = 0
 
         self.stream.reset()
+
+        if verbose:
+            print(f"compression ratio test with {self.stream}")
 
         while True:
             binarr = self.step(verbose)

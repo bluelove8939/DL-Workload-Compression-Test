@@ -43,37 +43,12 @@ for modelname in os.listdir(dirname):
             continue
 
         file_fullpath = os.path.join(dirname, modelname, filename)
+        stream = FileStream()
+        stream.load_filepath(filepath=file_fullpath, dtype=np.dtype('<f'))
 
-        with open(file_fullpath, 'rb') as file:
-            filesize = os.path.getsize(file_fullpath)
-            original_total_size = 0
-            compressed_total_size = 0
-
-            print(f"reading {file_fullpath} ({filesize}Bytes)")
-
-            for offset in range(0, filesize, chunksize):
-                content = file.read(chunksize)
-                arr = np.frombuffer(content, dtype=np.dtype('<f'))
-
-                original = array2binary(arr, wordwidth)
-                compressed = bitplane_compression(arr, wordwidth)
-
-                original_total_size += len(original)
-                compressed_total_size += len(compressed)
-
-                print(f"\r[OFFSET {offset}Bytes] compression ratio: {len(original) / len(compressed):.6f} "
-                      f"({original_total_size / compressed_total_size:.6f})", end='')
-
-                if maxiter is not None and offset > maxiter * chunksize:
-                    break
-
-            comp_ratio = original_total_size / compressed_total_size
-            results[file_fullpath] = ','.join(list(map(str, [modelname, filename, filesize, comp_ratio])))
-
-        # stream = FileStream(filepath=file_fullpath, dtype=np.dtype('<f'))
-        # compressor = BitPlaneCompressor(stream=stream, bandwidth=chunksize, wordbitwidth=wordwidth)
-        # comp_ratio = compressor.calc_compression_ratio()
-        # results[file_fullpath] = ','.join(list(map(str, [modelname, filename, stream.fullsize(), comp_ratio])))
+        compressor = BitPlaneCompressor(stream=stream, bandwidth=chunksize, wordbitwidth=wordwidth)
+        comp_ratio = compressor.calc_compression_ratio(verbose=1)
+        results[file_fullpath] = ','.join(list(map(str, [modelname, filename, stream.fullsize(), comp_ratio])))
 
         print(f"\ntotal compression ratio: {comp_ratio:.6f}\n")
 
