@@ -69,9 +69,10 @@ class ModelExtractor(object):
 
     def extract_activation(self, dataloader, max_iter=5):
         iter_cnt = 0
+        self.target_model.eval()
 
         for X, y in dataloader:
-            if iter_cnt > max_iter:
+            if iter_cnt >= max_iter:
                 break
             else:
                 iter_cnt += 1
