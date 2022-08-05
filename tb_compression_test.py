@@ -24,7 +24,7 @@ comp_args, _ = parser.parse_known_args()
 dirname = comp_args.dirname
 chunksize = comp_args.chunksize
 wordwidth = comp_args.wordwidth
-maxiter = comp_args.maxiter if comp_args.maxiter != -1 else None
+maxiter = comp_args.maxiter
 dtypename = comp_args.dtypename
 logdirname = comp_args.logdirname
 logfilename = comp_args.logfilename
@@ -33,7 +33,7 @@ print("Compression Test Config")
 print(f"- dirname: {dirname}")
 print(f"- chunksize: {chunksize}")
 print(f"- wordwidth: {wordwidth}")
-print(f"- maxiter: {'undefined' if maxiter is None else maxiter}")
+print(f"- maxiter: {maxiter}")
 print(f"- dtype: {dtypename}")
 print(f"- logfilepath: {os.path.join(logdirname, logfilename)}\n")
 
