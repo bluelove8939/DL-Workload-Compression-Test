@@ -148,7 +148,7 @@ class Compressor(object):
         while True:
             binarr = self.step(verbose)
             if binarr == Compressor.STOPCODE:
-                return total_original_size / total_compressed_size
+                return total_original_size / total_compressed_size if total_compressed_size != 0 else 0
 
             original_size = self.bandwidth * 8
             compressed_size = len(binarr)

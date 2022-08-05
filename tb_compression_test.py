@@ -4,6 +4,7 @@ import argparse
 
 from compression import BitPlaneCompressor, array2binary, bitplane_compression
 from custom_streams import FileStream
+from file_quant import FileQuantizer
 
 
 parser = argparse.ArgumentParser(description='Extraction Configs')
@@ -14,6 +15,7 @@ parser.add_argument('-wd', '--wordwidth', default=32, type=int, help='Bitwidth o
 parser.add_argument('-mi', '--maxiter', default=-1, type=int,
                     help='Number of maximum iteration (-1 for no limitation)', dest='maxiter')
 parser.add_argument('-dt', '--dtype', default='float32', type=str, help='Dtype of numpy array', dest='dtypename')
+parser.add_argument('-qdt', '--quant-dtype', default='none', type=str, help='Dtype for quantization', dest='qdtypename')
 parser.add_argument('-ld', '--logdirname', default=os.path.join(os.curdir, 'logs'),
                     help='Directory of output log files', dest='logdirname')
 parser.add_argument('-lf', '--logfilename', default='compression_test_result.csv', type=str,
@@ -26,6 +28,7 @@ chunksize = comp_args.chunksize
 wordwidth = comp_args.wordwidth
 maxiter = comp_args.maxiter
 dtypename = comp_args.dtypename
+qdtypename = comp_args.qdtypename
 logdirname = comp_args.logdirname
 logfilename = comp_args.logfilename
 
@@ -35,6 +38,7 @@ print(f"- chunksize: {chunksize}")
 print(f"- wordwidth: {wordwidth}")
 print(f"- maxiter: {maxiter}")
 print(f"- dtype: {dtypename}")
+print(f"- quantization: {qdtypename}")
 print(f"- logfilepath: {os.path.join(logdirname, logfilename)}\n")
 
 results = {}
@@ -48,7 +52,14 @@ for modelname in os.listdir(dirname):
 
         file_fullpath = os.path.join(dirname, modelname, filename)
         stream = FileStream()
-        stream.load_filepath(filepath=file_fullpath, dtype=np.dtype(dtypename))
+
+        if qdtypename != 'none':
+            qfile_fullpath = os.path.join(os.curdir, 'extractions_quant_wfile', modelname, filename)
+            quantizer = FileQuantizer(orig_dtype=np.dtype(dtypename), quant_dtype=np.dtype(qdtypename))
+            quantizer.quantize(filepath=file_fullpath, output_filepath=qfile_fullpath)
+            stream.load_filepath(filepath=qfile_fullpath, dtype=np.dtype(qdtypename))
+        else:
+            stream.load_filepath(filepath=file_fullpath, dtype=np.dtype(dtypename))
 
         compressor = BitPlaneCompressor(stream=stream, bandwidth=chunksize, wordbitwidth=wordwidth)
         comp_ratio = compressor.calc_compression_ratio(maxiter=maxiter, verbose=1)

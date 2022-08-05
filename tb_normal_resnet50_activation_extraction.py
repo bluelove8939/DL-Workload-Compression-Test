@@ -1,7 +1,5 @@
 import os
 import argparse
-import platform
-import subprocess
 
 import torch
 from torch.utils.data import DataLoader
@@ -15,18 +13,19 @@ from models.tools.extractor import ModelExtractor, weight_trace, bias_trace
 
 
 parser = argparse.ArgumentParser(description='Extraction Configs')
-parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, '../extractions'), help='Directory of model extraction files', dest='extdir')
+parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extractions'),
+                    help='Directory of model extraction files', dest='extdir')
 comp_args, _ = parser.parse_known_args()
 
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-print(f"Using {device} device")
+print(f"Using {device} device ({__name__})")
 
 
 # Dataset configuration
 dataset_dirname = args.data
 if not os.path.isdir(dataset_dirname):
-    dataset_dirname = os.path.join('../..', '..', 'data', 'imagenet')
+    dataset_dirname = os.path.join('..', '..', 'data', 'imagenet')
 
 train_dataset = datasets.ImageFolder(
         os.path.join(dataset_dirname, 'train'),
@@ -63,10 +62,10 @@ test_loader = torch.utils.data.DataLoader(
 
 
 if __name__ == '__main__':
-    save_dirpath = os.path.join(os.curdir, '../model_output')
+    save_dirpath = os.path.join(os.curdir, 'model_output')
     os.makedirs(save_dirpath, exist_ok=True)
 
-    extractor_module = ModelExtractor()
+    extractor_module = ModelExtractor(verbose=True)
     extracted_resultfiles = []
 
     model_type = 'ResNet50'
