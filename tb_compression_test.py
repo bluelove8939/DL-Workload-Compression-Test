@@ -46,8 +46,11 @@ results = {}
 
 # Read each files and compress with given algorithms
 for modelname in os.listdir(dirname):
+    if 'output' not in modelname:
+        continue
+
     for filename in os.listdir(os.path.join(dirname, modelname)):
-        if filename.__contains__('comparison_result') or filename.__contains__('filelist'):
+        if 'comparison_result' in filename or 'filelist' in filename:
             continue
 
         file_fullpath = os.path.join(dirname, modelname, filename)

@@ -20,7 +20,7 @@ comp_args, _ = parser.parse_known_args()
 
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-print(f"Using {device} device")
+# print(f"Using {device} device")
 
 
 # # Dataset configuration
@@ -72,7 +72,7 @@ if __name__ == '__main__':
         save_modelname = f"{model_type}_Imagenet.pth"
         save_fullpath = os.path.join(save_dirpath, save_modelname)
 
-        print("Test Configs:")
+        print("\nTest Configs:")
         print(f"- full modelname: {full_modelname}")
         print(f"- save modelname: {save_modelname}")
         print(f"- save fullpath:  {save_fullpath}\n")
@@ -93,4 +93,4 @@ if __name__ == '__main__':
         extractor_module.extract_params()                           # extract paramters
         extractor_module.save_params(savepath=save_extraction_dir)  # save extracted parameters
 
-        print(f"extracting '{full_modelname}' completed")
+        print(f"extracting '{full_modelname}' completed\n\n")

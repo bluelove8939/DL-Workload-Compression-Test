@@ -19,7 +19,7 @@ comp_args, _ = parser.parse_known_args()
 
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-print(f"Using {device} device ({__name__})")
+# print(f"Using {device} device ({__name__})")
 
 
 # Dataset configuration
@@ -68,35 +68,30 @@ if __name__ == '__main__':
     extractor_module = ModelExtractor(verbose=True)
     extracted_resultfiles = []
 
-    model_type = 'ResNet50'
-    full_modelname = f"{model_type}_Imagenet"
-    save_modelname = f"{model_type}_Imagenet.pth"
-    save_fullpath = os.path.join(save_dirpath, save_modelname)
+    for model_type, model_config in imagenet_pretrained.items():
+        full_modelname = f"{model_type}_Imagenet"
+        save_modelname = f"{model_type}_Imagenet.pth"
+        save_fullpath = os.path.join(save_dirpath, save_modelname)
 
-    print("Test Configs:")
-    print(f"- full modelname: {full_modelname}")
-    print(f"- save modelname: {save_modelname}")
-    print(f"- save fullpath:  {save_fullpath}\n")
+        print("\nTest Configs:")
+        print(f"- full modelname: {full_modelname}")
+        print(f"- save modelname: {save_modelname}")
+        print(f"- save fullpath:  {save_fullpath}\n")
 
-    model_config = imagenet_pretrained[model_type]
-    model = model_config.generate().to(device)
-    torch.save(model.state_dict(), save_fullpath)
+        model = model_config.generate().to(device)
+        torch.save(model.state_dict(), save_fullpath)
 
-    save_extraction_dir = os.path.join(comp_args.extdir, full_modelname + '_output')
-    os.makedirs(save_extraction_dir, exist_ok=True)
+        save_extraction_dir = os.path.join(comp_args.extdir, full_modelname + '_output')
+        os.makedirs(save_extraction_dir, exist_ok=True)
 
-    print(f"extracting '{full_modelname}' at {save_extraction_dir}")
+        print(f"extracting '{full_modelname}' at {save_extraction_dir}")
 
-    extractor_module.target_model = model
-    extractor_module.output_modelname = full_modelname
-    extractor_module.reset()
-    extractor_module.register_hook(model.conv1, 'conv1')
-    extractor_module.register_hook(model.layer1, 'layer1')
-    extractor_module.register_hook(model.layer2, 'layer2')
-    extractor_module.register_hook(model.layer3, 'layer3')
-    extractor_module.register_hook(model.layer4, 'layer4')
-    extractor_module.register_hook(model.fc, 'fc')
-    extractor_module.extract_activation(test_loader, max_iter=5)
-    extractor_module.save_activation(savepath=save_extraction_dir)
+        extractor_module.target_model = model
+        extractor_module.output_modelname = full_modelname
+        extractor_module.reset()
+        for layer_name, layer_obj in model_config.traced_layers(extractor_module.target_model).items():
+            extractor_module.register_hook(layer_obj, layer_name)
+        extractor_module.extract_activation(test_loader, max_iter=3)
+        extractor_module.save_activation(savepath=save_extraction_dir)
 
-    print(f"extracting '{full_modelname}' completed")
+        print(f"extracting '{full_modelname}' completed\n\n")
