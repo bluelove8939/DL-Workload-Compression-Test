@@ -32,6 +32,12 @@ qdtypename = comp_args.qdtypename
 logdirname = comp_args.logdirname
 logfilename = comp_args.logfilename
 
+cnt, tmp = 2, logfilename
+while tmp in os.listdir(logdirname):
+    name, extn = logfilename.split('.')
+    tmp = '.'.join([name + str(cnt),  extn])
+logfilename = tmp
+
 print("Compression Test Config")
 print(f"- dirname: {dirname}")
 print(f"- chunksize: {chunksize}")
