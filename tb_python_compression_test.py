@@ -2,7 +2,7 @@ import os
 import numpy as np
 import argparse
 
-from compression import BitPlaneCompressor, array2binary, bitplane_compression
+from compression import BitPlaneCompressor, BDICompressor
 from custom_streams import FileStream
 from file_quant import FileQuantizer
 
@@ -71,15 +71,22 @@ for modelname in os.listdir(dirname):
         else:
             stream.load_filepath(filepath=file_fullpath, dtype=np.dtype(dtypename))
 
-        compressor = BitPlaneCompressor(stream=stream, bandwidth=chunksize, wordbitwidth=wordwidth)
-        comp_ratio = compressor.calc_compression_ratio(maxiter=maxiter, verbose=1)
-        results[file_fullpath] = ','.join(list(map(str, [modelname, filename, stream.fullsize(), comp_ratio])))
+        print(f"compression ratio test with {stream}")
+        bpc_compressor = BitPlaneCompressor(stream=stream, bandwidth=chunksize, wordbitwidth=wordwidth)
+        bpc_comp_ratio = bpc_compressor.calc_compression_ratio(maxiter=maxiter, verbose=1)
+        print()
+        bdi_compressor = BDICompressor(stream=stream, bandwidth=chunksize, wordbitwidth=wordwidth)
+        bdi_comp_ratio = bdi_compressor.calc_compression_ratio(maxiter=maxiter, verbose=1)
 
-        print(f"\ntotal compression ratio: {comp_ratio:.6f}\n")
+        results[file_fullpath] = ','.join(list(map(str, [
+            modelname, filename, stream.fullsize(), bpc_comp_ratio, bdi_comp_ratio,
+        ])))
+
+        print(f"\ntotal compression ratio: {bpc_comp_ratio:.6f}(BPC)  {bdi_comp_ratio:.6f}(BDI)\n")
 
 
 # Save compression test results
-categories = ['Model Name', 'Param Name', 'File Size(Bytes)', 'Comp Ratio(BPC)']
+categories = ['Model Name', 'Param Name', 'File Size(Bytes)', 'Comp Ratio(BPC)', 'Comp Ratio(BDI)']
 os.makedirs(logdirname, exist_ok=True)
 with open(os.path.join(logdirname, logfilename), 'wt') as file:
     file.write('\n'.join([','.join(categories)] + list(results.values())))

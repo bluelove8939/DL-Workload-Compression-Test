@@ -318,9 +318,14 @@ CompressionResult bdi_multi_base_packing(CacheLine original, int k, int d) {
     result.compressed.size = base_mask_offset / BYTE_BITWIDTH;
 
     for (int i = 0; i < original.size / k; i++) {
+        bmask = 0x00;
+        if (d >= 1) bmask += 0xff;
+        if (d >= 2) bmask += 0xff00;
+        if (d >= 4) bmask += 0xffff0000;
+
         buffer = get_value(original.body, i * k, k);
 
-        if (buffer == SIGNEX(buffer, d * BYTE_BITWIDTH - 1)) {
+        if (buffer == SIGNEX(buffer & bmask, d * BYTE_BITWIDTH - 1)) {
             set_value(result.compressed.body, buffer, result.compressed.size, d);  // set as narrow delta
             result.compressed.size += d;
             continue;
@@ -332,10 +337,6 @@ CompressionResult bdi_multi_base_packing(CacheLine original, int k, int d) {
         }
 
         delta = buffer - base;
-        bmask = 0x00;
-        if (d >= 1) bmask += 0xff;
-        if (d >= 2) bmask += 0xff00;
-        if (d >= 4) bmask += 0xffff0000;
 
         if (delta == SIGNEX(delta & bmask, d * BYTE_BITWIDTH - 1)) {
             set_value(result.compressed.body, delta, result.compressed.size, d);  // set as delta
