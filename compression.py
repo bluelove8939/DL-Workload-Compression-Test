@@ -189,7 +189,7 @@ def bdi_twobase_pack(arr: np.ndarray, wordwidth: int, k: int, d: int, encoding: 
             base = binary2integer(binnum, k * 8)
 
         buffer = binary2integer(binnum, k * 8)
-        delta = integer2binary(buffer - base, k * 8)
+        delta = integer2binary(buffer - base, k * 8 + 1)
 
         if binary_shrinkable(delta, d * 8):
             compressed += delta[len(delta) - d * 8:]
