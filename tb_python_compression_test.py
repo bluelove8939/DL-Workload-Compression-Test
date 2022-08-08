@@ -71,7 +71,7 @@ for modelname in os.listdir(dirname):
         else:
             stream.load_filepath(filepath=file_fullpath, dtype=np.dtype(dtypename))
 
-        print(f"compression ratio test with {stream}")
+        print(f"compression ratio test with {stream}({stream.fullsize()}Bytes)")
         bpc_compressor = BitPlaneCompressor(stream=stream, bandwidth=chunksize, wordbitwidth=wordwidth)
         bpc_comp_ratio = bpc_compressor.calc_compression_ratio(maxiter=maxiter, verbose=1)
         print()
