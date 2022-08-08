@@ -53,7 +53,7 @@ def array2binary(arr: np.ndarray, wordwidth: int=None) -> str:
     return binarr
 
 def binary2array(binarr: str, wordwidth: int) -> np.ndarray:
-    arr = np.array([binarr[i:i+wordwidth] for i in range(0, len(binarr), wordwidth)])
+    arr = np.array([binary2integer(binarr[i:i+wordwidth], wordwidth) for i in range(0, len(binarr), wordwidth)])
     return arr
 
 def print_binary(binstr: str, swidth: int=8, startswith='', endswith='\n') -> None:
@@ -198,6 +198,37 @@ def bdi_twobase_pack(arr: np.ndarray, wordwidth: int, k: int, d: int, encoding: 
             return binarr
 
     return bin(encoding).zfill(4) + zeromask + integer2binary(base, k * 8) + compressed
+
+def bdi_decompression(binarr: str, wordwidth: int, chunksize: int) -> np.ndarray:
+    encoding = int(binarr[:4], 2)
+
+    if encoding == 0:
+        return np.array([0] * int(chunksize / (wordwidth / 8)))
+    elif encoding == 1:
+        return np.array([binary2integer(binarr[4:68], wordwidth)] * int(chunksize / (wordwidth / 8)))
+    elif encoding == 2:
+        k, d = 8, 1
+    elif encoding == 3:
+        k, d = 8, 2
+    elif encoding == 4:
+        k, d = 8, 4
+    elif encoding == 5:
+        k, d = 4, 1
+    elif encoding == 6:
+        k, d = 4, 2
+    elif encoding == 7:
+        k, d = 2, 1
+    else:
+        return binary2array(binarr, wordwidth)
+
+    pivot = 4
+    zeromask = binarr[pivot:pivot + int(np.log2(chunksize / k))]
+    pivot += int(np.log2(chunksize / k))
+    base = binarr[pivot:pivot+k*8]
+    pivot += k*8
+    compressed = binarr[pivot:]
+
+    return np.array([])
 
 
 # Compressor module
