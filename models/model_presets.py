@@ -44,6 +44,16 @@ imagenet_pretrained = {
         weights=torchvision.models.ResNet50_Weights.IMAGENET1K_V1,
         default_traces=('conv1', 'layer1', 'layer2', 'layer3', 'layer4',),
     ),
+    'ResNet34': ModelConfig(
+        torchvision.models.resnet34,
+        weights=torchvision.models.ResNet34_Weights.IMAGENET1K_V1,
+        default_traces=('conv1', 'layer1', 'layer2', 'layer3', 'layer4',),
+    ),
+    'ResNet18': ModelConfig(
+        torchvision.models.resnet18,
+        weights=torchvision.models.ResNet18_Weights.IMAGENET1K_V1,
+        default_traces=('conv1', 'layer1', 'layer2', 'layer3', 'layer4',),
+    ),
     'AlexNet': ModelConfig(
         torchvision.models.alexnet,
         weights=torchvision.models.AlexNet_Weights.IMAGENET1K_V1.IMAGENET1K_V1,

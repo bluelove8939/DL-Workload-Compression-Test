@@ -69,6 +69,9 @@ if __name__ == '__main__':
     extracted_resultfiles = []
 
     for model_type, model_config in imagenet_pretrained.items():
+        if model_type != 'ResNet18' and model_type != 'ResNet34':
+            continue
+
         full_modelname = f"{model_type}_Imagenet"
         save_modelname = f"{model_type}_Imagenet.pth"
         save_fullpath = os.path.join(save_dirpath, save_modelname)
