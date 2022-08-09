@@ -35,7 +35,7 @@ class FileQuantizer(object):
 
 
 if __name__ == '__main__':
-    dirname = os.path.join(os.curdir, 'extractions', 'ResNet50_Imagenet')
+    dirname = os.path.join(os.curdir, '../extractions', 'ResNet50_Imagenet')
     filepath = os.path.join(dirname, 'ResNet50_Imagenet_conv1_weight')
 
     quant_dirname = os.path.join(os.curdir, 'extractions_quant_wfiles', 'ResNet50_Imagenet')
@@ -48,7 +48,7 @@ if __name__ == '__main__':
     quantizer.quantize(filepath=filepath, output_filepath=quant_filepath)
 
     from compression import array2binary, print_binary
-    from custom_streams import FileStream
+    from compression.custom_streams import FileStream
 
     stream = FileStream(filepath=filepath, dtype=np.dtype('float32'))
     arr = stream.fetch(32)

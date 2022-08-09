@@ -88,3 +88,73 @@ class DataStream(CustomStream):
 
     def fullsize(self):
         return self._rawdata.shape[0]
+
+
+class MemoryStream(CustomStream):
+    SEEKEND: str = 'SEEKEND'  # end position (address -1)
+    SEEKCUR: str = 'SEEKCUR'  # current position (current cursor)
+    SEEKSTR: str = 'SEEKSTR'  # starting position (address 0)
+
+    def __init__(self, cacheline_size: int, dtype: np.dtype) -> None:
+        super(MemoryStream, self).__init__()
+        self._storage: list = []
+        self._cacheline_size: int = cacheline_size
+        self.cursor: int = 0
+        self.dtype = dtype
+        self.name: str = "MemoryStream"
+
+    def reset(self) -> None:
+        self._storage = []
+        self._memsize = 0
+        self.cursor = 0
+
+    def fetch(self, size: int) -> np.ndarray or None:
+        if self.cursor + size > self.fullsize():
+            return None
+
+        content = bytes()
+        for addr in range(self.cursor, self.cursor + size, 1):
+            content += self._storage[addr]
+
+        arr = np.frombuffer(content, dtype=self.dtype)
+        self.cursor += size
+
+        return arr
+
+    def store(self, arr: np.ndarray, store_type: str=SEEKEND) -> int or None:
+        addr = self.cursor
+        if store_type == MemoryStream.SEEKEND:
+            addr = len(self._storage)
+        elif store_type == MemoryStream.SEEKSTR:
+            addr = 0
+
+        while addr >= len(self._storage):
+            self._storage.append(None)
+
+        barr = arr.tobytes()
+        if len(barr) > self._cacheline_size: return None
+        self._storage[addr] = barr
+
+        return addr
+
+    def fullsize(self) -> int:
+        return len(self._storage) * self._cacheline_size
+
+    def move_address(self, addr: int) -> None:
+        self.cursor = addr
+
+    def curr_address(self) -> int:
+        return self.cursor
+
+
+if __name__ == '__main__':
+    stream = MemoryStream(cacheline_size=8, dtype=np.dtype('int8'))
+    for i in range(3):
+        addr = stream.store(np.array([i] * 8, dtype=np.dtype('int8')), store_type=MemoryStream.SEEKEND)
+        print(addr)
+    for _ in range(3):
+        arr = stream.fetch(size=1)
+        print(arr)
+    stream.move_address(addr=0)
+    arr = stream.fetch(size=3)
+    print(arr)

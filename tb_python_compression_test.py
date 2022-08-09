@@ -2,9 +2,9 @@ import os
 import numpy as np
 import argparse
 
-from compression import BitPlaneCompressor, BDICompressor
-from custom_streams import FileStream
-from file_quant import FileQuantizer
+from compression.modules import BitPlaneCompressor, BDICompressor
+from compression.custom_streams import FileStream
+from compression.file_quant import FileQuantizer
 
 
 parser = argparse.ArgumentParser(description='Extraction Configs')
