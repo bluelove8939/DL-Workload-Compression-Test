@@ -1,7 +1,7 @@
 import numpy as np
 from typing import Iterable
-from binary_array import array2binary, binary2array, integer2binary, binary2integer, binary_shrinkable
-from binary_array import binary_xor, binary_and, binary_not, binary_or
+from compression.binary_array import array2binary, binary2array, integer2binary, binary2integer, binary_shrinkable
+from compression.binary_array import binary_xor, binary_and, binary_not, binary_or
 
 
 # Functions for BPC algorithm
@@ -76,11 +76,11 @@ def bitplane_decompression(binarr: str, wordwidth: int, chunksize: int) -> np.nd
             cnt = int(binarr[cursor+2:cursor+2+int(np.ceil(np.log2(wordwidth+1)))], 2) + 2
             for _ in range(cnt):
                 dbxs.append('0' * (arrsize - 1))
-                dbps.append(dbps[-1])
+                dbps.append(dbps[-1] if len(dbps) != 0 else '0' * (arrsize - 1))
             cursor += 2 + int(np.ceil(np.log2(wordwidth+1)))
         elif binarr[cursor:cursor+3] == '001':
             dbxs.append('0' * (arrsize - 1))
-            dbps.append(dbps[-1])
+            dbps.append(dbps[-1] if len(dbps) != 0 else '0' * (arrsize - 1))
             cursor += 3
         elif binarr[cursor:cursor+5] == '00000':
             dbxs.append('1' * (arrsize - 1))
@@ -238,42 +238,52 @@ def bdi_decompression(binarr: str, wordwidth: int, chunksize: int) -> np.ndarray
 
 
 if __name__ == '__main__':
-    from compression.custom_streams import DataStream
+    import os
 
-    # rawdata = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
-    #                     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
-    #                     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
-    #                     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
-    #                     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
-    #                     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,], dtype=np.dtype(int))
+    from binary_array import print_binary
+    from compression.custom_streams import FileStream
 
-    rawdata = np.array([1, 1, 1, 2, 1, 1, 1, 3, 1, 1, 1, 4, 1, 1, 1, 5,
-                        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ], dtype=np.dtype('int8'))
+    filepath = os.path.join(os.curdir, '..', 'extractions_quant_wfile', 'ResNet50_Imagenet_output', 'layer1_output0')
 
-    # rawdata = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    #                     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    #                     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    #                     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], dtype=np.dtype('int8'))
+    comp_method = bdi_compression
+    decomp_method = bdi_decompression
 
-    stream = DataStream()
-    stream.load_rawdata(rawdata=rawdata)
+    stream = FileStream()
+    stream.load_filepath(filepath=filepath, dtype=np.dtype('int8'))
+    chunksize = 32
+    arr, compressed, decompressed = None, None, None
 
-    # comp = BDICompressor(stream=stream, bandwidth=8, wordbitwidth=8)
-    # cratio = comp.calc_compression_ratio(verbose=2)
-    # print(f"total compression ratio: {cratio:.6f}")
+    comp_total = 0
+    orig_total = 0
+    uncomp_cnt = 0
 
-    arr = stream.fetch(8)
-    for num in arr:
-        print(f"{num}", end='\t')
-    print()
-    print(array2binary(arr, wordwidth=8))
+    while True:
+        arr = stream.fetch(chunksize)
+        if arr is None:
+            break
 
-    compressed = bitplane_compression(arr, wordwidth=8)
-    print(compressed)
+        try:
+            compressed = comp_method(arr, wordwidth=8)
+            decompressed = decomp_method(compressed, wordwidth=8, chunksize=chunksize)
+            pass
+        except Exception as e:
+            print("error occurred")
+            print(f"Error: {e}")
+            print(f"original: {arr}")
+            input("Press any key to continue")
+            continue
 
-    original = bitplane_decompression(compressed, wordwidth=8, chunksize=8)
-    for num in original:
-        print(f"{num}", end='\t')
-    print()
+        if np.array_equal(compressed, decompressed):
+            print('\rbitplane compression invalid')
+            print_binary(array2binary(arr, wordwidth=8), swidth=8, startswith='original:     ', endswith='\n')
+            print(f"compressed:   {compressed}")
+            print_binary(array2binary(decompressed, wordwidth=8), swidth=8, startswith='decompressed: ', endswith='\n')
+            input("Press any key to continue\n")
+        else:
+            orig_total += len(array2binary(arr, wordwidth=8))
+            comp_total += len(compressed)
+            uncomp_cnt += 1 if len(compressed) >= len(array2binary(arr, wordwidth=8)) else 0
+
+            print(f"\rcursor: {stream.cursor}/{stream.fullsize()}\t"
+                  f"compression ratio: {len(array2binary(arr, wordwidth=8)) / len(compressed):.4f}"
+                  f"({orig_total / comp_total:.4f}) uncomp_cnt: {uncomp_cnt}", end='')
