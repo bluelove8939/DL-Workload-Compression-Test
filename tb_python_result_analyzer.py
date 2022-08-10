@@ -14,27 +14,28 @@ filepath = comp_args.filepath
 categories = []
 results = {
     'BPC': [],
-    'BDI': [],
+    # 'BDI': [],
     'total size': [],
 }
 
 with open(filepath, 'rt') as file:
     content = list(map(lambda x: x.split(','), file.readlines()[1:]))
     content = sorted(content, key=lambda x: x[0])
-    for model_name, param_name, file_size, bpc_comp_ratio, bdi_comp_ratio in content:
+    # for model_name, param_name, file_size, bpc_comp_ratio, bdi_comp_ratio in content:
+    for model_name, param_name, file_size, bpc_comp_ratio in content:
         model_name = model_name.split('_')[0]
         if model_name not in categories:
             categories.append(model_name)
             results['BPC'].append(int(file_size) / float(bpc_comp_ratio))
-            results['BDI'].append(int(file_size) / float(bdi_comp_ratio))
+            # results['BDI'].append(int(file_size) / float(bdi_comp_ratio))
             results['total size'].append(int(file_size))
         else:
             results['BPC'][categories.index(model_name)] += int(file_size) / float(bpc_comp_ratio)
-            results['BDI'][categories.index(model_name)] += int(file_size) / float(bdi_comp_ratio)
+            # results['BDI'][categories.index(model_name)] += int(file_size) / float(bdi_comp_ratio)
             results['total size'][categories.index(model_name)] += int(file_size)
 
     results['BPC'] = np.array(results['total size']) / np.array(results['BPC'])
-    results['BDI'] = np.array(results['total size']) / np.array(results['BDI'])
+    # results['BDI'] = np.array(results['total size']) / np.array(results['BDI'])
     del results['total size']
 
 width_max = 0.8
