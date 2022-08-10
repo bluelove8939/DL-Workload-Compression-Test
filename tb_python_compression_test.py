@@ -32,6 +32,8 @@ qdtypename = comp_args.qdtypename
 logdirname = comp_args.logdirname
 logfilename = comp_args.logfilename
 
+os.makedirs(logdirname, exist_ok=True)
+
 cnt, tmp = 2, logfilename
 while tmp in os.listdir(logdirname):
     name, extn = logfilename.split('.')
@@ -74,15 +76,16 @@ for modelname in os.listdir(dirname):
         print(f"compression ratio test with {stream}({stream.fullsize()}Bytes)")
         bpc_compressor = BitPlaneCompressor(instream=stream, bandwidth=chunksize, wordbitwidth=wordwidth)
         bpc_comp_ratio = bpc_compressor.calc_compression_ratio(maxiter=maxiter, verbose=1)
-        print()
-        bdi_compressor = BDICompressor(instream=stream, bandwidth=chunksize, wordbitwidth=wordwidth)
-        bdi_comp_ratio = bdi_compressor.calc_compression_ratio(maxiter=maxiter, verbose=1)
+        # print()
+        # bdi_compressor = BDICompressor(instream=stream, bandwidth=64, wordbitwidth=wordwidth)
+        # bdi_comp_ratio = bdi_compressor.calc_compression_ratio(maxiter=maxiter, verbose=1)
 
         results[file_fullpath] = ','.join(list(map(str, [
-            modelname, filename, stream.fullsize(), bpc_comp_ratio, bdi_comp_ratio,
+            modelname, filename, stream.fullsize(), bpc_comp_ratio, # bdi_comp_ratio,
         ])))
 
-        print(f"\ntotal compression ratio: {bpc_comp_ratio:.6f}(BPC)  {bdi_comp_ratio:.6f}(BDI)\n")
+        # print(f"\ntotal compression ratio: {bpc_comp_ratio:.6f}(BPC)  {bdi_comp_ratio:.6f}(BDI)\n")
+        print(f"\ntotal compression ratio: {bpc_comp_ratio:.6f}(BPC)\n")
 
 
 # Save compression test results

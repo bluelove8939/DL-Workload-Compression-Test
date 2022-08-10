@@ -25,7 +25,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 # Dataset configuration
 dataset_dirname = args.data
 if not os.path.isdir(dataset_dirname):
-    dataset_dirname = os.path.join('..', '..', 'data', 'imagenet')
+    dataset_dirname = os.path.join('C://', 'data', 'imagenet')
 
 train_dataset = datasets.ImageFolder(
         os.path.join(dataset_dirname, 'train'),
@@ -69,8 +69,8 @@ if __name__ == '__main__':
     extracted_resultfiles = []
 
     for model_type, model_config in imagenet_pretrained.items():
-        if model_type != 'ResNet18' and model_type != 'ResNet34':
-            continue
+        # if model_type != 'ResNet18' and model_type != 'ResNet34':
+        #     continue
 
         full_modelname = f"{model_type}_Imagenet"
         save_modelname = f"{model_type}_Imagenet.pth"
@@ -92,8 +92,12 @@ if __name__ == '__main__':
         extractor_module.target_model = model
         extractor_module.output_modelname = full_modelname
         extractor_module.reset()
-        for layer_name, layer_obj in model_config.traced_layers(extractor_module.target_model).items():
-            extractor_module.register_hook(layer_obj, layer_name)
+        # for layer_name, layer_obj in model_config.traced_layers(extractor_module.target_model).items():
+        #     extractor_module.register_hook(layer_obj, layer_name)
+        extractor_module.register_hook_by_type(torch.nn.modules.Conv2d)
+        extractor_module.register_hook_by_type(torch.nn.modules.ReLU)
+        extractor_module.register_hook_by_type(torch.nn.modules.ReLU6)
+        extractor_module.register_hook_by_type(torch.nn.modules.BatchNorm2d)
         extractor_module.extract_activation(test_loader, max_iter=3)
         extractor_module.save_activation(savepath=save_extraction_dir)
 

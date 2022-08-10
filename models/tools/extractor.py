@@ -54,14 +54,23 @@ class ModelExtractor(object):
             hidx = 0
             while f"hook{hidx}" in self._hook_names: hidx += 1
             name = f"hook{hidx}"
+            self._hook_names.append(name)
         layer.register_forward_hook(self._extract_hook(name))
+
+    def register_hook_by_type(self, layer_type):
+        for layer in list(filter(lambda m: type(m) == layer_type, self.target_model.modules())):
+            hidx = 0
+            while f"{type(layer).__name__}_{hidx}" in self._hook_names: hidx += 1
+            name = f"{type(layer).__name__}_{hidx}"
+            self._hook_names.append(name)
+            layer.register_forward_hook(self._extract_hook(name))
 
     def _extract_hook(self, name: str):
         def hook(model, layer_input, layer_output):
             oidx = 0
             while f"{name}_output{oidx}" in self._activation.keys(): oidx += 1
             save_output_name = f"{name}_output{oidx}"
-            self._activation[save_output_name] = layer_output.detach()
+            self._activation[save_output_name] = layer_output.contiguous().detach()
             if self._verbose:
                 print(f'extracting {save_output_name} (type: {self._activation[save_output_name].type()})')
 

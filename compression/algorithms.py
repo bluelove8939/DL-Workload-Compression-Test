@@ -1,3 +1,4 @@
+import math
 import numpy as np
 from typing import Iterable
 from compression.binary_array import array2binary, binary2array, integer2binary, binary2integer, binary_shrinkable
@@ -61,6 +62,11 @@ def bitplane_compression(arr: np.ndarray, wordwidth: int) -> str:
             encoded += '00011' + bin(dbx.find('1'))[2:].zfill(int(np.ceil(np.log2(arrlen))))
         else:
             encoded += '1' + dbx
+
+    if run_cnt == 1:
+        encoded += '001'
+    elif run_cnt > 1:
+        encoded += '01' + bin(run_cnt - 2)[2:].zfill(int(np.ceil(np.log2(wordwidth + 1))))
 
     return encoded
 
@@ -139,7 +145,7 @@ def bitplane_decompression(binarr: str, wordwidth: int, chunksize: int) -> np.nd
 
 def bdi_compression(arr: np.ndarray, wordwidth: int) -> str:
     original = array2binary(arr, wordwidth)
-    compressed = original
+    compressed = '1000' + original
 
     for encoding, (packing_method, *args) in enumerate([
         (bdi_zero_pack,), (bdi_repeating_pack,),
@@ -217,7 +223,7 @@ def bdi_decompression(binarr: str, wordwidth: int, chunksize: int) -> np.ndarray
     elif encoding == 7:
         k, d = 2, 1
     else:
-        return binary2array(binarr, wordwidth)
+        return binary2array(binarr[4:], wordwidth)
 
     pivot = 4
     zeromask = binarr[pivot:pivot+int(chunksize / k)]
@@ -229,12 +235,58 @@ def bdi_decompression(binarr: str, wordwidth: int, chunksize: int) -> np.ndarray
 
     for zm, delta in zip(zeromask, compressed):
         if zm == '1':
-            original.append(base + binary2integer(delta, wordwidth=d*8))
+            original.append(base + binary2integer(delta, wordwidth=k*8+1))
         else:
-            original.append(binary2integer(delta, wordwidth=d*8))
+            original.append(binary2integer(delta, wordwidth=k*8))
+        print(base, original)
 
     binarr = array2binary(np.array(original), wordwidth=k*8)
     return binary2array(binarr, wordwidth=wordwidth)
+
+
+# Functions for Zero-RLE algorithm
+#
+# Description
+#   Zero-RLE(Zero Run Length Encoding) algorithm is a compression method
+#
+# Functions
+#   zrle_compression
+#   zrle_decompression
+
+def zrle_compression(arr: np.ndarray, wordwidth: int, max_burst_len=16,) -> str:
+    encoded = ''
+    run_length = 0
+
+    for num in arr.flatten():
+        if num == 0:
+            run_length += 1
+
+        if run_length == max_burst_len or num != 0:
+            encoded += '0' + integer2binary(run_length, math.ceil(np.log2(max_burst_len)))
+            run_length = 0
+
+        if num != 0:
+            encoded += '1' + integer2binary(num, wordwidth)
+
+    if run_length > 0:
+        encoded += '0' + integer2binary(run_length, math.ceil(np.log2(max_burst_len)))
+
+    return encoded
+
+def zrle_decompression(binarr: str, wordwidth: int, chunksize: int, max_burst_len=16,) -> np.ndarray:
+    arr = []
+    cntwidth = math.ceil(np.log2(max_burst_len))
+    cursor = 0
+
+    while cursor < len(binarr):
+        if binarr[cursor] == '0':
+            cnt = binary2integer(binarr[cursor+1:cursor+1+cntwidth], wordwidth=cntwidth)
+            arr += [0] * cnt
+        else:
+            arr += [binary2integer(binarr[cursor+1:cursor+1+wordwidth], wordwidth)]
+
+    return np.array(arr)
+
 
 
 if __name__ == '__main__':
@@ -243,7 +295,7 @@ if __name__ == '__main__':
     from binary_array import print_binary
     from compression.custom_streams import FileStream
 
-    filepath = os.path.join(os.curdir, '..', 'extractions_quant_wfile', 'ResNet50_Imagenet_output', 'layer1_output0')
+    filepath = os.path.join(os.curdir, '..', 'extractions_quant_wfile', 'ResNet50_Imagenet_output', 'Conv2d_0_output0')
 
     comp_method = bdi_compression
     decomp_method = bdi_decompression
@@ -273,10 +325,11 @@ if __name__ == '__main__':
             input("Press any key to continue")
             continue
 
-        if np.array_equal(compressed, decompressed):
+        if array2binary(arr, wordwidth=8) != array2binary(decompressed, wordwidth=8):
             print('\rbitplane compression invalid')
-            print_binary(array2binary(arr, wordwidth=8), swidth=8, startswith='original:     ', endswith='\n')
-            print(f"compressed:   {compressed}")
+            print(arr)
+            print_binary(array2binary(arr, wordwidth=8),          swidth=8, startswith='original:     ', endswith='\n')
+            print_binary(compressed,                              swidth=8, startswith='compressed:   ', endswith='\n')
             print_binary(array2binary(decompressed, wordwidth=8), swidth=8, startswith='decompressed: ', endswith='\n')
             input("Press any key to continue\n")
         else:
