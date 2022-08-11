@@ -4,3 +4,5 @@ extractions_quant/
 extractions_quant_wfile/
 /extractions_quant_wfile_prev/
 /extractions_prev/
+/extractions_activations/
+/extractions_activations_quant_wfile/

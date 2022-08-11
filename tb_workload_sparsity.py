@@ -2,9 +2,9 @@ import os
 import numpy as np
 
 
-lines = []
-
 if __name__ == '__main__':
+    lines = []
+
     dirname = os.path.join(os.curdir, 'extractions')
     for modelname in os.listdir(dirname):
         if 'output' not in modelname:
@@ -26,12 +26,20 @@ if __name__ == '__main__':
                 zerocnt = arrsize - nonzerocnt
 
                 lines.append(','.join(list(map(str, [modelname, filename, arrsize, zerocnt]))))
-                print(f"filename: {filename}  arrsize: {arrsize}  zerocnt: {zerocnt}")
+                print(f"filename: {filename:30s}  arrsize: {arrsize}  zerocnt: {zerocnt}")
 
         print()
 
     logdirname = os.path.join(os.curdir, 'logs')
-    logfilename = 'sparsity_test.csv'
+    logfilename = 'sparsity_test'
 
-    with open(os.path.join(logdirname, logfilename), 'wt') as file:
+    os.makedirs(logdirname, exist_ok=True)
+
+    if logfilename in os.listdir(logdirname):
+        lfidx = 2
+        while f"{logfilename}_{lfidx}" in os.listdir(logdirname):
+            lfidx += 1
+        logfilename = f"{logfilename}{lfidx}"
+
+    with open(os.path.join(logdirname, logfilename + '.csv'), 'wt') as file:
         file.write('\n'.join(lines))

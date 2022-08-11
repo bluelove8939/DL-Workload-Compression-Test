@@ -1,40 +1,32 @@
 import os
 import math
 import numpy as np
+from scipy.stats import entropy as ent_method
 
 
-def shannon_entropy(arr: np.ndarray, bsize: int, base: float) -> float:
+def shannon_entropy(content: bytes, bsize: int, base: float) -> float:
     occurance = {}
-    total_cnt = 0
-    zerocnt = arr.flatten().shape[0] - np.count_nonzero(arr.flatten())
-    arr = arr.tobytes()
-
-    for i in range(0, len(arr), bsize):
-        case = arr[i:i+bsize]
+    for i in range(0, len(content), bsize):
+        case = content[i:i+bsize]
         if case not in occurance.keys():
             occurance[case] = 1
         else:
             occurance[case] += 1
-        total_cnt += 1
 
-    entropy = 0
-    maxval = -1
-    maxval_key = None
+    total_cnt = math.floor(len(content) / bsize)
+    probs = np.array(list(occurance.values())) / total_cnt
+    entropy = np.sum(-1 * probs * np.array(list(map(lambda x: math.log(x, base), probs))))
 
-    for key, val in occurance.items():
-        entropy += -1 * (val / total_cnt) * math.log(val / total_cnt, bsize)
-        if val > maxval:
-            maxval_key = key
+    return float(entropy)
 
-    print(sorted(np.unique(np.array(list(occurance.values()))), reverse=True)[:5], zerocnt, maxval_key)
-
-    return entropy
-
-
-lines = []
 
 if __name__ == '__main__':
-    dirname = os.path.join(os.curdir, 'extractions_quant_wfile')
+    bsize = 4
+    base = 2
+
+    lines = []
+
+    dirname = os.path.join(os.curdir, 'extractions')
     for modelname in os.listdir(dirname):
         if 'output' not in modelname:
             continue
@@ -49,8 +41,7 @@ if __name__ == '__main__':
 
             with open(filepath, 'rb') as file:
                 content = file.read()
-                arr = np.frombuffer(content, dtype=np.dtype('int8')).flatten()
-                entropy = shannon_entropy(arr, bsize=8, base=2)
+                entropy = shannon_entropy(content, bsize=bsize, base=base)
 
                 lines.append(','.join(list(map(str, [modelname, filename, entropy]))))
                 print(f"filename: {filename:30s}  entropy: {entropy}")
@@ -58,7 +49,15 @@ if __name__ == '__main__':
         print()
 
     logdirname = os.path.join(os.curdir, 'logs')
-    logfilename = 'entropy_test.csv'
+    logfilename = 'entropy_test'
 
-    with open(os.path.join(logdirname, logfilename), 'wt') as file:
+    os.makedirs(logdirname, exist_ok=True)
+
+    if logfilename in os.listdir(logdirname):
+        lfidx = 2
+        while f"{logfilename}_{lfidx}.csv" in os.listdir(logdirname):
+            lfidx += 1
+        logfilename = f"{logfilename}{lfidx}"
+
+    with open(os.path.join(logdirname, logfilename + '.csv'), 'wt') as file:
         file.write('\n'.join(lines))

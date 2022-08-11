@@ -11,7 +11,7 @@ class FileQuantizer(object):
     def quantize(self, filepath: str, output_filepath: str) -> None:
         with open(filepath, 'rb') as file:
             content = file.read()
-            arr = np.frombuffer(content, dtype=self.orig_dtype)
+            arr = np.frombuffer(content, dtype=self.orig_dtype).byteswap()
 
         quant_arr = None
         if 'float' in self.quant_dtype.name:

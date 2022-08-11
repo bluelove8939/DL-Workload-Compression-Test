@@ -20,9 +20,17 @@ from compression.binary_array import binary_xor, binary_and, binary_not, binary_
 #   dbx_transform: method for delta+bitplane+xor transformation
 #   bitplane_compression: method for BPC algorithm
 
+import warnings
+warnings.filterwarnings("error")
+
+
 def delta_transform(arr: np.ndarray, wordwidth: int) -> Iterable:
     base = array2binary(arr[0], wordwidth)
-    diffs = [integer2binary(d, wordwidth+1) for d in arr[1:] - arr[0:-1]]
+    try:
+        diffs = [array2binary(d, wordwidth+1) for d in arr[1:] - arr[0:-1]]
+    except RuntimeWarning:
+        print(arr)
+        input()
     return base, diffs
 
 def dbp_transform(arr: np.ndarray, wordwidth: int) -> Iterable:
@@ -297,8 +305,8 @@ if __name__ == '__main__':
 
     filepath = os.path.join(os.curdir, '..', 'extractions_quant_wfile', 'ResNet50_Imagenet_output', 'Conv2d_0_output0')
 
-    comp_method = bdi_compression
-    decomp_method = bdi_decompression
+    comp_method = zrle_compression
+    decomp_method = zrle_decompression
 
     stream = FileStream()
     stream.load_filepath(filepath=filepath, dtype=np.dtype('int8'))

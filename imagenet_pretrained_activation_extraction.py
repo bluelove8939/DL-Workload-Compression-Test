@@ -13,7 +13,7 @@ from models.tools.extractor import ModelExtractor, weight_trace, bias_trace
 
 
 parser = argparse.ArgumentParser(description='Extraction Configs')
-parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extractions'),
+parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extractions_activations'),
                     help='Directory of model extraction files', dest='extdir')
 comp_args, _ = parser.parse_known_args()
 

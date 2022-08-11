@@ -5,13 +5,13 @@ import matplotlib.pyplot as plt
 
 
 parser = argparse.ArgumentParser(description='Test Result Analyzing Configs')
-parser.add_argument('-fp', '--filepath', default=os.path.join(os.curdir, 'logs', 'sparsity_test.csv'),
+parser.add_argument('-fp', '--filepath', default=os.path.join(os.curdir, 'logs', 'entropy_test2.csv'),
                     help='Path to result csv file', dest='filepath')
 comp_args, _ = parser.parse_known_args()
 
 
 if __name__ == '__main__':
-    layer_types = ['sparsity', 'BatchNorm2D', 'Conv2D', 'ReLU']
+    layer_types = ['entropy', 'BatchNorm2D', 'Conv2D', 'ReLU']
     categories = []
     results = {}
 
@@ -28,13 +28,13 @@ if __name__ == '__main__':
             results[layer_type] = [0] * len(categories)
             results[f"{layer_type}_total"] = [0] * len(categories)
 
-        for modelname, filename, arrsize, zerocnt in content:
+        for modelname, filename, entropy in content:
             for layer_type in layer_types:
-                if layer_type != 'sparsity' and layer_type.lower() not in filename.lower():
+                if layer_type != 'entropy' and layer_type.lower() not in filename.lower():
                     continue
 
-                results[layer_type][categories.index(modelname)] += int(zerocnt)
-                results[f'{layer_type}_total'][categories.index(modelname)] += int(arrsize)
+                results[layer_type][categories.index(modelname)] += float(entropy)
+                results[f'{layer_type}_total'][categories.index(modelname)] += 1
 
         for layer_type in layer_types:
             results[layer_type] = np.array(results[layer_type]) / (np.array(results[f"{layer_type}_total"]) + 1e-4)
@@ -53,9 +53,9 @@ if __name__ == '__main__':
         # for i, j in zip(xval, val):
         #     plt.annotate(f"{j:.2f}", xy=(i, j + 0.2), ha='center')
     plt.xticks(x_axis, categories, rotation=0, ha='center')
-    plt.ylim([0.0, 1.0])
+    # plt.ylim([0.0, 1.0])
 
-    plt.title("Sparsity of CNN layers")
+    plt.title("Entropy of CNN layers")
     plt.legend()
     plt.tight_layout()
     plt.show()

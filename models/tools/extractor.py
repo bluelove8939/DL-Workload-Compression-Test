@@ -103,7 +103,7 @@ class ModelExtractor(object):
 
     def save_params(self, savepath: str=AUTO, only_quant=False):
         if savepath == AUTO:
-            savepath = os.path.join(os.curdir, 'extraced_output', self.output_modelname, 'params')
+            savepath = os.path.join(os.curdir, 'extracted_output', self.output_modelname, 'params')
         os.makedirs(savepath, exist_ok=True)
 
         saved_params = []
@@ -117,14 +117,14 @@ class ModelExtractor(object):
                 continue
             with open(os.path.join(savepath, f"{param_name}"), 'wb') as file:
                 saved_params.append(param_name)
-                file.write(barr.numpy().tobytes())
+                file.write(barr.numpy().byteswap().tobytes())
 
         with open(os.path.join(savepath, 'filelist.txt'), 'wt') as filelist:
             filelist.write('\n'.join([os.path.join(savepath, layer_name) for layer_name in saved_params]))
 
     def save_activation(self, savepath: str=AUTO, only_quant=False):
         if savepath == AUTO:
-            savepath = os.path.join(os.curdir, 'extraced_output', self.output_modelname, 'activations')
+            savepath = os.path.join(os.curdir, 'extracted_output', self.output_modelname, 'activations')
         os.makedirs(savepath, exist_ok=True)
 
         saved_acts = []
@@ -138,7 +138,7 @@ class ModelExtractor(object):
                 continue
             with open(os.path.join(savepath, f"{layer_name}"), 'wb') as file:
                 saved_acts.append(layer_name)
-                file.write(barr.numpy().tobytes())
+                file.write(barr.numpy().byteswap().tobytes())
 
         with open(os.path.join(savepath, 'filelist.txt'), 'wt') as filelist:
             filelist.write('\n'.join([os.path.join(savepath, layer_name) for layer_name in saved_acts]))
@@ -208,7 +208,7 @@ class QuantModelExtractor(Interpreter):
 
     def save_params(self, savepath: str=AUTO):
         if savepath == AUTO:
-            savepath = os.path.join(os.curdir, 'extraced_output', self.output_modelname, 'params')
+            savepath = os.path.join(os.curdir, 'extracted_output', self.output_modelname, 'params')
         os.makedirs(savepath, exist_ok=True)
 
         for param_name in self._params.keys():
@@ -221,7 +221,7 @@ class QuantModelExtractor(Interpreter):
 
     def save_activation(self, savepath: str=AUTO):
         if savepath == AUTO:
-            savepath = os.path.join(os.curdir, 'extraced_output', self.output_modelname, 'activations')
+            savepath = os.path.join(os.curdir, 'extracted_output', self.output_modelname, 'activations')
         os.makedirs(savepath, exist_ok=True)
 
         for layer_name in self._activation.keys():

@@ -51,7 +51,7 @@ class FileStream(CustomStream):
         with open(self._filepath, 'rb') as file:
             file.seek(self.cursor)
             content = file.read(size)
-            arr = np.frombuffer(content, dtype=self.dtype)
+            arr = np.frombuffer(content, dtype=self.dtype).byteswap()
 
         self.cursor += size
         return arr
