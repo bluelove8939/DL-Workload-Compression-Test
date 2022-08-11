@@ -8,7 +8,7 @@ from compression.file_quant import FileQuantizer
 
 
 parser = argparse.ArgumentParser(description='Extraction Configs')
-parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extractions'), type=str,
+parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extractions_activations'), type=str,
                     help='Directory of model extraction files', dest='dirname')
 parser.add_argument('-cs', '--chunksize', default=128, type=int, help='Size of a chunk (Bytes)', dest='chunksize')
 parser.add_argument('-wd', '--wordwidth', default=32, type=int, help='Bitwidth of a word (Bits)', dest='wordwidth')
@@ -56,6 +56,9 @@ results = {}
 # Read each files and compress with given algorithms
 for modelname in os.listdir(dirname):
     if 'output' not in modelname:
+        continue
+
+    if 'alexnet' not in modelname.lower():
         continue
 
     for filename in os.listdir(os.path.join(dirname, modelname)):
