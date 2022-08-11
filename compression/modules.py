@@ -1,7 +1,7 @@
 from typing import Callable
 
 from compression.binary_array import print_binary, array2binary
-from compression.algorithms import bitplane_compression, bdi_compression
+from compression.algorithms import bitplane_compression, zrle_compression
 from compression.custom_streams import CustomStream, MemoryStream
 
 
@@ -79,10 +79,10 @@ class BitPlaneCompressor(Compressor):
                                                  bandwidth=bandwidth,
                                                  wordbitwidth=wordbitwidth)
 
-class BDICompressor(Compressor):
-    def __init__(self, instream: CustomStream, outstream: MemoryStream or None=None, bandwidth: int = 128, wordbitwidth: int = 32):
-        super(BDICompressor, self).__init__(cmethod=bdi_compression,
-                                            instream=instream,
-                                            outstream=outstream,
-                                            bandwidth=bandwidth,
-                                            wordbitwidth=wordbitwidth)
+class ZeroRLECompressor(Compressor):
+    def __init__(self, instream: CustomStream, outstream: MemoryStream or None=None, bandwidth: int=128, wordbitwidth: int=32):
+        super(ZeroRLECompressor, self).__init__(cmethod=zrle_compression,
+                                                instream=instream,
+                                                outstream=outstream,
+                                                bandwidth=bandwidth,
+                                                wordbitwidth=wordbitwidth)

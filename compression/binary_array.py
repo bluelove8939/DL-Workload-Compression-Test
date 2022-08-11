@@ -27,9 +27,9 @@ def binary_or(a: str, b: str) -> str:
 
 def integer2binary(num: int, wordwidth: int):  # 2's complement number conversion
     if num < 0:
-        num = (2 ** wordwidth) - num
-    num = '0' + bin(num)[2:]
-    return num.rjust(wordwidth, num[0])
+        num = (2 ** wordwidth) - abs(num)
+    binnum = bin(num)[2:]
+    return binnum.rjust(wordwidth, '0' if num >= 0 else '1')
 
 def binary2integer(num: str, wordwidth: int):  # 2's complement number conversion
     sign = num[0]
@@ -38,7 +38,6 @@ def binary2integer(num: str, wordwidth: int):  # 2's complement number conversio
     if sign == '1':
         return num - (2 ** wordwidth)
     return num
-
 
 def array2binary(arr: np.ndarray, wordwidth: int=None) -> str:
     barr = arr.byteswap().tobytes()
@@ -51,12 +50,27 @@ def array2binary(arr: np.ndarray, wordwidth: int=None) -> str:
                       for i in range(0, len(rawbinarr), precision)])
     return binarr
 
-def binary2array(binarr: str, wordwidth: int) -> np.ndarray:
-    arr = np.array([binary2integer(binarr[i:i+wordwidth], wordwidth) for i in range(0, len(binarr), wordwidth)])
+def binary2array(binarr: str, wordwidth: int, dtype: np.dtype) -> list:
+    bytearr = bytearray()
+    for i in range(0, len(binarr), wordwidth):
+        bytearr += int(binarr[i:i+wordwidth], 2).to_bytes(wordwidth // 8, byteorder='big')
+    arr = np.frombuffer(bytearr, dtype=dtype).byteswap()
     return arr
+
+def array_caster(arr: np.ndarray, dtype: np.dtype):
+    return np.frombuffer(arr.tobytes(), dtype=dtype)
 
 def print_binary(binstr: str, swidth: int=8, startswith='', endswith='\n') -> None:
     print(startswith, end='')
     for i in range(0, len(binstr), swidth):
         print(binstr[i:i+swidth], end=' ')
     print(endswith, end='')
+
+
+if __name__ == '__main__':
+    num = 14
+    print(bin(num))
+    print(integer2binary(num, 8))
+    print(binary2integer(integer2binary(num, 8), 8))
+
+    print(array2binary(np.array(-2), 8))

@@ -79,6 +79,9 @@ class DataStream(CustomStream):
         self.cursor = 0
 
     def fetch(self, size: int) -> np.ndarray or None:
+        if size == -1:
+            return self._rawdata
+
         element_num = int(size / self._rawdata.dtype.itemsize)
         if self.cursor + element_num > self.fullsize():
             return None

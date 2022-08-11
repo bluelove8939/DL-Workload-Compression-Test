@@ -1,7 +1,7 @@
 import math
 import numpy as np
 from typing import Iterable
-from compression.binary_array import array2binary, binary2array, integer2binary, binary2integer, binary_shrinkable
+from compression.binary_array import array2binary, binary2array, integer2binary, binary2integer, binary_shrinkable, array_caster
 from compression.binary_array import binary_xor, binary_and, binary_not, binary_or
 
 
@@ -20,17 +20,9 @@ from compression.binary_array import binary_xor, binary_and, binary_not, binary_
 #   dbx_transform: method for delta+bitplane+xor transformation
 #   bitplane_compression: method for BPC algorithm
 
-import warnings
-warnings.filterwarnings("error")
-
-
 def delta_transform(arr: np.ndarray, wordwidth: int) -> Iterable:
     base = array2binary(arr[0], wordwidth)
-    try:
-        diffs = [array2binary(d, wordwidth+1) for d in arr[1:] - arr[0:-1]]
-    except RuntimeWarning:
-        print(arr)
-        input()
+    diffs = [array2binary(d, wordwidth+1) for d in arr[1:] - arr[0:-1]]
     return base, diffs
 
 def dbp_transform(arr: np.ndarray, wordwidth: int) -> Iterable:
@@ -78,7 +70,7 @@ def bitplane_compression(arr: np.ndarray, wordwidth: int) -> str:
 
     return encoded
 
-def bitplane_decompression(binarr: str, wordwidth: int, chunksize: int) -> np.ndarray:
+def bitplane_decompression(binarr: str, wordwidth: int, chunksize: int, dtype=np.dtype('int8')) -> np.ndarray:
     dbxs = []
     dbps = []
     base = int(binarr[0:wordwidth], 2)
@@ -128,128 +120,11 @@ def bitplane_decompression(binarr: str, wordwidth: int, chunksize: int) -> np.nd
                 dbps.append(dbxs[-1])
             cursor += arrsize
 
-    original = np.array([base] + list(map(lambda x: binary2integer(x, wordwidth+1), [''.join(diff) for diff in zip(*dbps)])))
+    original = np.array([base] + list(map(lambda x: binary2integer(x, wordwidth+1), [''.join(diff) for diff in zip(*dbps)])), dtype=dtype)
     for idx in range(1, len(original)):
         original[idx] += original[idx-1]
 
     return original
-
-
-# Functions for BDI algorithm
-#
-# Description
-#   BDI(Base-Delta Immediate) algorithm is a compression method
-#
-# References
-#   - Base-Delta-Immediate Compression: Practical Data Compression for On-Chip Caches
-#     https://ieeexplore.ieee.org/abstract/document/7842950
-#
-# Functions
-#   bdi_compression: compression method
-#   bdi_zero_pack: zero packing method
-#   bdi_repeating_pack: packing repeating array
-#   bdi_twobase_pack: zero base and one other base are used
-#   bdi_decompression: decompression method
-
-def bdi_compression(arr: np.ndarray, wordwidth: int) -> str:
-    original = array2binary(arr, wordwidth)
-    compressed = '1000' + original
-
-    for encoding, (packing_method, *args) in enumerate([
-        (bdi_zero_pack,), (bdi_repeating_pack,),
-        (bdi_twobase_pack, 8, 1), (bdi_twobase_pack, 8, 2), (bdi_twobase_pack, 8, 4),
-        (bdi_twobase_pack, 4, 1), (bdi_twobase_pack, 4, 2), (bdi_twobase_pack, 2, 1),
-    ]):
-        buffer = packing_method(arr, wordwidth, encoding, *args)
-        compressed = buffer if len(buffer) < len(compressed) else compressed
-
-    return compressed
-
-def bdi_zero_pack(arr: np.ndarray, wordwidth: int, encoding: int) -> str:
-    for num in arr:
-        if num != 0:
-            return '1000' + array2binary(arr, wordwidth)
-    return bin(encoding)[2:].zfill(4)
-
-def bdi_repeating_pack(arr: np.ndarray, wordwidth: int, encoding: int) -> str:
-    block_size = 64  # check every 1Byte
-    binarr = array2binary(arr.flatten(), wordwidth)
-    binarr_sliced = [binarr[i:i+block_size] for i in range(0, len(binarr), block_size)]
-
-    for num in binarr_sliced:
-        if num != binarr_sliced[0]:
-            return '1000' + binarr
-
-    return bin(encoding)[2:].zfill(4) + binarr_sliced[0]
-
-def bdi_twobase_pack(arr: np.ndarray, wordwidth: int, encoding: int, k: int, d: int) -> str:
-    compressed = ''
-    zeromask = ''
-    base = 0
-    binarr = array2binary(arr, wordwidth)
-
-    for i in range(0, len(binarr), k * 8):
-        binnum = binarr[i:i+(k*8)]
-        if binary_shrinkable(binnum, d * 8):
-            compressed += binnum[len(binnum) - d * 8:]
-            zeromask += '0'
-            continue
-
-        if base == 0:
-            base = binary2integer(binnum, k * 8)
-
-        buffer = binary2integer(binnum, k * 8)
-        delta = integer2binary(buffer - base, k * 8 + 1)
-
-        if binary_shrinkable(delta, d * 8):
-            compressed += delta[len(delta) - d * 8:]
-            zeromask += '1'
-        else:
-            return '1000' + binarr
-
-    return bin(encoding)[2:].zfill(4) + zeromask + integer2binary(base, k * 8) + compressed
-
-def bdi_decompression(binarr: str, wordwidth: int, chunksize: int) -> np.ndarray:
-    encoding = int(binarr[:4], 2)
-
-    if encoding == 0:
-        return np.array([0] * int(chunksize / (wordwidth / 8)))
-    elif encoding == 1:
-        original = np.array([binary2integer(binarr[4:68], 64)] * int(chunksize / 8))
-        binarr = array2binary(original, 64)
-        return binary2array(binarr, wordwidth=wordwidth)
-    elif encoding == 2:
-        k, d = 8, 1
-    elif encoding == 3:
-        k, d = 8, 2
-    elif encoding == 4:
-        k, d = 8, 4
-    elif encoding == 5:
-        k, d = 4, 1
-    elif encoding == 6:
-        k, d = 4, 2
-    elif encoding == 7:
-        k, d = 2, 1
-    else:
-        return binary2array(binarr[4:], wordwidth)
-
-    pivot = 4
-    zeromask = binarr[pivot:pivot+int(chunksize / k)]
-    pivot += int(chunksize / k)
-    base = binary2integer(binarr[pivot:pivot+k*8], wordwidth=k*8)
-    pivot += k*8
-    compressed = [binarr[pivot:][i:i+d*8] for i in range(0, len(binarr[pivot:]), d*8)]
-    original = []
-
-    for zm, delta in zip(zeromask, compressed):
-        if zm == '1':
-            original.append(base + binary2integer(delta, wordwidth=k*8+1))
-        else:
-            original.append(binary2integer(delta, wordwidth=k*8))
-        print(base, original)
-
-    binarr = array2binary(np.array(original), wordwidth=k*8)
-    return binary2array(binarr, wordwidth=wordwidth)
 
 
 # Functions for Zero-RLE algorithm
@@ -265,36 +140,40 @@ def zrle_compression(arr: np.ndarray, wordwidth: int, max_burst_len=16,) -> str:
     encoded = ''
     run_length = 0
 
-    for num in arr.flatten():
+    for idx, num in enumerate(arr.flatten()):
         if num == 0:
             run_length += 1
 
-        if run_length == max_burst_len or num != 0:
-            encoded += '0' + integer2binary(run_length, math.ceil(np.log2(max_burst_len)))
+        if run_length == max_burst_len or (num != 0 and run_length > 0):
+            encoded += '0' + bin(run_length-1)[2:].zfill(math.ceil(np.log2(max_burst_len)))
             run_length = 0
 
         if num != 0:
-            encoded += '1' + integer2binary(num, wordwidth)
+            encoded += '1' + array2binary(num, wordwidth)
+
+        # print(f"\rcompressing: {idx}/{arr.flatten().shape[0]}  ", end='')
+        # print(f"{num:3d}", encoded)
 
     if run_length > 0:
-        encoded += '0' + integer2binary(run_length, math.ceil(np.log2(max_burst_len)))
+        encoded += '0' + bin(run_length-1)[2:].zfill(math.ceil(np.log2(max_burst_len)))
 
     return encoded
 
-def zrle_decompression(binarr: str, wordwidth: int, chunksize: int, max_burst_len=16,) -> np.ndarray:
+def zrle_decompression(binarr: str, wordwidth: int, chunksize: int, max_burst_len=16, dtype=np.dtype('int8')) -> np.ndarray:
     arr = []
     cntwidth = math.ceil(np.log2(max_burst_len))
     cursor = 0
 
     while cursor < len(binarr):
         if binarr[cursor] == '0':
-            cnt = binary2integer(binarr[cursor+1:cursor+1+cntwidth], wordwidth=cntwidth)
+            cnt = int(binarr[cursor+1:cursor+1+cntwidth], 2) + 1
             arr += [0] * cnt
+            cursor += 1 + cntwidth
         else:
-            arr += [binary2integer(binarr[cursor+1:cursor+1+wordwidth], wordwidth)]
+            arr += list(binary2array(binarr[cursor+1:cursor+1+wordwidth], wordwidth, dtype=dtype))
+            cursor += 1 + wordwidth
 
-    return np.array(arr)
-
+    return np.array(arr, dtype=dtype)
 
 
 if __name__ == '__main__':
@@ -303,14 +182,16 @@ if __name__ == '__main__':
     from binary_array import print_binary
     from compression.custom_streams import FileStream
 
-    filepath = os.path.join(os.curdir, '..', 'extractions_quant_wfile', 'ResNet50_Imagenet_output', 'Conv2d_0_output0')
+    filepath = os.path.join(os.curdir, '..', 'extractions_activations', 'AlexNet_Imagenet_output', 'ReLU_0_output0')
 
     comp_method = zrle_compression
     decomp_method = zrle_decompression
+    dtype = np.dtype('float32')
+    wordwidth = 32
+    chunksize = 32
 
     stream = FileStream()
-    stream.load_filepath(filepath=filepath, dtype=np.dtype('int8'))
-    chunksize = 32
+    stream.load_filepath(filepath=filepath, dtype=dtype)
     arr, compressed, decompressed = None, None, None
 
     comp_total = 0
@@ -323,9 +204,8 @@ if __name__ == '__main__':
             break
 
         try:
-            compressed = comp_method(arr, wordwidth=8)
-            decompressed = decomp_method(compressed, wordwidth=8, chunksize=chunksize)
-            pass
+            compressed = comp_method(arr, wordwidth=wordwidth)
+            decompressed = decomp_method(compressed, wordwidth=wordwidth, chunksize=chunksize, dtype=dtype)
         except Exception as e:
             print("error occurred")
             print(f"Error: {e}")
@@ -333,18 +213,18 @@ if __name__ == '__main__':
             input("Press any key to continue")
             continue
 
-        if array2binary(arr, wordwidth=8) != array2binary(decompressed, wordwidth=8):
+        if array2binary(arr, wordwidth=wordwidth) != array2binary(decompressed, wordwidth=wordwidth):
             print('\rbitplane compression invalid')
             print(arr)
-            print_binary(array2binary(arr, wordwidth=8),          swidth=8, startswith='original:     ', endswith='\n')
-            print_binary(compressed,                              swidth=8, startswith='compressed:   ', endswith='\n')
-            print_binary(array2binary(decompressed, wordwidth=8), swidth=8, startswith='decompressed: ', endswith='\n')
+            print_binary(array2binary(arr, wordwidth=wordwidth),          swidth=wordwidth, startswith='original:     ', endswith='\n')
+            print_binary(compressed,                                      swidth=wordwidth, startswith='compressed:   ', endswith='\n')
+            print_binary(array2binary(decompressed, wordwidth=wordwidth), swidth=wordwidth, startswith='decompressed: ', endswith='\n')
             input("Press any key to continue\n")
         else:
-            orig_total += len(array2binary(arr, wordwidth=8))
+            orig_total += len(array2binary(arr, wordwidth=wordwidth))
             comp_total += len(compressed)
-            uncomp_cnt += 1 if len(compressed) >= len(array2binary(arr, wordwidth=8)) else 0
+            uncomp_cnt += 1 if len(compressed) >= len(array2binary(arr, wordwidth=wordwidth)) else 0
 
             print(f"\rcursor: {stream.cursor}/{stream.fullsize()}\t"
-                  f"compression ratio: {len(array2binary(arr, wordwidth=8)) / len(compressed):.4f}"
+                  f"compression ratio: {len(array2binary(arr, wordwidth=wordwidth)) / len(compressed):.4f}"
                   f"({orig_total / comp_total:.4f}) uncomp_cnt: {uncomp_cnt}", end='')

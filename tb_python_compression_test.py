@@ -2,7 +2,7 @@ import os
 import numpy as np
 import argparse
 
-from compression.modules import BitPlaneCompressor, BDICompressor
+from compression.modules import BitPlaneCompressor, ZeroRLECompressor
 from compression.custom_streams import FileStream
 from compression.file_quant import FileQuantizer
 
@@ -76,20 +76,20 @@ for modelname in os.listdir(dirname):
         print(f"compression ratio test with {stream}({stream.fullsize()}Bytes)")
         bpc_compressor = BitPlaneCompressor(instream=stream, bandwidth=chunksize, wordbitwidth=wordwidth)
         bpc_comp_ratio = bpc_compressor.calc_compression_ratio(maxiter=maxiter, verbose=1)
-        # print()
-        # bdi_compressor = BDICompressor(instream=stream, bandwidth=64, wordbitwidth=wordwidth)
-        # bdi_comp_ratio = bdi_compressor.calc_compression_ratio(maxiter=maxiter, verbose=1)
+        print()
+        zrle_compressor = ZeroRLECompressor(instream=stream, bandwidth=64, wordbitwidth=wordwidth)
+        zrle_comp_ratio = zrle_compressor.calc_compression_ratio(maxiter=maxiter, verbose=1)
 
         results[file_fullpath] = ','.join(list(map(str, [
-            modelname, filename, stream.fullsize(), bpc_comp_ratio, # bdi_comp_ratio,
+            modelname, filename, stream.fullsize(), bpc_comp_ratio, zrle_comp_ratio,
         ])))
 
-        # print(f"\ntotal compression ratio: {bpc_comp_ratio:.6f}(BPC)  {bdi_comp_ratio:.6f}(BDI)\n")
-        print(f"\ntotal compression ratio: {bpc_comp_ratio:.6f}(BPC)\n")
+        print(f"\ntotal compression ratio: {bpc_comp_ratio:.6f}(BPC)  {zrle_comp_ratio:.6f}(BDI)\n")
+        # print(f"\ntotal compression ratio: {bpc_comp_ratio:.6f}(BPC)\n")
 
 
 # Save compression test results
-categories = ['Model Name', 'Param Name', 'File Size(Bytes)', 'Comp Ratio(BPC)', 'Comp Ratio(BDI)']
+categories = ['Model Name', 'Param Name', 'File Size(Bytes)', 'Comp Ratio(BPC)', 'Comp Ratio(ZRLE)']
 os.makedirs(logdirname, exist_ok=True)
 with open(os.path.join(logdirname, logfilename), 'wt') as file:
     file.write('\n'.join([','.join(categories)] + list(results.values())))
