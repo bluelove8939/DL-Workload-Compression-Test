@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 
 if __name__ == '__main__':
-    layer_types = ['BatchNorm2D', 'Conv2D', 'ReLU']
+    layer_types = ['sparsity', 'BatchNorm2D', 'Conv2D', 'ReLU']
     categories = []
     results = {}
 
@@ -24,7 +24,7 @@ if __name__ == '__main__':
 
         for modelname, filename, arrsize, zerocnt in content:
             for layer_type in layer_types:
-                if layer_type.lower() not in filename.lower():
+                if layer_type != 'sparsity' and layer_type.lower() not in filename.lower():
                     continue
 
                 results[layer_type][categories.index(modelname)] += int(zerocnt)
