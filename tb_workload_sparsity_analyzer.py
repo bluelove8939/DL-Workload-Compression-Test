@@ -50,8 +50,8 @@ if __name__ == '__main__':
     for idx, (key, val) in enumerate(results.items()):
         xval = x_axis + ((idx - (len(results.keys()) / 2) + 0.5) * width)
         plt.bar(xval, val, width=width, label=key)
-        # for i, j in zip(xval, val):
-        #     plt.annotate(f"{j:.2f}", xy=(i, j + 0.2), ha='center')
+        for i, j in zip(xval, val):
+            plt.annotate(f"{j:.2f}", xy=(i, j + 0.02), ha='center')
     plt.xticks(x_axis, categories, rotation=0, ha='center')
     plt.ylim([0.0, 1.0])
 

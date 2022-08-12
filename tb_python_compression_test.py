@@ -2,7 +2,7 @@ import os
 import numpy as np
 import argparse
 
-from compression.modules import BitPlaneCompressor, ZeroRLECompressor
+from compression.modules import BitPlaneCompressor, ZeroRLECompressor, ZeroValueCompressor
 from compression.custom_streams import FileStream
 from compression.file_quant import FileQuantizer
 
@@ -58,8 +58,8 @@ for modelname in os.listdir(dirname):
     if 'output' not in modelname:
         continue
 
-    if 'alexnet' not in modelname.lower():
-        continue
+    # if 'alexnet' not in modelname.lower():
+    #     continue
 
     for filename in os.listdir(os.path.join(dirname, modelname)):
         if 'comparison_result' in filename or 'filelist' in filename:
@@ -76,18 +76,24 @@ for modelname in os.listdir(dirname):
         else:
             stream.load_filepath(filepath=file_fullpath, dtype=np.dtype(dtypename))
 
+        compressors = {
+            'BPC': BitPlaneCompressor(instream=stream, bandwidth=chunksize, wordbitwidth=wordwidth),
+            'ZRLE': ZeroRLECompressor(instream=stream, bandwidth=64, wordbitwidth=wordwidth),
+            'ZVC': ZeroValueCompressor(instream=stream, bandwidth=64, wordbitwidth=wordwidth),
+        }
+        comp_ratios = {}
+
         print(f"compression ratio test with {stream}({stream.fullsize()}Bytes)")
-        bpc_compressor = BitPlaneCompressor(instream=stream, bandwidth=chunksize, wordbitwidth=wordwidth)
-        bpc_comp_ratio = bpc_compressor.calc_compression_ratio(maxiter=maxiter, verbose=1)
-        print()
-        zrle_compressor = ZeroRLECompressor(instream=stream, bandwidth=64, wordbitwidth=wordwidth)
-        zrle_comp_ratio = zrle_compressor.calc_compression_ratio(maxiter=maxiter, verbose=1)
+        for algo_name, algo_compressor in compressors.items():
+            print(f"compressing with {algo_name}...")
+            comp_ratios[algo_name] = algo_compressor.calc_compression_ratio(maxiter=maxiter, verbose=1)
+            print()
 
         results[file_fullpath] = ','.join(list(map(str, [
-            modelname, filename, stream.fullsize(), bpc_comp_ratio, zrle_comp_ratio,
+            modelname, filename, stream.fullsize(), *[f"{val}" for key, val in sorted(comp_ratios.items(), key=lambda x: x[0])]
         ])))
 
-        print(f"\ntotal compression ratio: {bpc_comp_ratio:.6f}(BPC)  {zrle_comp_ratio:.6f}(BDI)\n")
+        print(f"total compression ratio: {' '.join([f'{val:.6f}({key})' for key, val in sorted(comp_ratios.items(), key=lambda x: x[0])])}\n")
         # print(f"\ntotal compression ratio: {bpc_comp_ratio:.6f}(BPC)\n")
 
 
