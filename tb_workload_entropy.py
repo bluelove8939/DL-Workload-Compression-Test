@@ -20,14 +20,23 @@ def shannon_entropy(content: bytes, bsize: int, base: float) -> float:
     return float(entropy)
 
 
+def modelfilter(modelname):
+    return 'output' in modelname and (
+        'resnet18' in modelname.lower() or
+        'resnet34' in modelname.lower() or
+        'alexnet'  in modelname.lower() or
+        'vgg16'    in modelname.lower()
+    )
+
+
 if __name__ == '__main__':
-    bsize = 4
-    base = 2
+    bsize = 32  # 8words for float32
+    base = 2    # entropy in 'bits'
 
     lines = []
 
     dirname = os.path.join(os.curdir, 'extractions_activations')
-    for modelname in os.listdir(dirname):
+    for modelname in list(filter(modelfilter, os.listdir(dirname))):
         if 'output' not in modelname:
             continue
 
@@ -55,7 +64,7 @@ if __name__ == '__main__':
 
     if logfilename in os.listdir(logdirname):
         lfidx = 2
-        while f"{logfilename}_{lfidx}.csv" in os.listdir(logdirname):
+        while f"{logfilename}{lfidx}.csv" in os.listdir(logdirname):
             lfidx += 1
         logfilename = f"{logfilename}{lfidx}"
 

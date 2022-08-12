@@ -37,7 +37,7 @@ if __name__ == '__main__':
 
     if logfilename in os.listdir(logdirname):
         lfidx = 2
-        while f"{logfilename}_{lfidx}" in os.listdir(logdirname):
+        while f"{logfilename}{lfidx}" in os.listdir(logdirname):
             lfidx += 1
         logfilename = f"{logfilename}{lfidx}"
 
