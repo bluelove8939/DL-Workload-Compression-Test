@@ -151,9 +151,6 @@ def zrle_compression(arr: np.ndarray, wordwidth: int, max_burst_len=16,) -> str:
         if num != 0:
             encoded += '1' + array2binary(num, wordwidth)
 
-        # print(f"\rcompressing: {idx}/{arr.flatten().shape[0]}  ", end='')
-        # print(f"{num:3d}", encoded)
-
     if run_length > 0:
         encoded += '0' + bin(run_length-1)[2:].zfill(math.ceil(np.log2(max_burst_len)))
 
@@ -176,6 +173,38 @@ def zrle_decompression(binarr: str, wordwidth: int, chunksize: int, max_burst_le
     return np.array(arr, dtype=dtype)
 
 
+# Functions for ZVC algorithm
+#
+# Description
+#   ZVC(Zero Value Compression) algorithm is a compression method
+#
+# Functions
+#   zeroval_compression
+#   zeroval_decompression
+
+def zeroval_compression(arr: np.ndarray, wordwidth: int,) -> str:
+    zerovec = ''.join(['0' if val == 0 else '1' for val in arr])
+    nonzerovec = ''.join(['' if val == 0 else array2binary(val, wordwidth=wordwidth) for val in arr])
+    return zerovec + nonzerovec
+
+def zeroval_decompression(binarr: str, wordwidth: int, chunksize: int, dtype=np.dtype('int8')) -> np.ndarray:
+    arr = []
+    cursor = 0
+    zerovec_length = int(chunksize / (wordwidth / 8))
+
+    zerovec = binarr[0:zerovec_length]
+    nonzerovec = binarr[zerovec_length:]
+
+    for zbit in zerovec:
+        if zbit == '0':
+            arr.append(0)
+        else:
+            arr += list(binary2array(nonzerovec[cursor:cursor+wordwidth], wordwidth, dtype=dtype))
+            cursor += wordwidth
+
+    return np.array(arr, dtype=dtype)
+
+
 if __name__ == '__main__':
     import os
 
@@ -184,8 +213,8 @@ if __name__ == '__main__':
 
     filepath = os.path.join(os.curdir, '..', 'extractions_activations', 'AlexNet_Imagenet_output', 'ReLU_0_output0')
 
-    comp_method = zrle_compression
-    decomp_method = zrle_decompression
+    comp_method = zeroval_compression
+    decomp_method = zeroval_decompression
     dtype = np.dtype('float32')
     wordwidth = 32
     chunksize = 32

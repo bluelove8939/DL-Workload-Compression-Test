@@ -21,12 +21,13 @@ def shannon_entropy(content: bytes, bsize: int, base: float) -> float:
 
 
 def modelfilter(modelname):
-    return 'output' in modelname and (
-        'resnet18' in modelname.lower() or
-        'resnet34' in modelname.lower() or
-        'alexnet'  in modelname.lower() or
-        'vgg16'    in modelname.lower()
-    )
+    # return 'output' in modelname and (
+    #     'resnet18' in modelname.lower() or
+    #     'resnet34' in modelname.lower() or
+    #     'alexnet'  in modelname.lower() or
+    #     'vgg16'    in modelname.lower()
+    # )
+    return True
 
 
 if __name__ == '__main__':
@@ -62,7 +63,7 @@ if __name__ == '__main__':
 
     os.makedirs(logdirname, exist_ok=True)
 
-    if logfilename in os.listdir(logdirname):
+    if f"{logfilename}.csv" in os.listdir(logdirname):
         lfidx = 2
         while f"{logfilename}{lfidx}.csv" in os.listdir(logdirname):
             lfidx += 1

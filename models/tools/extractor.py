@@ -117,7 +117,7 @@ class ModelExtractor(object):
                 continue
             with open(os.path.join(savepath, f"{param_name}"), 'wb') as file:
                 saved_params.append(param_name)
-                file.write(barr.numpy().byteswap().tobytes())
+                file.write(barr.numpy().tobytes())
 
         with open(os.path.join(savepath, 'filelist.txt'), 'wt') as filelist:
             filelist.write('\n'.join([os.path.join(savepath, layer_name) for layer_name in saved_params]))
@@ -138,7 +138,7 @@ class ModelExtractor(object):
                 continue
             with open(os.path.join(savepath, f"{layer_name}"), 'wb') as file:
                 saved_acts.append(layer_name)
-                file.write(barr.numpy().byteswap().tobytes())
+                file.write(barr.numpy().tobytes())
 
         with open(os.path.join(savepath, 'filelist.txt'), 'wt') as filelist:
             filelist.write('\n'.join([os.path.join(savepath, layer_name) for layer_name in saved_acts]))

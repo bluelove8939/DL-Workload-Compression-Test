@@ -35,7 +35,7 @@ if __name__ == '__main__':
 
     os.makedirs(logdirname, exist_ok=True)
 
-    if logfilename in os.listdir(logdirname):
+    if f"{logfilename}.csv" in os.listdir(logdirname):
         lfidx = 2
         while f"{logfilename}{lfidx}" in os.listdir(logdirname):
             lfidx += 1

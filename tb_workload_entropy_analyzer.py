@@ -55,7 +55,7 @@ if __name__ == '__main__':
     plt.xticks(x_axis, categories, rotation=0, ha='center')
     # plt.ylim([0.0, 1.0])
 
-    plt.title("Entropy of CNN layers")
+    plt.title("Entropy of CNN layers (dtype: FP32 csize: 32Byte)")
     plt.legend()
     plt.tight_layout()
     plt.show()
