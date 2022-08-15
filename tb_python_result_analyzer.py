@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 
 parser = argparse.ArgumentParser(description='Test Result Analyzing Configs')
-parser.add_argument('-fp', '--filepath', default=os.path.join(os.curdir, 'logs', 'compression_test_result9.csv'),
+parser.add_argument('-fp', '--filepath', default=os.path.join(os.curdir, 'logs', 'compression_test_result10.csv'),
                     help='Path to result csv file', dest='filepath')
 comp_args, _ = parser.parse_known_args()
 
@@ -52,7 +52,7 @@ for idx, (key, val) in enumerate(results.items()):
 plt.xticks(x_axis, categories, rotation=0, ha='center')
 plt.ylim([0.0, 3.5])
 
-plt.title("Compression Algorithm test on DL activations (FP32)")
+plt.title("Compression Algorithm Test on Quantized DL activations (INT8)")
 plt.legend()
 plt.tight_layout()
 plt.show()
