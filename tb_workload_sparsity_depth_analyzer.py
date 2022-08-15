@@ -12,7 +12,8 @@ comp_args, _ = parser.parse_known_args()
 
 if __name__ == '__main__':
     target_modelnames = ['AlexNet', 'VGG16']
-    targets = ['ReLU','Conv2d']
+    # targets = ['ReLU','Conv2d']
+    targets = ['ReLU']
     maxdepths = [7, 15]
 
     fig, axes = plt.subplots(1, 2, gridspec_kw={'width_ratios': [1, 2]})
