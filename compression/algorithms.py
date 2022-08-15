@@ -1,7 +1,7 @@
 import math
 import numpy as np
 from typing import Iterable
-from compression.binary_array import array2binary, binary2array, integer2binary, binary2integer, binary_shrinkable, array_caster
+from compression.binary_array import array2binary, binary2array, integer2binary, binary2integer, binary_shrinkable, array_caster, binary_caster
 from compression.binary_array import binary_xor, binary_and, binary_not, binary_or
 
 
@@ -120,7 +120,7 @@ def bitplane_decompression(binarr: str, wordwidth: int, chunksize: int, dtype=np
                 dbps.append(dbxs[-1])
             cursor += arrsize
 
-    original = np.array([base] + list(map(lambda x: binary2integer(x, wordwidth+1), [''.join(diff) for diff in zip(*dbps)])), dtype=dtype)
+    original = np.array([base] + list(map(lambda x: binary_caster(x, dtype=dtype), [''.join(diff) for diff in zip(*dbps)])), dtype=dtype)
     for idx in range(1, len(original)):
         original[idx] += original[idx-1]
 
@@ -218,8 +218,6 @@ def ebp_compression(arr: np.ndarray, wordwidth: int, max_burst_len=16,) -> str:
     zrle_encoded = zrle_compression(arr, wordwidth=wordwidth, max_burst_len=max_burst_len)
     bpc_encoded = bitplane_compression(arr, wordwidth=wordwidth)
 
-    print('\ncompression encodings', len(zrle_encoded), len(bpc_encoded))
-
     if len(zrle_encoded) <= len(bpc_encoded):
         return '0' + zrle_encoded
     return '1' + bpc_encoded
@@ -239,8 +237,8 @@ if __name__ == '__main__':
     from binary_array import print_binary
     from compression.custom_streams import FileStream
 
-    # parent_dirname = os.path.join(os.curdir, '..', 'extractions_activations')
-    parent_dirname = os.path.join('E:\\', 'extractions_activations')
+    parent_dirname = os.path.join(os.curdir, '..', 'extractions_activations')
+    # parent_dirname = os.path.join('E:\\', 'extractions_activations')
     filepath = os.path.join(parent_dirname, 'AlexNet_Imagenet_output', 'ReLU_0_output0')
 
     comp_method = bitplane_compression
@@ -280,7 +278,7 @@ if __name__ == '__main__':
             print_binary(array2binary(decompressed, wordwidth=wordwidth), swidth=wordwidth, startswith='decompressed: ', endswith='\n')
 
             print('comp deltas: ', delta_transform(arr, wordwidth=wordwidth))
-            print('comp deltas: ', dbx_transform(arr, wordwidth=wordwidth))
+            print('comp dbx transf: ', dbx_transform(arr, wordwidth=wordwidth))
 
             input("Press any key to continue\n")
         else:
