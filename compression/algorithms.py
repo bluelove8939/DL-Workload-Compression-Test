@@ -205,16 +205,46 @@ def zeroval_decompression(binarr: str, wordwidth: int, chunksize: int, dtype=np.
     return np.array(arr, dtype=dtype)
 
 
+# Functions for EBPC algorithm
+#
+# Description
+#   EBPC(Extended Bit-Plane Compression) algorithm is a compression method
+#
+# Functions
+#   ebp_compression
+#   ebp_decompression
+
+def ebp_compression(arr: np.ndarray, wordwidth: int, max_burst_len=16,) -> str:
+    zrle_encoded = zrle_compression(arr, wordwidth=wordwidth, max_burst_len=max_burst_len)
+    bpc_encoded = bitplane_compression(arr, wordwidth=wordwidth)
+
+    print('\ncompression encodings', len(zrle_encoded), len(bpc_encoded))
+
+    if len(zrle_encoded) <= len(bpc_encoded):
+        return '0' + zrle_encoded
+    return '1' + bpc_encoded
+
+def ebp_decompression(binarr: str, wordwidth: int, chunksize: int, max_burst_len=16, dtype=np.dtype('int8')) -> np.ndarray:
+    if binarr[0] == '0':
+        decoded = zrle_decompression(binarr[1:], wordwidth=wordwidth, chunksize=chunksize,
+                                     max_burst_len=max_burst_len, dtype=dtype)
+    else:
+        decoded = bitplane_decompression(binarr[1:], wordwidth=wordwidth, chunksize=chunksize, dtype=dtype)
+    return decoded
+
+
 if __name__ == '__main__':
     import os
 
     from binary_array import print_binary
     from compression.custom_streams import FileStream
 
-    filepath = os.path.join(os.curdir, '..', 'extractions_activations', 'AlexNet_Imagenet_output', 'ReLU_0_output0')
+    # parent_dirname = os.path.join(os.curdir, '..', 'extractions_activations')
+    parent_dirname = os.path.join('E:\\', 'extractions_activations')
+    filepath = os.path.join(parent_dirname, 'AlexNet_Imagenet_output', 'ReLU_0_output0')
 
-    comp_method = zeroval_compression
-    decomp_method = zeroval_decompression
+    comp_method = bitplane_compression
+    decomp_method = bitplane_decompression
     dtype = np.dtype('float32')
     wordwidth = 32
     chunksize = 32
@@ -248,6 +278,10 @@ if __name__ == '__main__':
             print_binary(array2binary(arr, wordwidth=wordwidth),          swidth=wordwidth, startswith='original:     ', endswith='\n')
             print_binary(compressed,                                      swidth=wordwidth, startswith='compressed:   ', endswith='\n')
             print_binary(array2binary(decompressed, wordwidth=wordwidth), swidth=wordwidth, startswith='decompressed: ', endswith='\n')
+
+            print('comp deltas: ', delta_transform(arr, wordwidth=wordwidth))
+            print('comp deltas: ', dbx_transform(arr, wordwidth=wordwidth))
+
             input("Press any key to continue\n")
         else:
             orig_total += len(array2binary(arr, wordwidth=wordwidth))
