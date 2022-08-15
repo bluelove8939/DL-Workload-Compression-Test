@@ -63,10 +63,8 @@ def array_caster(arr: np.ndarray, dtype: np.dtype):
     return np.frombuffer(arr.tobytes(), dtype=dtype)
 
 def binary_caster(binnum: str, dtype: np.dtype):
-    print(binnum)
-    print(int(binnum, 2).to_bytes(len(binnum), byteorder='big'))
     if 'float' in dtype.name:
-        return np.frombuffer(int(binnum, 2).to_bytes((len(binnum) - 1) // 8, byteorder='big'), dtype=dtype)
+        return np.frombuffer(int(binnum, 2).to_bytes(len(binnum) // 8, byteorder='big'), dtype=dtype)
     return np.array([binary2integer(binnum, len(binnum))], dtype=dtype)
 
 def print_binary(binstr: str, swidth: int=8, startswith='', endswith='\n') -> None:

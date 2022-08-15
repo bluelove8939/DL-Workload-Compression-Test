@@ -2,7 +2,7 @@ import os
 import numpy as np
 import argparse
 
-from compression.modules import BitPlaneCompressor, ZeroRLECompressor, ZeroValueCompressor
+from compression.modules import BitPlaneCompressor, ZeroRLECompressor, ZeroValueCompressor, EBPCompressor
 from compression.custom_streams import FileStream
 from compression.file_quant import FileQuantizer
 
@@ -77,9 +77,10 @@ for modelname in os.listdir(dirname):
             stream.load_filepath(filepath=file_fullpath, dtype=np.dtype(dtypename))
 
         compressors = {
-            'BPC': BitPlaneCompressor(instream=stream, bandwidth=chunksize, wordbitwidth=wordwidth),
+            'BPC':  BitPlaneCompressor(instream=stream, bandwidth=chunksize, wordbitwidth=wordwidth),
             'ZRLE': ZeroRLECompressor(instream=stream, bandwidth=64, wordbitwidth=wordwidth),
-            'ZVC': ZeroValueCompressor(instream=stream, bandwidth=64, wordbitwidth=wordwidth),
+            'ZVC':  ZeroValueCompressor(instream=stream, bandwidth=64, wordbitwidth=wordwidth),
+            'EBPC': EBPCompressor(instream=stream, bandwidth=chunksize, wordbitwidth=wordwidth),
         }
         comp_ratios = {}
 

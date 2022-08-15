@@ -1,7 +1,7 @@
 import math
 import numpy as np
 from typing import Iterable
-from compression.binary_array import array2binary, binary2array, integer2binary, binary2integer, binary_shrinkable, array_caster, binary_caster
+from compression.binary_array import array2binary, binary2array
 from compression.binary_array import binary_xor, binary_and, binary_not, binary_or
 
 
@@ -21,8 +21,9 @@ from compression.binary_array import binary_xor, binary_and, binary_not, binary_
 #   bitplane_compression: method for BPC algorithm
 
 def delta_transform(arr: np.ndarray, wordwidth: int) -> Iterable:
+    delta_width = wordwidth+1 if 'int' in arr.dtype.name else wordwidth
     base = array2binary(arr[0], wordwidth)
-    diffs = [array2binary(d, wordwidth+1) for d in arr[1:] - arr[0:-1]]
+    diffs = [array2binary(d, delta_width) for d in arr[1:] - arr[0:-1]]
     return base, diffs
 
 def dbp_transform(arr: np.ndarray, wordwidth: int) -> Iterable:
@@ -73,7 +74,8 @@ def bitplane_compression(arr: np.ndarray, wordwidth: int) -> str:
 def bitplane_decompression(binarr: str, wordwidth: int, chunksize: int, dtype=np.dtype('int8')) -> np.ndarray:
     dbxs = []
     dbps = []
-    base = int(binarr[0:wordwidth], 2)
+    # base = int(binarr[0:wordwidth], 2)
+    base = binary2array(binarr[0:wordwidth], wordwidth=wordwidth, dtype=dtype)
     arrsize = int(chunksize / (wordwidth / 8))
     cursor = wordwidth
 
@@ -90,7 +92,10 @@ def bitplane_decompression(binarr: str, wordwidth: int, chunksize: int, dtype=np
             cursor += 3
         elif binarr[cursor:cursor+5] == '00000':
             dbxs.append('1' * (arrsize - 1))
-            dbps.append(binary_not(dbps[-1]))
+            if len(dbxs) == 1:
+                dbps.append('1' * (arrsize - 1))
+            else:
+                dbps.append(binary_not(dbps[-1]))
             cursor += 5
         elif binarr[cursor:cursor+5] == '00001':
             dbps.append('0' * (arrsize - 1))
@@ -120,7 +125,8 @@ def bitplane_decompression(binarr: str, wordwidth: int, chunksize: int, dtype=np
                 dbps.append(dbxs[-1])
             cursor += arrsize
 
-    original = np.array([base] + list(map(lambda x: binary_caster(x, dtype=dtype), [''.join(diff) for diff in zip(*dbps)])), dtype=dtype)
+    delta_width  = wordwidth+1 if 'int' in dtype.name else wordwidth
+    original = np.array(list(base) + list(binary2array(''.join([''.join(diff) for diff in zip(*dbps)]), delta_width, dtype=dtype)), dtype=dtype)
     for idx in range(1, len(original)):
         original[idx] += original[idx-1]
 
@@ -237,15 +243,15 @@ if __name__ == '__main__':
     from binary_array import print_binary
     from compression.custom_streams import FileStream
 
-    parent_dirname = os.path.join(os.curdir, '..', 'extractions_activations')
-    # parent_dirname = os.path.join('E:\\', 'extractions_activations')
+    # parent_dirname = os.path.join(os.curdir, '..', 'extractions_activations')
+    parent_dirname = os.path.join('E:\\', 'extractions_activations')
     filepath = os.path.join(parent_dirname, 'AlexNet_Imagenet_output', 'ReLU_0_output0')
 
-    comp_method = bitplane_compression
-    decomp_method = bitplane_decompression
+    comp_method = ebp_compression
+    decomp_method = ebp_decompression
     dtype = np.dtype('float32')
     wordwidth = 32
-    chunksize = 32
+    chunksize = 64
 
     stream = FileStream()
     stream.load_filepath(filepath=filepath, dtype=dtype)
@@ -254,6 +260,9 @@ if __name__ == '__main__':
     comp_total = 0
     orig_total = 0
     uncomp_cnt = 0
+
+    def compare_array(arr1: np.ndarray, arr2: np.ndarray, thres: float) -> bool:
+        return (np.sum(arr1 - arr2) ** 2) < thres
 
     while True:
         arr = stream.fetch(chunksize)
@@ -270,15 +279,12 @@ if __name__ == '__main__':
             input("Press any key to continue")
             continue
 
-        if array2binary(arr, wordwidth=wordwidth) != array2binary(decompressed, wordwidth=wordwidth):
-            print('\rbitplane compression invalid')
+        if not compare_array(arr, decompressed, 1e-5):
+            print('\nbitplane compression invalid')
             print(arr)
             print_binary(array2binary(arr, wordwidth=wordwidth),          swidth=wordwidth, startswith='original:     ', endswith='\n')
             print_binary(compressed,                                      swidth=wordwidth, startswith='compressed:   ', endswith='\n')
             print_binary(array2binary(decompressed, wordwidth=wordwidth), swidth=wordwidth, startswith='decompressed: ', endswith='\n')
-
-            print('comp deltas: ', delta_transform(arr, wordwidth=wordwidth))
-            print('comp dbx transf: ', dbx_transform(arr, wordwidth=wordwidth))
 
             input("Press any key to continue\n")
         else:

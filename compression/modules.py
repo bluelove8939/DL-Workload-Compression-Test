@@ -1,7 +1,7 @@
 from typing import Callable
 
 from compression.binary_array import print_binary, array2binary
-from compression.algorithms import bitplane_compression, zrle_compression, zeroval_compression
+from compression.algorithms import bitplane_compression, zrle_compression, zeroval_compression, ebp_compression
 from compression.custom_streams import CustomStream, MemoryStream
 
 
@@ -102,3 +102,12 @@ class ZeroValueCompressor(Compressor):
                                                   outstream=outstream,
                                                   bandwidth=bandwidth,
                                                   wordbitwidth=wordbitwidth)
+
+class EBPCompressor(Compressor):
+    def __init__(self, instream: CustomStream or None=None, outstream: MemoryStream or None=None,
+                 bandwidth: int=128, wordbitwidth: int=32) -> None:
+        super(EBPCompressor, self).__init__(cmethod=ebp_compression,
+                                            instream=instream,
+                                            outstream=outstream,
+                                            bandwidth=bandwidth,
+                                            wordbitwidth=wordbitwidth)
