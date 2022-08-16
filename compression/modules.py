@@ -42,7 +42,7 @@ class Compressor(object):
 
         return binarr
 
-    def calc_compression_ratio(self, maxiter: int=-1, verbose: int=1) -> float:
+    def calc_compression_ratio(self, maxiter: int=-1, verbose: int=1, verbose_step: int=1) -> float:
         total_original_size = 0
         total_compressed_size = 0
         cursor_limit = min(self.instream.fullsize(), (self.bandwidth if self.bandwidth != -1 else self.instream.fullsize()) * maxiter) if maxiter != -1 else self.instream.fullsize()
@@ -73,23 +73,37 @@ class Compressor(object):
             total_original_size += original_size
             total_compressed_size += compressed_size
 
-            if verbose == 1:
-                print(f"\r{progressbar(status=self.instream.cursor, total=cursor_limit, scale=50)}  "
-                      f"cursor: {self.instream.cursor}/{self.instream.fullsize()} "
-                      f"(maxiter {'N/A' if maxiter is None else maxiter})  "
-                      f"compression ratio: {original_size / compressed_size:.6f} "
-                      f"({total_original_size / total_compressed_size:.6f})", end='          ')
-            elif verbose == 2:
-                print(f"\rcursor: {self.instream.cursor}/{self.instream.fullsize()} "
-                      f"(maxiter {'N/A' if maxiter is None else maxiter})  "
-                      f"compression ratio: {self.bandwidth * 8 / len(binarr):.6f} "
-                      f"({total_original_size / total_compressed_size:.6f})")
+            if cntiter % verbose_step == 0:
+                if verbose == 1:
+                    print(f"\r{progressbar(status=self.instream.cursor, total=cursor_limit, scale=50)}  "
+                          f"cursor: {self.instream.cursor}/{self.instream.fullsize()} "
+                          f"(maxiter {'N/A' if maxiter is None else maxiter})  "
+                          f"compression ratio: {original_size / compressed_size:.6f} "
+                          f"({total_original_size / total_compressed_size:.6f})", end='          ')
+                elif verbose == 2:
+                    print(f"\rcursor: {self.instream.cursor}/{self.instream.fullsize()} "
+                          f"(maxiter {'N/A' if maxiter is None else maxiter})  "
+                          f"compression ratio: {self.bandwidth * 8 / len(binarr):.6f} "
+                          f"({total_original_size / total_compressed_size:.6f})")
 
             cntiter += 1
             if maxiter != -1 and cntiter >= maxiter:
                 break
 
+        if verbose == 1:
+            print(f"\r{progressbar(status=self.instream.cursor, total=cursor_limit, scale=50)}  "
+                  f"cursor: {self.instream.cursor}/{self.instream.fullsize()} "
+                  f"(maxiter {'N/A' if maxiter is None else maxiter})  "
+                  f"compression ratio: {original_size / compressed_size:.6f} "
+                  f"({total_original_size / total_compressed_size:.6f})", end='          ')
+        elif verbose == 2:
+            print(f"\rcursor: {self.instream.cursor}/{self.instream.fullsize()} "
+                  f"(maxiter {'N/A' if maxiter is None else maxiter})  "
+                  f"compression ratio: {self.bandwidth * 8 / len(binarr):.6f} "
+                  f"({total_original_size / total_compressed_size:.6f})")
+
         return total_original_size / total_compressed_size
+
 
 class BitPlaneCompressor(Compressor):
     def __init__(self, instream: CustomStream or None=None, outstream: MemoryStream or None=None,

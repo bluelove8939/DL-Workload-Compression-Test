@@ -89,7 +89,7 @@ for modelname in os.listdir(dirname):
         for algo_name, algo_compressor in sorted(compressors.items(), key=lambda x: x[0]):
             print(f"compressing with {algo_name}...")
             algo_compressor.instream = stream
-            comp_ratios[algo_name] = algo_compressor.calc_compression_ratio(maxiter=maxiter, verbose=1)
+            comp_ratios[algo_name] = algo_compressor.calc_compression_ratio(maxiter=maxiter, verbose=1, verbose_step=1000)
             print()
 
         results[file_fullpath] = ','.join(list(map(str, [
