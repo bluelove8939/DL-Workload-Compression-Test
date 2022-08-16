@@ -51,6 +51,12 @@ print(f"- quantization: {qdtypename}")
 print(f"- logfilepath: {os.path.join(logdirname, logfilename)}\n")
 
 results = {}
+compressors = {
+    'BPC':  None,
+    'ZRLE': None,
+    'ZVC':  None,
+    'EBPC': None,
+}
 
 
 # Read each files and compress with given algorithms
@@ -76,16 +82,14 @@ for modelname in os.listdir(dirname):
         else:
             stream.load_filepath(filepath=file_fullpath, dtype=np.dtype(dtypename))
 
-        compressors = {
-            'BPC':  BitPlaneCompressor(instream=stream, bandwidth=chunksize, wordbitwidth=wordwidth),
-            'ZRLE': ZeroRLECompressor(instream=stream, bandwidth=64, wordbitwidth=wordwidth),
-            'ZVC':  ZeroValueCompressor(instream=stream, bandwidth=64, wordbitwidth=wordwidth),
-            'EBPC': EBPCompressor(instream=stream, bandwidth=chunksize, wordbitwidth=wordwidth),
-        }
+        compressors['BPC'] = BitPlaneCompressor(instream=stream, bandwidth=chunksize, wordbitwidth=wordwidth)
+        compressors['ZRLE'] = ZeroRLECompressor(instream=stream, bandwidth=64, wordbitwidth=wordwidth)
+        compressors['ZVC'] = ZeroValueCompressor(instream=stream, bandwidth=64, wordbitwidth=wordwidth)
+        compressors['EBPC'] = EBPCompressor(instream=stream, bandwidth=chunksize, wordbitwidth=wordwidth)
         comp_ratios = {}
 
         print(f"compression ratio test with {stream}({stream.fullsize()}Bytes)")
-        for algo_name, algo_compressor in compressors.items():
+        for algo_name, algo_compressor in sorted(compressors.items(), key=lambda x: x[0]):
             print(f"compressing with {algo_name}...")
             comp_ratios[algo_name] = algo_compressor.calc_compression_ratio(maxiter=maxiter, verbose=1)
             print()
@@ -99,7 +103,8 @@ for modelname in os.listdir(dirname):
 
 
 # Save compression test results
-categories = ['Model Name', 'Param Name', 'File Size(Bytes)', 'Comp Ratio(BPC)', 'Comp Ratio(ZRLE)']
+# categories = ['Model Name', 'Param Name', 'File Size(Bytes)', 'Comp Ratio(BPC)', 'Comp Ratio(ZRLE)']
+categories = ['Model Name', 'Param Name', 'File Size(Bytes)', *list(map(lambda x: f"Comp Ratio({x})", sorted(compressors.keys())))]
 os.makedirs(logdirname, exist_ok=True)
 with open(os.path.join(logdirname, logfilename), 'wt') as file:
     file.write('\n'.join([','.join(categories)] + list(results.values())))
