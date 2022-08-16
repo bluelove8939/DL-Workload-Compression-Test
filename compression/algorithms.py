@@ -125,12 +125,14 @@ def bitplane_decompression(binarr: str, wordwidth: int, chunksize: int, dtype=np
                 dbps.append(dbxs[-1])
             cursor += arrsize
 
+    delta_dtype = np.dtype('int32') if 'int' in dtype.name else np.dtype('float32')
     delta_width  = wordwidth+1 if 'int' in dtype.name else wordwidth
-    original = np.array(list(base) + list(binary2array(''.join([''.join(diff) for diff in zip(*dbps)]), delta_width, dtype=dtype)), dtype=dtype)
+
+    original = np.array(list(base) + list(binary2array(''.join([''.join(diff) for diff in zip(*dbps)]), delta_width, dtype=delta_dtype)), dtype=dtype)
     for idx in range(1, len(original)):
         original[idx] += original[idx-1]
 
-    return original
+    return original.astype(dtype=dtype)
 
 
 # Functions for Zero-RLE algorithm
@@ -242,9 +244,9 @@ if __name__ == '__main__':
 
     from binary_array import print_binary
     from compression.custom_streams import FileStream
+    from models.tools.progressbar import progressbar
 
-    # parent_dirname = os.path.join(os.curdir, '..', 'extractions_activations')
-    parent_dirname = os.path.join('E:\\', 'extractions_activations')
+    parent_dirname = os.path.join(os.curdir, '..', 'extractions_activations')
     filepath = os.path.join(parent_dirname, 'AlexNet_Imagenet_output', 'ReLU_0_output0')
 
     comp_method = ebp_compression
@@ -261,7 +263,7 @@ if __name__ == '__main__':
     orig_total = 0
     uncomp_cnt = 0
 
-    def compare_array(arr1: np.ndarray, arr2: np.ndarray, thres: float) -> bool:
+    def compare_array(arr1: np.ndarray, arr2: np.ndarray, thres: float=1e-6) -> bool:
         return (np.sum(arr1 - arr2) ** 2) < thres
 
     while True:
@@ -269,19 +271,12 @@ if __name__ == '__main__':
         if arr is None:
             break
 
-        try:
-            compressed = comp_method(arr, wordwidth=wordwidth)
-            decompressed = decomp_method(compressed, wordwidth=wordwidth, chunksize=chunksize, dtype=dtype)
-        except Exception as e:
-            print("error occurred")
-            print(f"Error: {e}")
-            print(f"original: {arr}")
-            input("Press any key to continue")
-            continue
+        compressed = comp_method(arr, wordwidth=wordwidth)
+        decompressed = decomp_method(compressed, wordwidth=wordwidth, chunksize=chunksize, dtype=dtype)
 
-        if not compare_array(arr, decompressed, 1e-5):
+        if not compare_array(arr, decompressed, thres=1e-6):
             print('\nbitplane compression invalid')
-            print(arr)
+            print(f"raw: [{' '.join(list(map(str, arr)))}]")
             print_binary(array2binary(arr, wordwidth=wordwidth),          swidth=wordwidth, startswith='original:     ', endswith='\n')
             print_binary(compressed,                                      swidth=wordwidth, startswith='compressed:   ', endswith='\n')
             print_binary(array2binary(decompressed, wordwidth=wordwidth), swidth=wordwidth, startswith='decompressed: ', endswith='\n')
@@ -292,6 +287,7 @@ if __name__ == '__main__':
             comp_total += len(compressed)
             uncomp_cnt += 1 if len(compressed) >= len(array2binary(arr, wordwidth=wordwidth)) else 0
 
-            print(f"\rcursor: {stream.cursor}/{stream.fullsize()}\t"
+            print(f"\r{progressbar(status=stream.cursor, total=stream.fullsize(), scale=50)}  "
+                  f"cursor: {stream.cursor}/{stream.fullsize()}\t"
                   f"compression ratio: {len(array2binary(arr, wordwidth=wordwidth)) / len(compressed):.4f}"
                   f"({orig_total / comp_total:.4f}) uncomp_cnt: {uncomp_cnt}", end='')

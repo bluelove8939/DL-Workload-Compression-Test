@@ -55,7 +55,7 @@ def array2binary(arr: np.ndarray, wordwidth: int=None) -> str:
 def binary2array(binarr: str, wordwidth: int, dtype: np.dtype) -> list:
     bytearr = bytearray()
     for i in range(0, len(binarr), wordwidth):
-        bytearr += int(binarr[i:i+wordwidth], 2).to_bytes(wordwidth // 8, byteorder='big')
+        bytearr += int(binarr[i:i+wordwidth], 2).to_bytes(dtype.itemsize, byteorder='big')
     arr = np.frombuffer(bytearr, dtype=dtype).byteswap()
     return arr
 

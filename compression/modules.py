@@ -3,6 +3,7 @@ from typing import Callable
 from compression.binary_array import print_binary, array2binary
 from compression.algorithms import bitplane_compression, zrle_compression, zeroval_compression, ebp_compression
 from compression.custom_streams import CustomStream, MemoryStream
+from models.tools.progressbar import progressbar
 
 
 # Compressor module
@@ -44,6 +45,7 @@ class Compressor(object):
     def calc_compression_ratio(self, maxiter: int=-1, verbose: int=1) -> float:
         total_original_size = 0
         total_compressed_size = 0
+        cursor_limit = min(self.instream.fullsize(), self.bandwidth * maxiter) if maxiter != -1 else self.instream.fullsize()
         cntiter = 0
 
         self.instream.reset()
@@ -60,7 +62,8 @@ class Compressor(object):
             total_compressed_size += compressed_size
 
             if verbose == 1:
-                print(f"\rcursor: {self.instream.cursor}/{self.instream.fullsize()} "
+                print(f"\r{progressbar(status=self.instream.cursor, total=cursor_limit, scale=50)}  "
+                      f"cursor: {self.instream.cursor}/{self.instream.fullsize()} "
                       f"(maxiter {'N/A' if maxiter is None else maxiter})  "
                       f"compression ratio: {original_size / compressed_size:.6f} "
                       f"({total_original_size / total_compressed_size:.6f})", end='          ')
