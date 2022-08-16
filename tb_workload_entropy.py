@@ -5,9 +5,9 @@ import numpy as np
 
 
 parser = argparse.ArgumentParser(description='Entropy Test Configs')
-parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extractions_quant_activations'),
+parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extractions_quant_wfile'),
                     help='Directory of model extraction files', dest='extdir')
-parser.add_argument('-bs', '--bsize', default=4, type=int, help='Size of data block (Bytes)', dest='bsize')
+parser.add_argument('-bs', '--bsize', default=1, type=int, help='Size of data block (Bytes)', dest='bsize')
 parser.add_argument('-ba', '--base', default=2, type=int, help='Base of Shannon\'s entropy', dest='base')
 comp_args, _ = parser.parse_known_args()
 

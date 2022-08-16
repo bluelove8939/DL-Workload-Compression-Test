@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 
 parser = argparse.ArgumentParser(description='Test Result Analyzing Configs')
-parser.add_argument('-fp', '--filepath', default=os.path.join(os.curdir, 'logs', 'entropy_test_fp32_4B.csv'),
+parser.add_argument('-fp', '--filepath', default=os.path.join(os.curdir, 'logs', 'entropy_test_quant_dynamic_int8.csv'),
                     help='Path to result csv file', dest='filepath')
 comp_args, _ = parser.parse_known_args()
 
@@ -52,11 +52,11 @@ if __name__ == '__main__':
         xval = x_axis + ((idx - (len(results.keys()) / 2) + 0.5) * width)
         plt.bar(xval, val, width=width, label=key)
         for i, j in zip(xval, val):
-            plt.annotate(f"{j:.2f}", xy=(i, j + 0.2), ha='center')
+            plt.annotate(f"{j:.2f}", xy=(i, j + 0.05), ha='center')
     plt.xticks(x_axis, categories, rotation=0, ha='center')
-    plt.ylim([0.0, 32.0])
+    plt.ylim([0.0, 8.0])
 
-    plt.title("Entropy of quantized CNN layers (dtype: FP32 csize: 4Byte)")
+    plt.title("Entropy of quantized CNN layers (dtype: INT8 csize: 1Byte)")
     plt.legend()
     plt.tight_layout()
     plt.show()

@@ -4,9 +4,9 @@ import numpy as np
 
 
 parser = argparse.ArgumentParser(description='Sparsity Test Configs')
-parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extractions_quant_activations'),
+parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extractions_quant_wfile'),
                     help='Directory of model extraction files', dest='extdir')
-parser.add_argument('-dt', '--dtype', default='float32', type=str, help='Dtype of numpy array', dest='dtypename')
+parser.add_argument('-dt', '--dtype', default='int8', type=str, help='Dtype of numpy array', dest='dtypename')
 comp_args, _ = parser.parse_known_args()
 
 

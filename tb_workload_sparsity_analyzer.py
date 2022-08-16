@@ -5,14 +5,14 @@ import matplotlib.pyplot as plt
 
 
 parser = argparse.ArgumentParser(description='Test Result Analyzing Configs')
-parser.add_argument('-fp', '--filepath', default=os.path.join(os.curdir, 'logs', 'sparsity_test_quant_int8.csv'),
+parser.add_argument('-fp', '--filepath', default=os.path.join(os.curdir, 'logs', 'sparsity_test_quant_dynamic_int8.csv'),
                     help='Path to result csv file', dest='filepath')
 comp_args, _ = parser.parse_known_args()
 
 
 if __name__ == '__main__':
-    # layer_types = ['sparsity', 'BatchNorm2D', 'Conv2D', 'ReLU']
-    layer_types = ['ConvReLU2d']
+    layer_types = ['sparsity', 'BatchNorm2D', 'Conv2D', 'ReLU']
+    # layer_types = ['ConvReLU2d']
     categories = []
     results = {}
 
