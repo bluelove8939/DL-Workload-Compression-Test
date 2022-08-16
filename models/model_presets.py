@@ -95,4 +95,8 @@ imagenet_quant_pretrained = {
         torchvision.models.quantization.inception_v3,
         weights=torchvision.models.quantization.Inception_V3_QuantizedWeights.IMAGENET1K_FBGEMM_V1,
     ),
+    # 'MobileNet': QuantModelConfig(
+    #     torchvision.models.quantization.mobilenet_v2,
+    #     weights=torchvision.models.quantization.MobileNet_V2_QuantizedWeights.IMAGENET1K_QNNPACK_V1,
+    # ),
 }
