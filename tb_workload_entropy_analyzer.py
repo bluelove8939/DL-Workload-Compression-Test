@@ -11,7 +11,7 @@ comp_args, _ = parser.parse_known_args()
 
 
 if __name__ == '__main__':
-    layer_types = ['entropy', 'BatchNorm2D', 'Conv2D', 'ReLU']
+    layer_types = ['entropy', 'BatchNorm2d', 'Conv2d', 'ReLU']
     # layer_types = ['ConvReLU2d']
     categories = []
     results = {}
