@@ -47,15 +47,18 @@ class FileStream(CustomStream):
     def fetch(self, size: int) -> np.ndarray or None:
         if self.cursor + size > self.fullsize():
             return None
-        if size == -1 and self.cursor != 0:
+
+        if size == -1 and self.cursor > 0:
             return None
+
+        # size = self.fullsize() if size == -1 else size
 
         with open(self._filepath, 'rb') as file:
             file.seek(self.cursor)
             content = file.read(size)
             arr = np.frombuffer(content, dtype=self.dtype)
 
-        self.cursor += size
+        self.cursor += size if size != -1 else self.fullsize()
         return arr
 
     def fullsize(self):

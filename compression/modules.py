@@ -45,8 +45,7 @@ class Compressor(object):
     def calc_compression_ratio(self, maxiter: int=-1, verbose: int=1) -> float:
         total_original_size = 0
         total_compressed_size = 0
-        self.bandwidth = self.instream.fullsize() if self.bandwidth == -1 else self.bandwidth
-        cursor_limit = min(self.instream.fullsize(), self.bandwidth * maxiter) if maxiter != -1 else self.instream.fullsize()
+        cursor_limit = min(self.instream.fullsize(), (self.bandwidth if self.bandwidth != -1 else self.instream.fullsize()) * maxiter) if maxiter != -1 else self.instream.fullsize()
         cntiter = 0
 
         self.instream.reset()
@@ -68,7 +67,7 @@ class Compressor(object):
             if binarr == Compressor.STOPCODE:
                 return total_original_size / total_compressed_size if total_compressed_size != 0 else 0
 
-            original_size = self.bandwidth * 8
+            original_size = self.bandwidth * 8 if self.bandwidth != -1 else self.instream.fullsize() * 8
             compressed_size = len(binarr)
 
             total_original_size += original_size
