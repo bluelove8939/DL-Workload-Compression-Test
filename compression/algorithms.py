@@ -255,6 +255,14 @@ if __name__ == '__main__':
     wordwidth = 32
     chunksize = 64
 
+    print('Algorithm Test Configs')
+    print(f"- file:  {filepath}")
+    print(f"- dtype: {dtype.name}")
+    print(f"- chunksize: {chunksize}Byte")
+    print(f"- wordwidth: {wordwidth}bit")
+    print(f"- compression:   {comp_method.__name__}")
+    print(f"- decompression: {decomp_method.__name__}\n")
+
     stream = FileStream()
     stream.load_filepath(filepath=filepath, dtype=dtype)
     arr, compressed, decompressed = None, None, None
