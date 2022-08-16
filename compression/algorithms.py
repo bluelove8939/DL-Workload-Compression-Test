@@ -1,4 +1,5 @@
 import math
+import zlib
 import numpy as np
 from typing import Iterable
 from compression.binary_array import array2binary, binary2array
@@ -239,6 +240,23 @@ def ebp_decompression(binarr: str, wordwidth: int, chunksize: int, max_burst_len
     return decoded
 
 
+# Functions for zlib (dummy for official Zlib library)
+#
+# Functions
+#   zlib_compression
+#   zlib_decompression
+
+def zlib_compression(arr: np.ndarray, wordwidth: int,) -> str:
+    barr = zlib.compress(arr.tobytes())
+    iarr = np.frombuffer(barr, dtype=np.dtype('int8'))
+    return array2binary(iarr, wordwidth=8)
+
+def zlib_decompression(binarr: str, wordwidth: int, chunksize: int, dtype=np.dtype('int8')) -> np.ndarray:
+    iarr = binary2array(binarr, wordwidth=8, dtype=np.dtype('int8'))
+    barr = iarr.tobytes()
+    return np.frombuffer(zlib.decompress(barr), dtype=dtype)
+
+
 if __name__ == '__main__':
     import os
 
@@ -246,13 +264,13 @@ if __name__ == '__main__':
     from compression.custom_streams import FileStream
     from models.tools.progressbar import progressbar
 
-    parent_dirname = os.path.join(os.curdir, '..', 'extractions_activations')
+    parent_dirname = os.path.join(os.curdir, '..', 'extractions_quant_wfile')
     filepath = os.path.join(parent_dirname, 'AlexNet_Imagenet_output', 'ReLU_0_output0')
 
-    comp_method = ebp_compression
-    decomp_method = ebp_decompression
-    dtype = np.dtype('float32')
-    wordwidth = 32
+    comp_method = zlib_compression
+    decomp_method = zlib_decompression
+    dtype = np.dtype('int8')
+    wordwidth = 8
     chunksize = 64
 
     print('Algorithm Test Configs')

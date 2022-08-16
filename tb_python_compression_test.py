@@ -2,7 +2,7 @@ import os
 import numpy as np
 import argparse
 
-from compression.modules import BitPlaneCompressor, ZeroRLECompressor, ZeroValueCompressor, EBPCompressor
+from compression.modules import BitPlaneCompressor, ZeroRLECompressor, ZeroValueCompressor, EBPCompressor, ZlibCompressor
 from compression.custom_streams import FileStream
 from compression.file_quant import FileQuantizer
 
@@ -12,7 +12,7 @@ parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extr
                     help='Directory of model extraction files', dest='dirname')
 parser.add_argument('-cs', '--chunksize', default=128, type=int, help='Size of a chunk (Bytes)', dest='chunksize')
 parser.add_argument('-wd', '--wordwidth', default=32, type=int, help='Bitwidth of a word (Bits)', dest='wordwidth')
-parser.add_argument('-mi', '--maxiter', default=-1, type=int,
+parser.add_argument('-mi', '--maxiter', default=2000, type=int,
                     help='Number of maximum iteration (-1 for no limitation)', dest='maxiter')
 parser.add_argument('-dt', '--dtype', default='float32', type=str, help='Dtype of numpy array', dest='dtypename')
 parser.add_argument('-qdt', '--quant-dtype', default='none', type=str, help='Dtype for quantization', dest='qdtypename')
@@ -56,6 +56,7 @@ compressors = {
     'ZRLE': None,
     'ZVC':  None,
     'EBPC': None,
+    'Zlib': None,
 }
 
 
@@ -86,6 +87,7 @@ for modelname in os.listdir(dirname):
         compressors['ZRLE'] = ZeroRLECompressor(instream=stream, bandwidth=64, wordbitwidth=wordwidth)
         compressors['ZVC'] = ZeroValueCompressor(instream=stream, bandwidth=64, wordbitwidth=wordwidth)
         compressors['EBPC'] = EBPCompressor(instream=stream, bandwidth=chunksize, wordbitwidth=wordwidth)
+        compressors['Zlib'] = ZlibCompressor(instream=stream, bandwidth=-1, wordbitwidth=wordwidth)
         comp_ratios = {}
 
         print(f"compression ratio test with {stream}({stream.fullsize()}Bytes)")

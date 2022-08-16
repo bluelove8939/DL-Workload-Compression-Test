@@ -52,7 +52,7 @@ def array2binary(arr: np.ndarray, wordwidth: int=None) -> str:
                       for i in range(0, len(rawbinarr), precision)])
     return binarr
 
-def binary2array(binarr: str, wordwidth: int, dtype: np.dtype) -> list:
+def binary2array(binarr: str, wordwidth: int, dtype: np.dtype) -> np.ndarray:
     bytearr = bytearray()
     for i in range(0, len(binarr), wordwidth):
         bytearr += int(binarr[i:i+wordwidth], 2).to_bytes(dtype.itemsize, byteorder='big')

@@ -1,7 +1,7 @@
 from typing import Callable
 
 from compression.binary_array import print_binary, array2binary
-from compression.algorithms import bitplane_compression, zrle_compression, zeroval_compression, ebp_compression
+from compression.algorithms import bitplane_compression, zrle_compression, zeroval_compression, ebp_compression, zlib_compression
 from compression.custom_streams import CustomStream, MemoryStream
 from models.tools.progressbar import progressbar
 
@@ -21,6 +21,9 @@ class Compressor(object):
         self.wordbitwidth = wordbitwidth  # wordwidth in bits
         self.instream     = instream      # to fetch chunk from data or file
         self.outstream    = outstream     # to load chunk to memory
+
+        if self.bandwidth == -1:
+            self.bandwidth = instream.fullsize()
 
     def register_input_stream(self, instream, bandwidth: int=None, wordbitwidth: int=None):
         self.instream     = instream
@@ -49,6 +52,18 @@ class Compressor(object):
         cntiter = 0
 
         self.instream.reset()
+
+        if verbose == 1:
+            print(f"\r{progressbar(status=self.instream.cursor, total=cursor_limit, scale=50)}  "
+                  f"cursor: {self.instream.cursor}/{self.instream.fullsize()} "
+                  f"(maxiter {'N/A' if maxiter is None else maxiter})  "
+                  f"compression ratio: N/A "
+                  f"(N/A)", end='          ')
+        elif verbose == 2:
+            print(f"\rcursor: {self.instream.cursor}/{self.instream.fullsize()} "
+                  f"(maxiter {'N/A' if maxiter is None else maxiter})  "
+                  f"compression ratio: N/A "
+                  f"(N/A)")
 
         while True:
             binarr = self.step(verbose)
@@ -114,3 +129,12 @@ class EBPCompressor(Compressor):
                                             outstream=outstream,
                                             bandwidth=bandwidth,
                                             wordbitwidth=wordbitwidth)
+
+class ZlibCompressor(Compressor):
+    def __init__(self, instream: CustomStream or None=None, outstream: MemoryStream or None=None,
+                 bandwidth: int=128, wordbitwidth: int=32) -> None:
+        super(ZlibCompressor, self).__init__(cmethod=zlib_compression,
+                                             instream=instream,
+                                             outstream=outstream,
+                                             bandwidth=bandwidth,
+                                             wordbitwidth=wordbitwidth)
