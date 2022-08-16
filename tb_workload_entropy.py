@@ -33,10 +33,10 @@ def modelfilter(modelname):
 if __name__ == '__main__':
     bsize = 32  # 8words for float32
     base = 2    # entropy in 'bits'
+    dirname = os.path.join(os.curdir, 'extractions_quant_activations')
 
     lines = []
 
-    dirname = os.path.join(os.curdir, 'extractions_quant_activations')
     for modelname in list(filter(modelfilter, os.listdir(dirname))):
         if 'output' not in modelname:
             continue
