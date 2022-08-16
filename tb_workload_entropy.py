@@ -36,7 +36,7 @@ if __name__ == '__main__':
 
     lines = []
 
-    dirname = os.path.join(os.curdir, 'extractions_activations')
+    dirname = os.path.join(os.curdir, 'extractions_quant_activations')
     for modelname in list(filter(modelfilter, os.listdir(dirname))):
         if 'output' not in modelname:
             continue
