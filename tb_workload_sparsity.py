@@ -1,11 +1,26 @@
 import os
+import argparse
 import numpy as np
+
+
+parser = argparse.ArgumentParser(description='Sparsity Test Configs')
+parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extractions_quant_activations'),
+                    help='Directory of model extraction files', dest='extdir')
+parser.add_argument('-dt', '--dtype', default='float32', type=str, help='Dtype of numpy array', dest='dtypename')
+comp_args, _ = parser.parse_known_args()
+
+
+dirname = comp_args.extdir
+dtypename = comp_args.dtypename
+
+print("Sparsity Test Config")
+print(f"- dirname: {dirname}")
+print(f"- dtype: {dtypename}\n")
 
 
 if __name__ == '__main__':
     lines = []
 
-    dirname = os.path.join(os.curdir, 'extractions_quant_activations')
     for modelname in os.listdir(dirname):
         if 'output' not in modelname:
             continue
@@ -20,7 +35,7 @@ if __name__ == '__main__':
 
             with open(filepath, 'rb') as file:
                 content = file.read()
-                arr = np.frombuffer(content, dtype=np.dtype('float')).flatten()
+                arr = np.frombuffer(content, dtype=np.dtype(dtypename)).flatten()
                 arrsize = arr.shape[0]
                 nonzerocnt = np.count_nonzero(arr)
                 zerocnt = arrsize - nonzerocnt

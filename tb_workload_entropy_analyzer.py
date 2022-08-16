@@ -5,13 +5,14 @@ import matplotlib.pyplot as plt
 
 
 parser = argparse.ArgumentParser(description='Test Result Analyzing Configs')
-parser.add_argument('-fp', '--filepath', default=os.path.join(os.curdir, 'logs', 'entropy_test.csv'),
+parser.add_argument('-fp', '--filepath', default=os.path.join(os.curdir, 'logs', 'entropy_test_fp32_4B.csv'),
                     help='Path to result csv file', dest='filepath')
 comp_args, _ = parser.parse_known_args()
 
 
 if __name__ == '__main__':
     layer_types = ['entropy', 'BatchNorm2D', 'Conv2D', 'ReLU']
+    # layer_types = ['ConvReLU2d']
     categories = []
     results = {}
 
@@ -53,9 +54,9 @@ if __name__ == '__main__':
         for i, j in zip(xval, val):
             plt.annotate(f"{j:.2f}", xy=(i, j + 0.2), ha='center')
     plt.xticks(x_axis, categories, rotation=0, ha='center')
-    plt.ylim([0.0, 20.0])
+    plt.ylim([0.0, 32.0])
 
-    plt.title("Entropy of CNN layers (dtype: FP32 csize: 32Byte)")
+    plt.title("Entropy of quantized CNN layers (dtype: FP32 csize: 4Byte)")
     plt.legend()
     plt.tight_layout()
     plt.show()

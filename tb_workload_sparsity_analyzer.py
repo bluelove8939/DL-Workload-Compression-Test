@@ -5,13 +5,14 @@ import matplotlib.pyplot as plt
 
 
 parser = argparse.ArgumentParser(description='Test Result Analyzing Configs')
-parser.add_argument('-fp', '--filepath', default=os.path.join(os.curdir, 'logs', 'sparsity_test2.csv'),
+parser.add_argument('-fp', '--filepath', default=os.path.join(os.curdir, 'logs', 'sparsity_test_quant_int8.csv'),
                     help='Path to result csv file', dest='filepath')
 comp_args, _ = parser.parse_known_args()
 
 
 if __name__ == '__main__':
-    layer_types = ['sparsity', 'BatchNorm2D', 'Conv2D', 'ReLU']
+    # layer_types = ['sparsity', 'BatchNorm2D', 'Conv2D', 'ReLU']
+    layer_types = ['ConvReLU2d']
     categories = []
     results = {}
 
@@ -55,7 +56,7 @@ if __name__ == '__main__':
     plt.xticks(x_axis, categories, rotation=0, ha='center')
     plt.ylim([0.0, 1.0])
 
-    plt.title("Sparsity of CNN layers")
+    plt.title("Sparsity of quantized CNN layers")
     plt.legend()
     plt.tight_layout()
     plt.show()
