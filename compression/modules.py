@@ -22,9 +22,6 @@ class Compressor(object):
         self.instream     = instream      # to fetch chunk from data or file
         self.outstream    = outstream     # to load chunk to memory
 
-        if self.bandwidth == -1:
-            self.bandwidth = instream.fullsize()
-
     def register_input_stream(self, instream, bandwidth: int=None, wordbitwidth: int=None):
         self.instream     = instream
         self.bandwidth    = bandwidth    if bandwidth    is not None else self.bandwidth
@@ -48,6 +45,7 @@ class Compressor(object):
     def calc_compression_ratio(self, maxiter: int=-1, verbose: int=1) -> float:
         total_original_size = 0
         total_compressed_size = 0
+        self.bandwidth = self.instream.fullsize() if self.bandwidth == -1 else self.bandwidth
         cursor_limit = min(self.instream.fullsize(), self.bandwidth * maxiter) if maxiter != -1 else self.instream.fullsize()
         cntiter = 0
 

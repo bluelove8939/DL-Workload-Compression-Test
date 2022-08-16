@@ -12,7 +12,7 @@ parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extr
                     help='Directory of model extraction files', dest='dirname')
 parser.add_argument('-cs', '--chunksize', default=128, type=int, help='Size of a chunk (Bytes)', dest='chunksize')
 parser.add_argument('-wd', '--wordwidth', default=32, type=int, help='Bitwidth of a word (Bits)', dest='wordwidth')
-parser.add_argument('-mi', '--maxiter', default=2000, type=int,
+parser.add_argument('-mi', '--maxiter', default=-1, type=int,
                     help='Number of maximum iteration (-1 for no limitation)', dest='maxiter')
 parser.add_argument('-dt', '--dtype', default='float32', type=str, help='Dtype of numpy array', dest='dtypename')
 parser.add_argument('-qdt', '--quant-dtype', default='none', type=str, help='Dtype for quantization', dest='qdtypename')
@@ -52,11 +52,11 @@ print(f"- logfilepath: {os.path.join(logdirname, logfilename)}\n")
 
 results = {}
 compressors = {
-    'BPC':  None,
-    'ZRLE': None,
-    'ZVC':  None,
-    'EBPC': None,
-    'Zlib': None,
+    'BPC':  BitPlaneCompressor(bandwidth=chunksize, wordbitwidth=wordwidth),
+    'ZRLE': ZeroRLECompressor(bandwidth=64, wordbitwidth=wordwidth),
+    'ZVC':  ZeroValueCompressor(bandwidth=64, wordbitwidth=wordwidth),
+    'EBPC': EBPCompressor(bandwidth=chunksize, wordbitwidth=wordwidth),
+    'Zlib': ZlibCompressor(bandwidth=-1, wordbitwidth=wordwidth),
 }
 
 
@@ -83,16 +83,12 @@ for modelname in os.listdir(dirname):
         else:
             stream.load_filepath(filepath=file_fullpath, dtype=np.dtype(dtypename))
 
-        compressors['BPC'] = BitPlaneCompressor(instream=stream, bandwidth=chunksize, wordbitwidth=wordwidth)
-        compressors['ZRLE'] = ZeroRLECompressor(instream=stream, bandwidth=64, wordbitwidth=wordwidth)
-        compressors['ZVC'] = ZeroValueCompressor(instream=stream, bandwidth=64, wordbitwidth=wordwidth)
-        compressors['EBPC'] = EBPCompressor(instream=stream, bandwidth=chunksize, wordbitwidth=wordwidth)
-        compressors['Zlib'] = ZlibCompressor(instream=stream, bandwidth=-1, wordbitwidth=wordwidth)
         comp_ratios = {}
 
         print(f"compression ratio test with {stream}({stream.fullsize()}Bytes)")
         for algo_name, algo_compressor in sorted(compressors.items(), key=lambda x: x[0]):
             print(f"compressing with {algo_name}...")
+            algo_compressor.instream = stream
             comp_ratios[algo_name] = algo_compressor.calc_compression_ratio(maxiter=maxiter, verbose=1)
             print()
 
