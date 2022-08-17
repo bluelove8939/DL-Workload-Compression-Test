@@ -33,6 +33,7 @@ class FileStream(CustomStream):
         self._filepath = filepath
         self.dtype = dtype
         self.cursor = 0
+        self.proportion = 100
         self.name = f"FileStream: {filepath}"
 
     def load_filepath(self, filepath: str, dtype: np.dtype) -> None:
@@ -61,7 +62,10 @@ class FileStream(CustomStream):
         self.cursor += size if size != -1 else self.fullsize()
         return arr
 
-    def fullsize(self):
+    def fullsize(self) -> int:
+        return int(os.path.getsize(self._filepath) * self.proportion / 100)
+
+    def filesize(self) -> int:
         return os.path.getsize(self._filepath)
 
 

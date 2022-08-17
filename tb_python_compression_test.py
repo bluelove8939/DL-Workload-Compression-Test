@@ -10,13 +10,21 @@ from compression.file_quant import FileQuantizer
 parser = argparse.ArgumentParser(description='Extraction Configs')
 parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extractions_activations'), type=str,
                     help='Directory of model extraction files', dest='dirname')
-parser.add_argument('-cs', '--chunksize', default=128, type=int, help='Size of a chunk (Bytes)', dest='chunksize')
-parser.add_argument('-wd', '--wordwidth', default=32, type=int, help='Bitwidth of a word (Bits)', dest='wordwidth')
+parser.add_argument('-cs', '--chunksize', default=128, type=int,
+                    help='Size of a chunk (Bytes)', dest='chunksize')
+parser.add_argument('-wd', '--wordwidth', default=32, type=int,
+                    help='Bitwidth of a word (bits)', dest='wordwidth')
 parser.add_argument('-mi', '--maxiter', default=-1, type=int,
                     help='Number of maximum iteration (-1 for no limitation)', dest='maxiter')
-parser.add_argument('-dt', '--dtype', default='float32', type=str, help='Dtype of numpy array', dest='dtypename')
-parser.add_argument('-qdt', '--quant-dtype', default='none', type=str, help='Dtype for quantization', dest='qdtypename')
-parser.add_argument('-ld', '--logdirname', default=os.path.join(os.curdir, 'logs'),
+parser.add_argument('-dt', '--dtype', default='float32', type=str,
+                    help='Dtype of numpy array', dest='dtypename')
+parser.add_argument('-qdt', '--quant-dtype', default='none', type=str,
+                    help='Dtype for quantization', dest='qdtypename')
+parser.add_argument('-vs', '--verbose_step', default=1, type=int,
+                    help='Step of verbose (print log for every Nth step for integer value N)', dest='vstep')
+parser.add_argument('-pr', '--file-proportion', default=100, type=int,
+                    help='File proportion (compress only N bytes if the proportion is N percent)', dest='fsprop')
+parser.add_argument('-ld', '--logdirname', default=os.path.join(os.curdir, 'logs'), type=str,
                     help='Directory of output log files', dest='logdirname')
 parser.add_argument('-lf', '--logfilename', default='compression_test_result.csv', type=str,
                     help='Name of logfile', dest='logfilename')
@@ -29,6 +37,8 @@ wordwidth = comp_args.wordwidth
 maxiter = comp_args.maxiter
 dtypename = comp_args.dtypename
 qdtypename = comp_args.qdtypename
+vstep = comp_args.vstep
+fsprop = comp_args.fsprop
 logdirname = comp_args.logdirname
 logfilename = comp_args.logfilename
 
@@ -43,11 +53,13 @@ logfilename = tmp
 
 print("Compression Test Config")
 print(f"- dirname: {dirname}")
-print(f"- chunksize: {chunksize}")
-print(f"- wordwidth: {wordwidth}")
-print(f"- maxiter: {maxiter}")
+print(f"- chunksize: {chunksize}Byte")
+print(f"- wordwidth: {wordwidth}bit")
 print(f"- dtype: {dtypename}")
 print(f"- quantization: {qdtypename}")
+print(f"- maxiter: {maxiter if maxiter != -1 else 'N/A'}")
+print(f"- verbose step: {vstep}")
+print(f"- file proportion: {fsprop}%")
 print(f"- logfilepath: {os.path.join(logdirname, logfilename)}\n")
 
 results = {}
@@ -83,13 +95,14 @@ for modelname in os.listdir(dirname):
         else:
             stream.load_filepath(filepath=file_fullpath, dtype=np.dtype(dtypename))
 
+        stream.proportion = fsprop
         comp_ratios = {}
 
-        print(f"compression ratio test with {stream}({stream.fullsize()}Bytes)")
+        print(f"compression ratio test with {stream}({stream.filesize()}Bytes)")
         for algo_name, algo_compressor in sorted(compressors.items(), key=lambda x: x[0]):
             print(f"compressing with {algo_name}...")
             algo_compressor.instream = stream
-            comp_ratios[algo_name] = algo_compressor.calc_compression_ratio(maxiter=maxiter, verbose=1, verbose_step=1000)
+            comp_ratios[algo_name] = algo_compressor.calc_compression_ratio(maxiter=maxiter, verbose=1, verbose_step=vstep)
             print()
 
         results[file_fullpath] = ','.join(list(map(str, [
