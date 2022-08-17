@@ -89,12 +89,12 @@ class Compressor(object):
         if verbose == 1:
             print(f"\r{progressbar(status=self.instream.cursor, total=cursor_limit, scale=scale)}  "
                   f"cursor: {self.instream.cursor}/{self.instream.fullsize()} "
-                  f"[{self.instream.cursor / self.instream.fullsize() * 100:6.2f}%]  "
+                  f"({self.instream.cursor / self.instream.fullsize() * 100:6.2f}%)  "
                   f"compression ratio: {orig_size / (comp_size + 1e-6):.6f} "
                   f"({total_orig_size / (total_comp_size + 1e-6):.6f})", end='          ')
         elif verbose == 2:
             print(f"\rcursor: {self.instream.cursor}/{self.instream.fullsize()} "
-                  f"[{self.instream.cursor / self.instream.fullsize() * 100:6.2f}%]  "
+                  f"({self.instream.cursor / self.instream.fullsize() * 100:6.2f}%)  "
                   f"compression ratio: {orig_size / (comp_size + 1e-6):.6f} "
                   f"({total_orig_size / (total_comp_size + 1e-6):.6f})")
 
