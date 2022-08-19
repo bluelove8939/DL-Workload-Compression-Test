@@ -4,6 +4,7 @@ import numpy as np
 from typing import Iterable
 from compression.binary_array import array2binary, binary2array
 from compression.binary_array import binary_xor, binary_and, binary_not, binary_or
+from compression.binary_array import trunc_array2binary, integer2binary, binary2integer
 
 
 # Functions for BPC algorithm
@@ -257,6 +258,76 @@ def zlib_decompression(binarr: str, wordwidth: int, chunksize: int, dtype=np.dty
     return np.frombuffer(zlib.decompress(barr), dtype=dtype)
 
 
+# Functions for BDI algorithm
+#
+# Description
+#   Testing
+#
+# Functions
+#   bdi_compression
+#   bdi_decompression
+
+def bdi_compression(arr: np.ndarray, wordwidth: int,) -> str:
+    dtype = arr.dtype
+    delta_width = wordwidth
+    if 'int' in dtype.name:
+        delta_width = wordwidth+1
+
+    base = arr[0]
+    deltas = arr[1:] - base
+    validwidth, delta_binarr = trunc_array2binary(deltas, wordwidth=delta_width)
+    return array2binary(base, wordwidth) + bin(validwidth)[2:].rjust(math.ceil(np.log2(delta_width)), '0') + delta_binarr
+
+def bdi_decompression(binarr: str, wordwidth: int, chunksize: int, dtype=np.dtype('int8')) -> np.ndarray:
+    delta_width = wordwidth
+    if 'int' in dtype.name:
+        delta_width = wordwidth + 1
+
+    width_bit = math.ceil(np.log2(delta_width))
+    base = binarr[:wordwidth]
+    validwidth = int(binarr[wordwidth:wordwidth+width_bit], 2)
+    delta_binarr = binarr[wordwidth+width_bit:]
+
+    if 'int' in dtype.name:
+        base = binary2integer(base, wordwidth=wordwidth)
+        original = [base]
+        # delta_width = wordwidth + 1
+        for idx in range(0, len(delta_binarr), validwidth):
+            binnum = delta_binarr[idx:idx+validwidth]
+            original.append(binary2integer(binnum, wordwidth=validwidth) + base)
+    else:
+        base = binary2array(base, wordwidth=wordwidth, dtype=dtype)
+        deltas = list(binary2array(delta_binarr, wordwidth=validwidth, dtype=dtype))
+        original = [base] + list(deltas + base)
+
+    return np.array(original, dtype=dtype)
+
+
+# Functions for EBDI algorithm
+#
+# Description
+#   Test
+#
+# Functions
+#   ebdi_compression
+#   ebdi_decompression
+
+def ebdi_compression(arr: np.ndarray, wordwidth: int, max_burst_len=16,) -> str:
+    zvc_encoded = zeroval_compression(arr, wordwidth=wordwidth)
+    bdi_encoded = bdi_compression(arr, wordwidth=wordwidth)
+
+    if len(zvc_encoded) <= len(bdi_encoded):
+        return '0' + zvc_encoded
+    return '1' + bdi_encoded
+
+def ebdi_decompression(binarr: str, wordwidth: int, chunksize: int, max_burst_len=16, dtype=np.dtype('int8')) -> np.ndarray:
+    if binarr[0] == '0':
+        decoded = zeroval_decompression(binarr[1:], wordwidth=wordwidth, chunksize=chunksize, dtype=dtype)
+    else:
+        decoded = bdi_decompression(binarr[1:], wordwidth=wordwidth, chunksize=chunksize, dtype=dtype)
+    return decoded
+
+
 if __name__ == '__main__':
     import os
 
@@ -264,14 +335,16 @@ if __name__ == '__main__':
     from compression.custom_streams import FileStream
     from models.tools.progressbar import progressbar
 
-    parent_dirname = os.path.join(os.curdir, '..', 'extractions_quant_wfile')
+    # parent_dirname = os.path.join(os.curdir, '..', 'extractions_quant_wfile')
+    parent_dirname = os.path.join(os.curdir, '..', 'extractions_activations')
     filepath = os.path.join(parent_dirname, 'AlexNet_Imagenet_output', 'ReLU_0_output0')
 
-    comp_method = zlib_compression
-    decomp_method = zlib_decompression
+    comp_method = ebdi_compression
+    decomp_method = ebdi_decompression
     dtype = np.dtype('int8')
     wordwidth = 8
     chunksize = 64
+    vstep = 1000
 
     print('Algorithm Test Configs')
     print(f"- file:  {filepath}")
@@ -288,6 +361,7 @@ if __name__ == '__main__':
     comp_total = 0
     orig_total = 0
     uncomp_cnt = 0
+    iter_cnt = 0
 
     def compare_array(arr1: np.ndarray, arr2: np.ndarray, thres: float=1e-6) -> bool:
         return (np.sum(arr1 - arr2) ** 2) < thres
@@ -313,7 +387,10 @@ if __name__ == '__main__':
             comp_total += len(compressed)
             uncomp_cnt += 1 if len(compressed) >= len(array2binary(arr, wordwidth=wordwidth)) else 0
 
-            print(f"\r{progressbar(status=stream.cursor, total=stream.fullsize(), scale=50)}  "
-                  f"cursor: {stream.cursor}/{stream.fullsize()}\t"
-                  f"compression ratio: {len(array2binary(arr, wordwidth=wordwidth)) / len(compressed):.4f}"
-                  f"({orig_total / comp_total:.4f}) uncomp_cnt: {uncomp_cnt}", end='')
+            if iter_cnt % vstep == 0:
+                print(f"\r{progressbar(status=stream.cursor, total=stream.fullsize(), scale=50)}  "
+                      f"cursor: {stream.cursor}/{stream.fullsize()}\t"
+                      f"compression ratio: {len(array2binary(arr, wordwidth=wordwidth)) / len(compressed):.4f}"
+                      f"({orig_total / comp_total:.4f}) uncomp_cnt: {uncomp_cnt}", end='')
+
+        iter_cnt += 1

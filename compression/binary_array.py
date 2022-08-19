@@ -74,6 +74,25 @@ def print_binary(binstr: str, swidth: int=8, startswith='', endswith='\n') -> No
     print(endswith, end='')
 
 
+# Methods for BDI
+
+def trunc_array2binary(arr: np.ndarray, wordwidth: int=None) -> tuple:
+    binarr = array2binary(arr, wordwidth)
+    binnum_arr = [binarr[i:i+wordwidth] for i in range(0, len(binarr), wordwidth)]
+    mincnt = wordwidth
+
+    for binnum in binnum_arr:
+        cnt = 0
+
+        for let in binnum[1:]:
+            if let == binnum[0]: cnt += 1
+            else: break
+
+        mincnt = min(mincnt, cnt)
+
+    return wordwidth - mincnt, ''.join(list(map(lambda x: x[mincnt:], binnum_arr)))
+
+
 if __name__ == '__main__':
     num = 14
     print(bin(num))
