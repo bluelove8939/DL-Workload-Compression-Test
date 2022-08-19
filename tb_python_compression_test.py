@@ -2,7 +2,7 @@ import os
 import numpy as np
 import argparse
 
-from compression.modules import BitPlaneCompressor, ZeroRLECompressor, ZeroValueCompressor, EBPCompressor, ZlibCompressor
+from compression.modules import BitPlaneCompressor, ZeroRLECompressor, ZeroValueCompressor, EBPCompressor, ZlibCompressor, BDICompressor, EBDICompressor
 from compression.custom_streams import FileStream
 from compression.file_quant import FileQuantizer
 
@@ -65,10 +65,12 @@ print(f"- logfilepath: {os.path.join(logdirname, logfilename)}\n")
 results = {}
 compressors = {
     'BPC':  BitPlaneCompressor(bandwidth=chunksize, wordbitwidth=wordwidth),
+    'BDI': BDICompressor(bandwidth=chunksize, wordbitwidth=wordwidth),
     'ZRLE': ZeroRLECompressor(bandwidth=64, wordbitwidth=wordwidth),
     'ZVC':  ZeroValueCompressor(bandwidth=64, wordbitwidth=wordwidth),
     'EBPC': EBPCompressor(bandwidth=chunksize, wordbitwidth=wordwidth),
-    'Zlib': ZlibCompressor(bandwidth=-1, wordbitwidth=wordwidth),
+    'EBDI': EBDICompressor(bandwidth=chunksize, wordbitwidth=wordwidth),
+    # 'Zlib': ZlibCompressor(bandwidth=-1, wordbitwidth=wordwidth),
 }
 
 

@@ -5,13 +5,11 @@ import matplotlib.pyplot as plt
 
 
 parser = argparse.ArgumentParser(description='Test Result Analyzing Configs')
-parser.add_argument('-fp', '--filepath', default=os.path.join(os.curdir, 'logs', 'compression_test_result_quant_int8_64B_zlib_inc.csv'),
+parser.add_argument('-fp', '--filepath', default=os.path.join(os.curdir, 'logs', 'compression_test_result_int8_64B.csv'),
                     help='Path to result csv file', dest='filepath')
 comp_args, _ = parser.parse_known_args()
 
 filepath = comp_args.filepath
-algo_names = ['BPC', 'EBPC', 'ZRLE', 'ZVC', 'Zlib',]
-# algo_names = ['BPC', 'ZRLE']
 layer_types = ['All', 'Conv2d', 'ReLU', 'BatchNorm2d',]
 
 yw, xw = 2, len(layer_types) // 2
@@ -21,13 +19,16 @@ for axis, layer_type in zip(axes.flatten(), layer_types):
     categories = []
     results = {}
 
-    for name in algo_names:
-        results[name] = []
-    results['total size'] = []
-
     with open(filepath, 'rt') as file:
-        content = list(map(lambda x: x.split(','), file.readlines()[1:]))
-        content = sorted(content, key=lambda x: x[0])
+        raw_content = list(map(lambda x: x.split(','), file.readlines()))
+        header = raw_content[0]
+        content = sorted(raw_content[1:], key=lambda x: x[0])
+
+        algo_names = list(map(lambda x: x.strip()[11:-1], header[3:]))
+
+        for name in algo_names:
+            results[name] = []
+        results['total size'] = []
 
         for model_name, param_name, file_size, *comp_ratios in content:
             model_name = model_name.split('_')[0]

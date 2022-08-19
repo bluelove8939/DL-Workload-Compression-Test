@@ -13,16 +13,17 @@ comp_args, _ = parser.parse_known_args()
 filepath = comp_args.filepath
 categories = []
 results = {}
-algo_names = ['BPC', 'EBPC', 'ZRLE', 'ZVC', 'Zlib',]
-# algo_names = ['BPC', 'ZRLE']
-
-for name in algo_names:
-    results[name] = []
-results['total size'] = []
 
 with open(filepath, 'rt') as file:
-    content = list(map(lambda x: x.split(','), file.readlines()[1:]))
-    content = sorted(content, key=lambda x: x[0])
+    raw_content = list(map(lambda x: x.split(','), file.readlines()))
+    header = raw_content[0]
+    content = sorted(raw_content[1:], key=lambda x: x[0])
+
+    algo_names = list(map(lambda x: x.strip()[11:-1], header[3:]))
+
+    for name in algo_names:
+        results[name] = []
+    results['total size'] = []
 
     for model_name, param_name, file_size, *comp_ratios in content:
         model_name = model_name.split('_')[0]

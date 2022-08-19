@@ -291,7 +291,6 @@ def bdi_decompression(binarr: str, wordwidth: int, chunksize: int, dtype=np.dtyp
     if 'int' in dtype.name:
         base = binary2integer(base, wordwidth=wordwidth)
         original = [base]
-        # delta_width = wordwidth + 1
         for idx in range(0, len(delta_binarr), validwidth):
             binnum = delta_binarr[idx:idx+validwidth]
             original.append(binary2integer(binnum, wordwidth=validwidth) + base)

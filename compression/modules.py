@@ -1,7 +1,7 @@
 from typing import Callable
 
 from compression.binary_array import print_binary, array2binary
-from compression.algorithms import bitplane_compression, zrle_compression, zeroval_compression, ebp_compression, zlib_compression
+from compression.algorithms import bitplane_compression, zrle_compression, zeroval_compression, ebp_compression, zlib_compression, bdi_compression, ebdi_compression
 from compression.custom_streams import CustomStream, MemoryStream
 from models.tools.progressbar import progressbar
 
@@ -139,6 +139,24 @@ class ZlibCompressor(Compressor):
     def __init__(self, instream: CustomStream or None=None, outstream: MemoryStream or None=None,
                  bandwidth: int=128, wordbitwidth: int=32) -> None:
         super(ZlibCompressor, self).__init__(cmethod=zlib_compression,
+                                             instream=instream,
+                                             outstream=outstream,
+                                             bandwidth=bandwidth,
+                                             wordbitwidth=wordbitwidth)
+
+class BDICompressor(Compressor):
+    def __init__(self, instream: CustomStream or None=None, outstream: MemoryStream or None=None,
+                 bandwidth: int=128, wordbitwidth: int=32) -> None:
+        super(BDICompressor, self).__init__(cmethod=bdi_compression,
+                                            instream=instream,
+                                            outstream=outstream,
+                                            bandwidth=bandwidth,
+                                            wordbitwidth=wordbitwidth)
+
+class EBDICompressor(Compressor):
+    def __init__(self, instream: CustomStream or None=None, outstream: MemoryStream or None=None,
+                 bandwidth: int=128, wordbitwidth: int=32) -> None:
+        super(EBDICompressor, self).__init__(cmethod=ebdi_compression,
                                              instream=instream,
                                              outstream=outstream,
                                              bandwidth=bandwidth,
