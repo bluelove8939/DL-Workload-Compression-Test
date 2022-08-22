@@ -14,9 +14,9 @@ parser.add_argument('-fp', '--filepath',
                     type=str, help='Path to output activation data dump file', dest='filepath')
 parser.add_argument('-cs', '--chunksize', default=64, type=int,
                     help='Size of a chunk (Bytes)', dest='chunksize')
-parser.add_argument('-wd', '--wordwidth', default=32, type=int,
+parser.add_argument('-wd', '--wordwidth', default=8, type=int,
                     help='Bitwidth of a word (bits)', dest='wordwidth')
-parser.add_argument('-dt', '--dtype', default='float32', type=str,
+parser.add_argument('-dt', '--dtype', default='int8', type=str,
                     help='Dtype of numpy array', dest='dtypename')
 parser.add_argument('-ta', '--test-algorithm', default='BPC', dest='taname',
                     help='Algorithm to test compression ratio with bitpattern (BDI, BPC, EBDI, EBPC, ZRLE, ZVC)',
@@ -29,7 +29,7 @@ parser.add_argument('-nz', '--non-zeros', default=-1, dest='nonzero_num',
                     help='Number of non-zero words in a cache line', type=int)
 parser.add_argument('-pr', '--file-proportion', default=20, type=int,
                     help='File proportion (compress only N bytes if the proportion is N percent)', dest='fsprop')
-parser.add_argument('-ld', '--logdirname', default=os.path.join(os.curdir, 'logs'), type=str,
+parser.add_argument('-ld', '--logdirname', default=os.path.join(os.curdir, 'logs', 'ratio_test_result_int8'), type=str,
                     help='Directory of output log files', dest='logdirname')
 parser.add_argument('-lf', '--logfilename', default='bitpattern_test_result.csv', type=str,
                     help='Name of logfile', dest='logfilename')
