@@ -267,7 +267,7 @@ def zlib_decompression(binarr: str, wordwidth: int, chunksize: int, dtype=np.dty
 #   bdi_compression
 #   bdi_decompression
 
-def bdi_compression(arr: np.ndarray, wordwidth: int,) -> str:
+def bdi1b_compression(arr: np.ndarray, wordwidth: int,) -> str:
     dtype = arr.dtype
     delta_width = wordwidth
     if 'int' in dtype.name:
@@ -276,17 +276,38 @@ def bdi_compression(arr: np.ndarray, wordwidth: int,) -> str:
     base = arr[0]
     deltas = arr[1:] - base
     validwidth, delta_binarr = trunc_array2binary(deltas, wordwidth=delta_width)
-    return array2binary(base, wordwidth) + bin(validwidth)[2:].rjust(math.ceil(np.log2(delta_width)), '0') + delta_binarr
+    return array2binary(base, wordwidth) + bin(validwidth)[2:].rjust(math.ceil(np.log2(delta_width)) + 1, '0') + delta_binarr
 
-def bdi_decompression(binarr: str, wordwidth: int, chunksize: int, dtype=np.dtype('int8')) -> np.ndarray:
+def bdi2b_compression(arr: np.ndarray, wordwidth: int) -> str:
+    zeromask = ''.join(['0' if val == 0 else '1' for val in arr])
+    nonzero_arr = arr[np.nonzero(arr)]
+
+    dtype = arr.dtype
     delta_width = wordwidth
     if 'int' in dtype.name:
         delta_width = wordwidth + 1
 
-    width_bit = math.ceil(np.log2(delta_width))
+    if len(nonzero_arr) == 0:
+        return zeromask
+    if len(nonzero_arr) == 1:
+        return zeromask + array2binary(nonzero_arr[0], wordwidth)
+
+    base = nonzero_arr[0]
+    deltas = nonzero_arr[1:] - base
+    validwidth, delta_binarr = trunc_array2binary(deltas, wordwidth=delta_width)
+    return zeromask + array2binary(base, wordwidth) + bin(validwidth)[2:].rjust(math.ceil(np.log2(delta_width)) + 1,'0') + delta_binarr
+
+def bdi1b_decompression(binarr: str, wordwidth: int, chunksize: int, dtype=np.dtype('int8')) -> np.ndarray:
+    delta_width = wordwidth
+    if 'int' in dtype.name:
+        delta_width = wordwidth + 1
+
+    width_bit = math.ceil(np.log2(delta_width)) + 1
     base = binarr[:wordwidth]
     validwidth = int(binarr[wordwidth:wordwidth+width_bit], 2)
     delta_binarr = binarr[wordwidth+width_bit:]
+
+    # print(len(binarr), width_bit, wordwidth, validwidth,)
 
     if 'int' in dtype.name:
         base = binary2integer(base, wordwidth=wordwidth)
@@ -297,9 +318,52 @@ def bdi_decompression(binarr: str, wordwidth: int, chunksize: int, dtype=np.dtyp
     else:
         base = binary2array(base, wordwidth=wordwidth, dtype=dtype)
         deltas = list(binary2array(delta_binarr, wordwidth=validwidth, dtype=dtype))
-        original = [base] + list(deltas + base)
+        original = list(base) + list(deltas + base)
 
     return np.array(original, dtype=dtype)
+
+def bdi2b_decompression(binarr: str, wordwidth: int, chunksize: int, dtype=np.dtype('int8')) -> np.ndarray:
+    delta_width = wordwidth
+    if 'int' in dtype.name:
+        delta_width = wordwidth + 1
+
+    arrlen = int(chunksize / wordwidth * 8)
+    nonzero_arrlen = binarr[:arrlen].count('1')
+    zeromask = np.array([ch == '1' for ch in binarr[:arrlen]], dtype=bool)
+    width_bit = math.ceil(np.log2(delta_width)) + 1
+
+    if nonzero_arrlen == 0:
+        return np.zeros(shape=arrlen, dtype=dtype)
+
+    base = binary2integer(binarr[arrlen:arrlen + wordwidth], wordwidth=wordwidth) \
+        if 'int' in dtype.name \
+        else binary2array(binarr[arrlen:arrlen + wordwidth], wordwidth=wordwidth, dtype=dtype)
+
+    if nonzero_arrlen == 1:
+        original = np.zeros(shape=arrlen, dtype=dtype)
+        original[zeromask] = base
+        return original
+
+    validwidth = int(binarr[arrlen + wordwidth:arrlen + wordwidth + width_bit], 2)
+    delta_binarr = binarr[arrlen + wordwidth + width_bit:]
+
+    if 'int' in dtype.name:
+        nonzero_arr = [base]
+        for idx in range(0, len(delta_binarr), validwidth):
+            binnum = delta_binarr[idx:idx+validwidth]
+            nonzero_arr.append(binary2integer(binnum, wordwidth=validwidth) + base)
+    else:
+        deltas = list(binary2array(delta_binarr, wordwidth=validwidth, dtype=dtype))
+        nonzero_arr = list(base) + list(deltas + base)
+
+    nonzero_arr = np.array(nonzero_arr, dtype=dtype)
+    original = np.zeros(shape=arrlen, dtype=dtype)
+    original[zeromask] = nonzero_arr
+
+    return original
+
+bdi_compression = bdi2b_compression
+bdi_decompression = bdi2b_decompression
 
 
 # Functions for EBDI algorithm
@@ -338,10 +402,10 @@ if __name__ == '__main__':
     parent_dirname = os.path.join(os.curdir, '..', 'extractions_activations')
     filepath = os.path.join(parent_dirname, 'AlexNet_Imagenet_output', 'ReLU_0_output0')
 
-    comp_method = ebdi_compression
-    decomp_method = ebdi_decompression
-    dtype = np.dtype('int8')
-    wordwidth = 8
+    comp_method = bdi_compression
+    decomp_method = bdi_decompression
+    dtype = np.dtype('float32')
+    wordwidth = 32
     chunksize = 64
     vstep = 1000
 
@@ -373,9 +437,10 @@ if __name__ == '__main__':
         compressed = comp_method(arr, wordwidth=wordwidth)
         decompressed = decomp_method(compressed, wordwidth=wordwidth, chunksize=chunksize, dtype=dtype)
 
-        if not compare_array(arr, decompressed, thres=1e-6):
-            print('\nbitplane compression invalid')
-            print(f"raw: [{' '.join(list(map(str, arr)))}]")
+        if not compare_array(arr, decompressed, thres=1e-8):
+            print(f'\nbitplane compression invalid at {iter_cnt}')
+            print(f"raw: [{' '.join(list(map(lambda x: f'{x:10.6f}', arr)))}]")
+            print(f"dec: [{' '.join(list(map(lambda x: f'{x:10.6f}', decompressed)))}]")
             print_binary(array2binary(arr, wordwidth=wordwidth),          swidth=wordwidth, startswith='original:     ', endswith='\n')
             print_binary(compressed,                                      swidth=wordwidth, startswith='compressed:   ', endswith='\n')
             print_binary(array2binary(decompressed, wordwidth=wordwidth), swidth=wordwidth, startswith='decompressed: ', endswith='\n')

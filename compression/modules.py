@@ -1,3 +1,4 @@
+import numpy as np
 from typing import Callable
 
 from compression.binary_array import print_binary, array2binary
@@ -41,6 +42,9 @@ class Compressor(object):
             print_binary(binarr, self.wordbitwidth, startswith='compressed: ', endswith='\n')
 
         return binarr
+
+    def compress(self, arr: np.ndarray):
+        return self.cmethod(arr, self.wordbitwidth)
 
     def calc_compression_ratio(self, maxiter: int=-1, verbose: int=1, verbose_step: int=1) -> float:
         original_size = (self.bandwidth * 8) if self.bandwidth != -1 else (self.instream.fullsize() * 8)

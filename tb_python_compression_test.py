@@ -79,8 +79,11 @@ for modelname in os.listdir(dirname):
     if 'output' not in modelname:
         continue
 
-    # if 'alexnet' not in modelname.lower():
-    #     continue
+    if 'ResNet' in modelname:
+        continue
+
+    if 'InceptionV3' in modelname:
+        continue
 
     for filename in os.listdir(os.path.join(dirname, modelname)):
         if 'comparison_result' in filename or 'filelist' in filename:

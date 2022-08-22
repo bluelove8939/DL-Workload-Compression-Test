@@ -53,9 +53,15 @@ def array2binary(arr: np.ndarray, wordwidth: int=None) -> str:
     return binarr
 
 def binary2array(binarr: str, wordwidth: int, dtype: np.dtype) -> np.ndarray:
+    orig_wordwidth = 32
+    if 'int' in dtype.name:
+        orig_wordwidth = int(dtype.name[3:])
+    elif 'float' in dtype.name:
+        orig_wordwidth = int(dtype.name[5:])
+
     bytearr = bytearray()
     for i in range(0, len(binarr), wordwidth):
-        bytearr += int(binarr[i:i+wordwidth], 2).to_bytes(dtype.itemsize, byteorder='big')
+        bytearr += int(binarr[i:i+wordwidth].rjust(orig_wordwidth, binarr[i]), 2).to_bytes(dtype.itemsize, byteorder='big')
     arr = np.frombuffer(bytearr, dtype=dtype).byteswap()
     return arr
 
