@@ -376,16 +376,16 @@ bdi_decompression = bdi2b_decompression
 #   ebdi_decompression
 
 def ebdi_compression(arr: np.ndarray, wordwidth: int, max_burst_len=16,) -> str:
-    zvc_encoded = zeroval_compression(arr, wordwidth=wordwidth)
+    zrle_encoded = zrle_compression(arr, wordwidth=wordwidth, max_burst_len=max_burst_len)
     bdi_encoded = bdi_compression(arr, wordwidth=wordwidth)
 
-    if len(zvc_encoded) <= len(bdi_encoded):
-        return '0' + zvc_encoded
+    if len(zrle_encoded) <= len(bdi_encoded):
+        return '0' + zrle_encoded
     return '1' + bdi_encoded
 
 def ebdi_decompression(binarr: str, wordwidth: int, chunksize: int, max_burst_len=16, dtype=np.dtype('int8')) -> np.ndarray:
     if binarr[0] == '0':
-        decoded = zeroval_decompression(binarr[1:], wordwidth=wordwidth, chunksize=chunksize, dtype=dtype)
+        decoded = zrle_decompression(binarr[1:], wordwidth=wordwidth, chunksize=chunksize, max_burst_len=max_burst_len, dtype=dtype)
     else:
         decoded = bdi_decompression(binarr[1:], wordwidth=wordwidth, chunksize=chunksize, dtype=dtype)
     return decoded

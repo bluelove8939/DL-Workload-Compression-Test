@@ -27,7 +27,7 @@ parser.add_argument('-th', '--thres', default=0, type=float,
                     help='Thresholds of compression ratio', dest='thres')
 parser.add_argument('-nz', '--non-zeros', default=-1, dest='nonzero_num',
                     help='Number of non-zero words in a cache line', type=int)
-parser.add_argument('-pr', '--file-proportion', default=20, type=int,
+parser.add_argument('-pr', '--file-proportion', default=100, type=int,
                     help='File proportion (compress only N bytes if the proportion is N percent)', dest='fsprop')
 parser.add_argument('-ld', '--logdirname', default=os.path.join(os.curdir, 'logs', 'ratio_test_result_int8'), type=str,
                     help='Directory of output log files', dest='logdirname')
@@ -48,14 +48,20 @@ nonzero_num = comp_args.nonzero_num
 logdirname = comp_args.logdirname
 logfilename = comp_args.logfilename
 
+if os.path.isdir(logdirname):
+    didx = 2
+    while os.path.isdir(f"{logdirname} ({didx})"):
+        didx += 1
+    logdirname += f" ({didx})"
+
 os.makedirs(logdirname, exist_ok=True)
 
-cnt, tmp = 2, logfilename
-while tmp in os.listdir(logdirname):
-    name, extn = logfilename.split('.')
-    tmp = '.'.join([name + str(cnt),  extn])
-    cnt += 1
-logfilename = tmp
+# cnt, tmp = 2, logfilename
+# while tmp in os.listdir(logdirname):
+#     name, extn = logfilename.split('.')
+#     tmp = '.'.join([name + str(cnt),  extn])
+#     cnt += 1
+# logfilename = tmp
 
 print("Bitpattern Compression Test Config")
 print(f"- file path: {filepath}")
@@ -68,7 +74,12 @@ print(f"- threshold: {thres}")
 print(f"- file proportion: {fsprop}%")
 print(f"- logfile path: {os.path.join(logdirname, logfilename)}\n")
 
+
 results = []
+
+for nz in range(0, nonzero_num+1):
+    results.append([])
+
 compressors = {
     'BPC':  BitPlaneCompressor(bandwidth=chunksize, wordbitwidth=wordwidth),
     'BDI':  BDICompressor(bandwidth=chunksize, wordbitwidth=wordwidth),
@@ -103,12 +114,15 @@ while True:
         compressed = algo_compressor.compress(arr)
         comp_results[algo_name] = (len(original) / len(compressed), compressed)
 
-    if abs(comp_results[test_algorithm][0] - comp_results[compare_algorithm][0]) > thres and np.count_nonzero(arr) == nonzero_num:
-        results.append('\n'.join([f"{key:5s},{ratio:.6f},{res}" for key, (ratio, res) in comp_results.items()]))
+    if abs(comp_results[test_algorithm][0] - comp_results[compare_algorithm][0]) > thres:
+        results[np.count_nonzero(arr)].append('\n'.join([f"{key:5s},{ratio:.6f},{res}" for key, (ratio, res) in comp_results.items()]))
 
     print(f"\r{progressbar(status=stream.cursor, total=stream.fullsize(), scale=50)} {int(stream.cursor / stream.fullsize() * 100):3d}%", end='')
 
 print('\n\n')
 
-with open(os.path.join(logdirname, logfilename), 'wt') as logfile:
-    logfile.write('\n\n'.join(results))
+lfname, lfextend = logfilename.split('.')
+
+for nz in range(0, nonzero_num+1):
+    with open(os.path.join(logdirname, f"{lfname}_nz_{nz}.{lfextend}"), 'wt') as logfile:
+        logfile.write('\n\n'.join(results[nz]))

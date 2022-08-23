@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 
 
 dtypename = 'int8'
-chunksize = 64
+chunksize = 16
+quant = True
 
 
 if __name__ == '__main__':
@@ -24,7 +25,7 @@ if __name__ == '__main__':
             ratr[name] = []
 
 
-        with open(os.path.join(os.curdir, 'logs', f'ratio_test_result_{dtypename}_cs{chunksize}', f"ratio_test_result_nz_{nz}.csv"), 'rt') as file:
+        with open(os.path.join(os.curdir, 'logs', f'ratio_test_result{"_quant" if quant else ""}_{dtypename}_cs{chunksize}', f"ratio_test_result_nz_{nz}.csv"), 'rt') as file:
             content = file.readlines()
             for line in content:
                 if len(line.strip()) == 0:
@@ -60,6 +61,9 @@ if __name__ == '__main__':
     for idx, (key, val) in enumerate(results.items()):
         # ax1.plot(x_axis, val, marker='o', label=key)
         ax1.plot(x_axis, val, label=key)
+        # if idx != 1: continue
+        # for i, j in zip(x_axis, val):
+        #     ax1.annotate(f"{j:.2f}", xy=(i, j + 0.02), ha='center', size=7)
     ax1.set_xticks(x_axis, categories, rotation=0, ha='center')
     ax1.set_yscale('log')
     ax1.set_xlabel('number of zero words per cache line')
@@ -78,6 +82,6 @@ if __name__ == '__main__':
     ax2.set_ylabel('variance')
     ax2.legend()
 
-    plt.suptitle("Compression Ratio with the Number of Non-Zero Words per Cache Line (INT8, 64B Line)")
+    plt.suptitle("Compression Ratio with the Number of Non-Zero Words per Cache Line (INT8, 16B Line)")
     plt.tight_layout()
     plt.show()
