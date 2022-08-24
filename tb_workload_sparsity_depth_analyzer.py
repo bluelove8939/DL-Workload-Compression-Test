@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 
 parser = argparse.ArgumentParser(description='Test Result Analyzing Configs')
-parser.add_argument('-fp', '--filepath', default=os.path.join(os.curdir, 'logs', 'sparsity_test2.csv'),
+parser.add_argument('-fp', '--filepath', default=os.path.join(os.curdir, 'logs', 'sparsity_test_fp32.csv'),
                     help='Path to result csv file', dest='filepath')
 comp_args, _ = parser.parse_known_args()
 
@@ -59,7 +59,7 @@ if __name__ == '__main__':
         axis.set_xlabel('depth')
         axis.set_ylabel('sparsity')
 
-        axis.set_title(f"Sparsity of layers by depth ({target_modelname})")
+        axis.set_title(f"Sparsity of activations by depth ({target_modelname})")
         axis.legend()
 
     plt.tight_layout()
