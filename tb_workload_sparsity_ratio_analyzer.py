@@ -3,9 +3,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-filepath = os.path.join(os.curdir, 'logs', 'sparsity_ratio_test_result.csv')
+filepath = os.path.join(os.curdir, 'logs', 'sparsity_ratio_test_result3.csv')
 chunksize = 16
-layerfilter = 'ReLU'
+layerfilter = 'ConvReLU2d'
 outputfilter = 'output0'
 
 values_per_graph = 5  # values per one axis
@@ -14,7 +14,7 @@ starting_point = 0   # start layer index
 results = {}
 categories = list(range(0, chunksize+1))
 
-fig, axes = plt.subplots(2, 1)
+fig, axes = plt.subplots(3, 4, constrained_layout=False)
 axes = axes.flatten()
 
 with open(filepath, 'rt') as file:
@@ -43,12 +43,13 @@ with open(filepath, 'rt') as file:
         xval = x_axis + ((cidx - (values_per_graph / 2) + 0.5) * width)
 
         axes[gidx].bar(xval, ratios, width=width, label=layer+lidx)
-        axes[gidx].set_xticks(x_axis, categories, rotation=0, ha='center')
-        axes[gidx].set_ylim([0, 0.6])
+        axes[gidx].set_xticks(x_axis, categories, rotation=0, ha='center', size=6)
+        axes[gidx].set_ylim([0, 1.])
         axes[gidx].set_xlabel('non zeros per line')
         axes[gidx].set_ylabel('ratio')
-        axes[gidx].legend(prop={'size': 10})
+        axes[gidx].legend(prop={'size': 6})
 
-plt.suptitle("Sparsity Ratio of Output Activation Data (AlexNet, Fp32, 64B)")
+# plt.subplots_adjust(left=0.125, bottom=0.1, right=0.9, top=0.9, wspace=0, hspace=0)
+plt.suptitle("Sparsity Ratio of Output Activation Data (InceptionV3, INT8, 16B)")
 plt.tight_layout()
 plt.show()

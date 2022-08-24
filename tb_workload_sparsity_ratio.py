@@ -7,7 +7,7 @@ from compression.custom_streams import FileStream
 
 
 parser = argparse.ArgumentParser(description='Testbench Configs')
-parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extractions_quant_activations', 'GoogLeNet_Imagenet_output'),
+parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extractions_quant_activations', 'InceptionV3_Imagenet_output'),
                     help='Directory of model extraction files', dest='dirname')
 parser.add_argument('-cs', '--chunksize', default=16, type=int,
                     help='Size of a chunk (Bytes)', dest='chunksize')
