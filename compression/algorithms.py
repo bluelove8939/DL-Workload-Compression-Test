@@ -278,7 +278,18 @@ def bdi1b_compression(arr: np.ndarray, wordwidth: int,) -> str:
     validwidth, delta_binarr = trunc_array2binary(deltas, wordwidth=delta_width)
     return array2binary(base, wordwidth) + bin(validwidth)[2:].rjust(math.ceil(np.log2(delta_width)) + 1, '0') + delta_binarr
 
-def bdi2b_compression(arr: np.ndarray, wordwidth: int) -> str:
+def bdi2b_compression(arr: np.ndarray, wordwidth: int,) -> str:
+    dtype = arr.dtype
+    delta_width = wordwidth
+    if 'int' in dtype.name:
+        delta_width = wordwidth + 1
+
+    base = arr[0]
+    deltas = arr[1:] - base
+    validwidth, delta_binarr = trunc_array2binary(deltas, wordwidth=delta_width)
+    return array2binary(base, wordwidth) + bin(validwidth)[2:].rjust(math.ceil(np.log2(delta_width)) + 1, '0') + delta_binarr
+
+def bdizv_compression(arr: np.ndarray, wordwidth: int) -> str:
     zeromask = ''.join(['0' if val == 0 else '1' for val in arr])
     nonzero_arr = arr[np.nonzero(arr)]
 
@@ -322,7 +333,7 @@ def bdi1b_decompression(binarr: str, wordwidth: int, chunksize: int, dtype=np.dt
 
     return np.array(original, dtype=dtype)
 
-def bdi2b_decompression(binarr: str, wordwidth: int, chunksize: int, dtype=np.dtype('int8')) -> np.ndarray:
+def bdizv_decompression(binarr: str, wordwidth: int, chunksize: int, dtype=np.dtype('int8')) -> np.ndarray:
     delta_width = wordwidth
     if 'int' in dtype.name:
         delta_width = wordwidth + 1
@@ -362,8 +373,8 @@ def bdi2b_decompression(binarr: str, wordwidth: int, chunksize: int, dtype=np.dt
 
     return original
 
-bdi_compression = bdi2b_compression
-bdi_decompression = bdi2b_decompression
+bdi_compression = bdizv_compression
+bdi_decompression = bdizv_decompression
 
 
 # Functions for EBDI algorithm
