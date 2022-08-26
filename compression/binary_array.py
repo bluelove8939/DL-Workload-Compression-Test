@@ -98,6 +98,24 @@ def trunc_array2binary(arr: np.ndarray, wordwidth: int=None) -> tuple:
 
     return wordwidth - mincnt, ''.join(list(map(lambda x: x[mincnt:], binnum_arr)))
 
+def each_word_shrinkable(arr: np.ndarray, wordwidth: int, target_wordwidth: int) -> np.ndarray:
+    binarr = array2binary(arr, wordwidth)
+    binnum_arr = [binarr[i:i+wordwidth] for i in range(0, len(binarr), wordwidth)]
+    ret = []
+
+    for binnum in binnum_arr:
+        cnt = 0
+
+        for let in binnum[1:]:
+            if let == binnum[0]:
+                cnt += 1
+            else:
+                break
+
+        ret.append((len(binnum) - cnt) <= target_wordwidth)
+
+    return np.array(ret, dtype=bool)
+
 
 if __name__ == '__main__':
     num = 14

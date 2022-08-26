@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 
 parser = argparse.ArgumentParser(description='Test Result Analyzing Configs')
-parser.add_argument('-fp', '--filepath', default=os.path.join(os.curdir, 'logs', 'compression_test_final_fp32_64B_pr50.csv'),
+parser.add_argument('-fp', '--filepath', default=os.path.join(os.curdir, 'logs', 'tmp3_cs_128.csv'),
                     help='Path to result csv file', dest='filepath')
 comp_args, _ = parser.parse_known_args()
 
@@ -53,7 +53,7 @@ for idx, (key, val) in enumerate(results.items()):
 plt.xticks(x_axis, categories, rotation=0, ha='center')
 plt.ylim([0.0, 4])
 
-plt.title("Compression Ratio of Pretrained Models (INT8)")
+plt.title("Compression Ratio of BDI Algorithms on Pretrained Models (INT8)")
 plt.legend()
 plt.tight_layout()
 plt.show()

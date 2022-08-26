@@ -3,13 +3,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-dtypename = 'int8'
-chunksize = 16
-quant = True
+dtypename = 'fp32'
+chunksize = 64
+wordwidth = 32
+quant = False
 
 
 if __name__ == '__main__':
-    categories = list(range(0, chunksize+1))
+    categories = list(range(0, (chunksize // (wordwidth // 8)) + 1))
     results = {}
     variances = {}
     algo_names = ['BPC', 'BDI', 'ZRLE', 'ZVC']
@@ -18,12 +19,11 @@ if __name__ == '__main__':
         variances[name] = []
         results[name] = []
 
-    for nz in range(0, chunksize+1):
+    for nz in categories:
         ratr = {}
 
         for name in algo_names:
             ratr[name] = []
-
 
         with open(os.path.join(os.curdir, 'logs', f'ratio_test_result{"_quant" if quant else ""}_{dtypename}_cs{chunksize}', f"ratio_test_result_nz_{nz}.csv"), 'rt') as file:
             content = file.readlines()
@@ -54,19 +54,19 @@ if __name__ == '__main__':
     width_max = 0.8
     width = width_max / len(results.keys())
 
-    # fig, (ax1, ax2) = plt.subplots(1, 2, gridspec_kw={'width_ratios': [1, 1]})
-    fig, (ax1, ax2) = plt.subplots(2, 1, gridspec_kw={'height_ratios': [1, 1]})
+    fig, (ax1, ax2) = plt.subplots(1, 2, gridspec_kw={'width_ratios': [1, 1]})
+    # fig, (ax1, ax2) = plt.subplots(2, 1, gridspec_kw={'height_ratios': [1, 1]})
 
     x_axis = np.arange(len(categories))
     for idx, (key, val) in enumerate(results.items()):
-        # ax1.plot(x_axis, val, marker='o', label=key)
-        ax1.plot(x_axis, val, label=key)
+        ax1.plot(x_axis, val, marker='o', label=key)
+        # ax1.plot(x_axis, val, label=key)
         # if idx != 1: continue
         # for i, j in zip(x_axis, val):
         #     ax1.annotate(f"{j:.2f}", xy=(i, j + 0.02), ha='center', size=7)
     ax1.set_xticks(x_axis, categories, rotation=0, ha='center')
     ax1.set_yscale('log')
-    ax1.set_xlabel('number of zero words per cache line')
+    ax1.set_xlabel('number of non-zero words per cache line')
     ax1.set_ylabel('compression ratio [log]')
     ax1.legend()
 
@@ -78,10 +78,10 @@ if __name__ == '__main__':
     ax2.set_xticks(x_axis, categories, rotation=0, ha='center')
     # ax2.set_yscale('log')
     # ax2.set_ylim([0, 1])
-    ax2.set_xlabel('number of zero words per cache line')
+    ax2.set_xlabel('number of non-zero words per cache line')
     ax2.set_ylabel('variance')
     ax2.legend()
 
-    plt.suptitle("Compression Ratio with the Number of Non-Zero Words per Cache Line (INT8, 16B Line)")
+    plt.suptitle(f"Compression Ratio with the Number of Non-Zero Words per Cache Line ({dtypename.upper()}, {chunksize}B Line)")
     plt.tight_layout()
     plt.show()

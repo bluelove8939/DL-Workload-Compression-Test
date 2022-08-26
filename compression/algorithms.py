@@ -1,10 +1,10 @@
 import math
 import zlib
 import numpy as np
-from typing import Iterable
+from typing import Iterable, Callable
 from compression.binary_array import array2binary, binary2array
 from compression.binary_array import binary_xor, binary_and, binary_not, binary_or
-from compression.binary_array import trunc_array2binary, integer2binary, binary2integer
+from compression.binary_array import trunc_array2binary, binary2integer, each_word_shrinkable
 
 
 # Functions for BPC algorithm
@@ -284,10 +284,41 @@ def bdi2b_compression(arr: np.ndarray, wordwidth: int,) -> str:
     if 'int' in dtype.name:
         delta_width = wordwidth + 1
 
-    base = arr[0]
-    deltas = arr[1:] - base
-    validwidth, delta_binarr = trunc_array2binary(deltas, wordwidth=delta_width)
-    return array2binary(base, wordwidth) + bin(validwidth)[2:].rjust(math.ceil(np.log2(delta_width)) + 1, '0') + delta_binarr
+    nonzero_idx = np.nonzero(arr)[0]
+
+    if len(nonzero_idx) == 0:
+        return '0000'
+
+    nz_base = arr[nonzero_idx][0]
+    widthunit = wordwidth // 8
+
+    for encoding, validwidth in enumerate(range(widthunit, wordwidth, widthunit)):
+        zero_base_bv = each_word_shrinkable(arr, wordwidth, validwidth)  # bool arr that checks whether each word is shrinkable with zero base
+
+        deltas = arr - nz_base  # delta array with non-zero base
+        nz_base_bv = each_word_shrinkable(deltas, delta_width, validwidth)  # bool arr that checks whether each word is shrinkable with zero base
+
+        if np.count_nonzero(zero_base_bv + nz_base_bv) == len(arr):
+            encoding_binnum = bin(encoding + 1)[2:].rjust(4, '0')
+            base_bitmask = ''.join(['1' if val == False else '0' for val in zero_base_bv])
+            encoded = ''
+
+            bin_zb_raw = array2binary(arr, wordwidth=wordwidth)
+            bin_nb_raw = array2binary(deltas, wordwidth=delta_width)
+
+            binarr_zb = [bin_zb_raw[idx:idx+wordwidth] for idx in range(0, len(bin_zb_raw), wordwidth)]
+            binarr_nb = [bin_nb_raw[idx:idx+delta_width] for idx in range(0, len(bin_nb_raw), delta_width)]
+
+            for bm, zb, nb in zip(base_bitmask, binarr_zb, binarr_nb):
+                if bm == '0':
+                    encoded += zb[wordwidth-validwidth:]
+                else:
+                    encoded += nb[delta_width-validwidth:]
+
+            return encoding_binnum + base_bitmask + array2binary(nz_base, wordwidth) + encoded
+
+        return '1111' + array2binary(arr, wordwidth)
+
 
 def bdizv_compression(arr: np.ndarray, wordwidth: int) -> str:
     zeromask = ''.join(['0' if val == 0 else '1' for val in arr])
@@ -333,6 +364,32 @@ def bdi1b_decompression(binarr: str, wordwidth: int, chunksize: int, dtype=np.dt
 
     return np.array(original, dtype=dtype)
 
+def bdi2b_decompression(binarr: str, wordwidth: int, chunksize: int, dtype=np.dtype('int8')) -> np.ndarray:
+    arrlen = int(chunksize / wordwidth * 8)
+    encoding = binarr[:4]
+
+    if encoding == '0000':
+        return np.array([0] * arrlen, dtype=dtype)
+    if encoding == '1111':
+        return binary2array(binarr[4:], wordwidth, dtype)
+
+    base_bitmask = binarr[4:4+arrlen]
+    nz_base = binary2integer(binarr[4+arrlen:4+arrlen+wordwidth], wordwidth=wordwidth) \
+        if 'int' in dtype.name \
+        else binary2array(binarr[4+arrlen:4+arrlen+wordwidth], wordwidth=wordwidth, dtype=dtype)
+    validwidth = int(encoding, 2)
+    encoded = binarr[4+arrlen+wordwidth:]
+    arr = []
+
+    for idx in range(0, len(encoded), validwidth):
+        if 'int' in dtype.name:
+            num = binary2integer(encoded[idx:idx + validwidth], wordwidth=validwidth)
+        else:
+            num = binary2array(encoded[idx:idx+validwidth], wordwidth=validwidth, dtype=dtype)
+        arr.append(num if base_bitmask[idx] == '0' else num + nz_base)
+
+    return np.array(arr, dtype=dtype)
+
 def bdizv_decompression(binarr: str, wordwidth: int, chunksize: int, dtype=np.dtype('int8')) -> np.ndarray:
     delta_width = wordwidth
     if 'int' in dtype.name:
@@ -373,8 +430,8 @@ def bdizv_decompression(binarr: str, wordwidth: int, chunksize: int, dtype=np.dt
 
     return original
 
-bdi_compression = bdizv_compression
-bdi_decompression = bdizv_decompression
+bdi_compression: Callable   = bdizv_compression
+bdi_decompression: Callable = bdizv_decompression
 
 
 # Functions for EBDI algorithm
@@ -402,6 +459,38 @@ def ebdi_decompression(binarr: str, wordwidth: int, chunksize: int, max_burst_le
     return decoded
 
 
+# Functions for user custom complementary algorithms
+#
+# Description
+#   Test
+#
+# Functions
+#   complementary_compression
+#   complementary_decompression
+
+def complementary_compression(algo0, algo1) -> Callable:
+    def compression_func(arr: np.ndarray, wordwidth: int,) -> str:
+        encoded0 = algo0(arr, wordwidth=wordwidth)
+        encoded1 = algo1(arr, wordwidth=wordwidth)
+
+        if len(encoded0) <= len(encoded1):
+            return '0' + encoded0
+        return '1' + encoded1
+
+    return compression_func
+
+def complementary_decompression(algo0, algo1) -> Callable:
+    def decompression_func(binarr: str, wordwidth: int, chunksize: int, dtype=np.dtype('int8')) -> np.ndarray:
+        if binarr[0] == '0':
+            decoded = algo0(binarr[1:], wordwidth=wordwidth, chunksize=chunksize, dtype=dtype)
+        else:
+            decoded = algo1(binarr[1:], wordwidth=wordwidth, chunksize=chunksize, dtype=dtype)
+        return decoded
+
+    return decompression_func
+
+
+
 if __name__ == '__main__':
     import os
 
@@ -411,12 +500,15 @@ if __name__ == '__main__':
 
     # parent_dirname = os.path.join(os.curdir, '..', 'extractions_quant_wfile')
     parent_dirname = os.path.join(os.curdir, '..', 'extractions_activations')
+    # parent_dirname = os.path.join(os.curdir, '..', 'extractions_quant_activations')
+
+    # filepath = os.path.join(parent_dirname, 'InceptionV3_Imagenet_output', 'ConvReLU2d_0_output2')
     filepath = os.path.join(parent_dirname, 'AlexNet_Imagenet_output', 'ReLU_0_output0')
 
-    comp_method = bdi_compression
-    decomp_method = bdi_decompression
-    dtype = np.dtype('float32')
-    wordwidth = 32
+    comp_method = bdi2b_compression
+    decomp_method = bdi2b_decompression
+    dtype = np.dtype('int8')
+    wordwidth = 8
     chunksize = 64
     vstep = 1000
 
