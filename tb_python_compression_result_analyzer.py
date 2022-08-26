@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 
 parser = argparse.ArgumentParser(description='Test Result Analyzing Configs')
-parser.add_argument('-fp', '--filepath', default=os.path.join(os.curdir, 'logs', 'compression_test_final_int8_64B_pr50.csv'),
+parser.add_argument('-fp', '--filepath', default=os.path.join(os.curdir, 'logs', 'compression_test_final_fp32_64B_pr50.csv'),
                     help='Path to result csv file', dest='filepath')
 comp_args, _ = parser.parse_known_args()
 
@@ -49,7 +49,7 @@ for idx, (key, val) in enumerate(results.items()):
     xval = x_axis + ((idx - (len(results.keys()) / 2) + 0.5) * width)
     plt.bar(xval, val, width=width, label=key)
     for i, j in zip(xval, val):
-        plt.annotate(f"{j:.2f}", xy=(i, j+0.06), ha='center')
+        plt.annotate(f"{j:.2f}", xy=(i, j+0.05), size=7, ha='center')
 plt.xticks(x_axis, categories, rotation=0, ha='center')
 plt.ylim([0.0, 4])
 
