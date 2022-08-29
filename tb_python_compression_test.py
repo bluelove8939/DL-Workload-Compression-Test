@@ -115,11 +115,9 @@ for modelname in os.listdir(dirname):
         ])))
 
         print(f"total compression ratio: {' '.join([f'{val:.6f}({key})' for key, val in sorted(comp_ratios.items(), key=lambda x: x[0])])}\n")
-        # print(f"\ntotal compression ratio: {bpc_comp_ratio:.6f}(BPC)\n")
 
 
 # Save compression test results
-# categories = ['Model Name', 'Param Name', 'File Size(Bytes)', 'Comp Ratio(BPC)', 'Comp Ratio(ZRLE)']
 categories = ['Model Name', 'Param Name', 'File Size(Bytes)', *list(map(lambda x: f"Comp Ratio({x})", sorted(compressors.keys())))]
 os.makedirs(logdirname, exist_ok=True)
 with open(os.path.join(logdirname, logfilename), 'wt') as file:

@@ -17,6 +17,7 @@ parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extr
                     help='Directory of model extraction files', dest='extdir')
 comp_args, _ = parser.parse_known_args()
 
+args.batch_size = 1  # batch size is 1 (activation for only one image)
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 # print(f"Using {device} device ({__name__})")
