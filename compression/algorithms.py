@@ -332,12 +332,13 @@ def bdizv_compression(arr: np.ndarray, wordwidth: int) -> str:
     if len(nonzero_arr) == 0:
         return zeromask
     if len(nonzero_arr) == 1:
-        return zeromask + array2binary(nonzero_arr[0], wordwidth)
+        return zeromask + bin(8)[2:].rjust(math.ceil(np.log2(delta_width)) + 1,'0') + array2binary(nonzero_arr[0], wordwidth)
 
     base = nonzero_arr[0]
     deltas = nonzero_arr[1:] - base
     validwidth, delta_binarr = trunc_array2binary(deltas, wordwidth=delta_width)
-    return zeromask + array2binary(base, wordwidth) + bin(validwidth)[2:].rjust(math.ceil(np.log2(delta_width)) + 1,'0') + delta_binarr
+
+    return zeromask + bin(validwidth)[2:].rjust(math.ceil(np.log2(delta_width)) + 1,'0') + array2binary(base, wordwidth) + delta_binarr
 
 def bdi1b_decompression(binarr: str, wordwidth: int, chunksize: int, dtype=np.dtype('int8')) -> np.ndarray:
     delta_width = wordwidth
@@ -403,16 +404,17 @@ def bdizv_decompression(binarr: str, wordwidth: int, chunksize: int, dtype=np.dt
     if nonzero_arrlen == 0:
         return np.zeros(shape=arrlen, dtype=dtype)
 
-    base = binary2integer(binarr[arrlen:arrlen + wordwidth], wordwidth=wordwidth) \
+    validwidth = int(binarr[arrlen:arrlen + width_bit], 2)
+
+    base = binary2integer(binarr[arrlen + width_bit:arrlen + width_bit + wordwidth], wordwidth=wordwidth) \
         if 'int' in dtype.name \
-        else binary2array(binarr[arrlen:arrlen + wordwidth], wordwidth=wordwidth, dtype=dtype)
+        else binary2array(binarr[arrlen + width_bit:arrlen + width_bit + wordwidth], wordwidth=wordwidth, dtype=dtype)
 
     if nonzero_arrlen == 1:
         original = np.zeros(shape=arrlen, dtype=dtype)
         original[zeromask] = base
         return original
 
-    validwidth = int(binarr[arrlen + wordwidth:arrlen + wordwidth + width_bit], 2)
     delta_binarr = binarr[arrlen + wordwidth + width_bit:]
 
     if 'int' in dtype.name:
@@ -505,11 +507,11 @@ if __name__ == '__main__':
     # filepath = os.path.join(parent_dirname, 'InceptionV3_Imagenet_output', 'ConvReLU2d_0_output2')
     filepath = os.path.join(parent_dirname, 'AlexNet_Imagenet_output', 'ReLU_0_output0')
 
-    comp_method = bdi2b_compression
-    decomp_method = bdi2b_decompression
-    dtype = np.dtype('int8')
-    wordwidth = 8
-    chunksize = 64
+    comp_method = bdizv_compression
+    decomp_method = bdizv_decompression
+    dtype = np.dtype('float32')
+    wordwidth = 32
+    chunksize = 128
     vstep = 1000
 
     print('Algorithm Test Configs')
@@ -542,8 +544,8 @@ if __name__ == '__main__':
 
         if not compare_array(arr, decompressed, thres=1e-8):
             print(f'\nbitplane compression invalid at {iter_cnt}')
-            print(f"raw: [{' '.join(list(map(lambda x: f'{x:10.6f}', arr)))}]")
-            print(f"dec: [{' '.join(list(map(lambda x: f'{x:10.6f}', decompressed)))}]")
+            print(f"raw: [{' '.join(list(map(lambda x: f'{x:10.6f}' if 'float' in dtype.name else f'{x:3d}', arr)))}]")
+            print(f"dec: [{' '.join(list(map(lambda x: f'{x:10.6f}' if 'float' in dtype.name else f'{x:3d}', decompressed)))}]")
             print_binary(array2binary(arr, wordwidth=wordwidth),          swidth=wordwidth, startswith='original:     ', endswith='\n')
             print_binary(compressed,                                      swidth=wordwidth, startswith='compressed:   ', endswith='\n')
             print_binary(array2binary(decompressed, wordwidth=wordwidth), swidth=wordwidth, startswith='decompressed: ', endswith='\n')
