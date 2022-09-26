@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 
 parser = argparse.ArgumentParser(description='Test Result Analyzing Configs')
-parser.add_argument('-fp', '--filepath', default=os.path.join(os.curdir, 'logs', 'compression_test_final2_fp32_pr100.csv'),
+parser.add_argument('-fp', '--filepath', default=os.path.join(os.curdir, '../logs', 'compression_test_final2_fp32_pr100.csv'),
                     help='Path to result csv file', dest='filepath')
 comp_args, _ = parser.parse_known_args()
 

@@ -5,14 +5,14 @@ import matplotlib.pyplot as plt
 
 
 parser = argparse.ArgumentParser(description='Test Result Analyzing Configs')
-parser.add_argument('-fp', '--filepath', default=os.path.join(os.curdir, 'logs', 'sparsity_test_quant_dynamic_int8.csv'),
+parser.add_argument('-fp', '--filepath', default=os.path.join(os.curdir, '../logs', 'entropy_test_quant_int8_1B.csv'),
                     help='Path to result csv file', dest='filepath')
 comp_args, _ = parser.parse_known_args()
 
 
 if __name__ == '__main__':
-    layer_types = ['sparsity', 'BatchNorm2D', 'Conv2D', 'ReLU']
-    # layer_types = ['ConvReLU2d']
+    # layer_types = ['entropy', 'BatchNorm2d', 'Conv2d', 'ReLU']
+    layer_types = ['ConvReLU2d']
     categories = []
     results = {}
 
@@ -29,13 +29,13 @@ if __name__ == '__main__':
             results[layer_type] = [0] * len(categories)
             results[f"{layer_type}_total"] = [0] * len(categories)
 
-        for modelname, filename, arrsize, zerocnt in content:
+        for modelname, filename, entropy in content:
             for layer_type in layer_types:
-                if layer_type != 'sparsity' and layer_type.lower() not in filename.lower():
+                if layer_type != 'entropy' and layer_type.lower() not in filename.lower():
                     continue
 
-                results[layer_type][categories.index(modelname)] += int(zerocnt)
-                results[f'{layer_type}_total'][categories.index(modelname)] += int(arrsize)
+                results[layer_type][categories.index(modelname)] += float(entropy)
+                results[f'{layer_type}_total'][categories.index(modelname)] += 1
 
         for layer_type in layer_types:
             results[layer_type] = np.array(results[layer_type]) / (np.array(results[f"{layer_type}_total"]) + 1e-4)
@@ -52,11 +52,11 @@ if __name__ == '__main__':
         xval = x_axis + ((idx - (len(results.keys()) / 2) + 0.5) * width)
         plt.bar(xval, val, width=width, label=key)
         for i, j in zip(xval, val):
-            plt.annotate(f"{j:.2f}", xy=(i, j + 0.02), ha='center')
+            plt.annotate(f"{j:.2f}", xy=(i, j + 0.05), ha='center')
     plt.xticks(x_axis, categories, rotation=0, ha='center')
-    plt.ylim([0.0, 1.0])
+    plt.ylim([0.0, 8.0])
 
-    plt.title("Sparsity of quantized CNN layers")
+    plt.title("Entropy of quantized CNN layers (dtype: INT8 csize: 1Byte)")
     plt.legend()
     plt.tight_layout()
     plt.show()

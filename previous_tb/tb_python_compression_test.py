@@ -8,7 +8,7 @@ from compression.file_quant import FileQuantizer
 
 
 parser = argparse.ArgumentParser(description='Extraction Configs')
-parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extractions_activations'), type=str,
+parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, '../extractions_activations'), type=str,
                     help='Directory of model extraction files', dest='dirname')
 parser.add_argument('-cs', '--chunksize', default=128, type=int,
                     help='Size of a chunk (Bytes)', dest='chunksize')
@@ -24,7 +24,7 @@ parser.add_argument('-vs', '--verbose_step', default=1, type=int,
                     help='Step of verbose (print log for every Nth step for integer value N)', dest='vstep')
 parser.add_argument('-pr', '--file-proportion', default=100, type=int,
                     help='File proportion (compress only N bytes if the proportion is N percent)', dest='fsprop')
-parser.add_argument('-ld', '--logdirname', default=os.path.join(os.curdir, 'logs'), type=str,
+parser.add_argument('-ld', '--logdirname', default=os.path.join(os.curdir, '../logs'), type=str,
                     help='Directory of output log files', dest='logdirname')
 parser.add_argument('-lf', '--logfilename', default='compression_test_result.csv', type=str,
                     help='Name of logfile', dest='logfilename')
@@ -93,7 +93,7 @@ for modelname in os.listdir(dirname):
         stream = FileStream()
 
         if qdtypename != 'none':
-            qfile_fullpath = os.path.join(os.curdir, 'extractions_quant_wfile', modelname, filename)
+            qfile_fullpath = os.path.join(os.curdir, '../extractions_quant_wfile', modelname, filename)
             quantizer = FileQuantizer(orig_dtype=np.dtype(dtypename), quant_dtype=np.dtype(qdtypename))
             quantizer.quantize(filepath=file_fullpath, output_filepath=qfile_fullpath)
             stream.load_filepath(filepath=qfile_fullpath, dtype=np.dtype(qdtypename))

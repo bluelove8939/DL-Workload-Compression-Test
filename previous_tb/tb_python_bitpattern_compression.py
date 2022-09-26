@@ -10,7 +10,7 @@ from compression.binary_array import array2binary
 
 parser = argparse.ArgumentParser(description='Extraction Configs')
 parser.add_argument('-fp', '--filepath',
-                    default=os.path.join(os.curdir, 'extractions_activations', 'AlexNet_Imagenet_output', 'Conv2d_0_output0'),
+                    default=os.path.join(os.curdir, '../extractions_activations', 'AlexNet_Imagenet_output', 'Conv2d_0_output0'),
                     type=str, help='Path to output activation data dump file', dest='filepath')
 parser.add_argument('-cs', '--chunksize', default=64, type=int,
                     help='Size of a chunk (Bytes)', dest='chunksize')
@@ -29,7 +29,7 @@ parser.add_argument('-nz', '--non-zeros', default=-1, dest='nonzero_num',
                     help='Number of non-zero words in a cache line', type=int)
 parser.add_argument('-pr', '--file-proportion', default=100, type=int,
                     help='File proportion (compress only N bytes if the proportion is N percent)', dest='fsprop')
-parser.add_argument('-ld', '--logdirname', default=os.path.join(os.curdir, 'logs', 'ratio_test_result_int8'), type=str,
+parser.add_argument('-ld', '--logdirname', default=os.path.join(os.curdir, '../logs', 'ratio_test_result_int8'), type=str,
                     help='Directory of output log files', dest='logdirname')
 parser.add_argument('-lf', '--logfilename', default='bitpattern_test_result.csv', type=str,
                     help='Name of logfile', dest='logfilename')
