@@ -38,7 +38,7 @@ class ConvLayerInfo(object):
             return conv_info_hook
 
         for name, sublayer in model.named_modules():
-            if 'conv' in type(sublayer).__name__.lower():
+            if 'conv' in type(sublayer).__name__.lower() and hasattr(sublayer, 'weight'):
                 sublayer.register_forward_hook(generate_hook(name))
 
         model.eval()
@@ -83,10 +83,12 @@ def ifm_lowering(ifm: torch.Tensor, layer_info: ConvLayerInfo):
     N, Ci, W, H = layer_info.ifm_shape()
     FW, FH, P, S = layer_info.FW, layer_info.FH, layer_info.P, layer_info.S
 
+    ifm = torch.nn.functional.pad(ifm, (P, P, P, P), value=0)  # add zero padding manually
+
     lowered_ifm = []
     for n in range(N):
-        for rp in range(0, H - 2 * FH + (2 * P) + 1, S):
-            for cp in range(0, W - 2 * FW + (2 * P) + 1, S):
+        for rp in range(0, H - FH + (2 * P) + 1, S):
+            for cp in range(0, W - FW + (2 * P) + 1, S):
                 lowered_ifm.append(list(ifm[n, :, rp:rp + FH, cp:cp + FW].numpy().flatten()))
     lowered_ifm = torch.tensor(np.array(lowered_ifm))
 
@@ -94,23 +96,22 @@ def ifm_lowering(ifm: torch.Tensor, layer_info: ConvLayerInfo):
 
 
 if __name__ == '__main__':
-    from models.model_presets import imagenet_pretrained
+    from models.model_presets import imagenet_quant_pretrained
 
-    config = imagenet_pretrained['ResNet50']
+    config = imagenet_quant_pretrained['ResNet50']
     model = config.generate()
 
     info = ConvLayerInfo.generate_from_model(model, input_shape=(1, 3, 226, 226))
 
-    # for layer_name, layer_info in info.items():
-    #     print(f"{layer_name:25s} -> {layer_info}")
+    target_name = 'conv1'
+    print(info[target_name])
 
-    target_name = 'layer4.1.conv2'
     N, Ci, W, H = info[target_name].ifm_shape()
 
     ifm = torch.tensor(np.arange(0, N*Ci*W*H, 1, dtype=np.dtype('int32')).reshape(info[target_name].ifm_shape()))
     lowered_ifm = ifm_lowering(ifm, layer_info=info[target_name])
 
-    print(info[target_name])
+
     print(ifm.shape)
     print(lowered_ifm.shape)
 

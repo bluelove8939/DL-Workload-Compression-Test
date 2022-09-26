@@ -17,19 +17,50 @@ from models.tools.lowering import weight_lowering, ifm_lowering, ConvLayerInfo
 
 
 class PerformanceSim(object):
-    def __init__(self, layer_info, quant : bool=True):
-        self.total_op = 0             # number of total operations
-        self.removed_op = 0           # number of removed operations
-        self.quant = quant            # indicating whether target model is quantized (default: True)
-        self.layer_info = layer_info  # information of convolution layers
+    def __init__(self, quant : bool=True):
+        self.total_op = 0      # number of total operations
+        self.removed_op = 0    # number of removed operations
+        self.quant = quant     # indicating whether target model is quantized (default: True)
 
-    def generate_hook(self, layer_name : str) -> Callable:
-        def hook(layer, input_tensor, output_tensor):
-            if 'conv' not in type(layer).__name__.lower():
-                pass
+    def get_performance(self):
+        return self.total_op / (self.total_op - self.removed_op)
 
-            lowered_ifm = ifm_lowering(ifm=input_tensor, layer_info=ConvLayerInfo.generate_from_layer(layer))
-        return hook
+    def register_model(self, model: torch.nn.Module):
+        layer_info = ConvLayerInfo.generate_from_model(model, input_shape=(1, 3, 226, 226))
+
+        def generate_hook(layer_name : str) -> Callable:
+            def algo_sim_check_hook(layer : torch.nn.Module, input_tensor : torch.Tensor, output_tensor : torch.Tensor):
+                if 'conv' not in type(layer).__name__.lower():
+                    pass
+
+                ifm = input_tensor[0].int_repr() if self.quant else input_tensor[0]
+                weight = model.state_dict()[layer_name + '.weight']
+
+                lowered_ifm = ifm_lowering(ifm=ifm, layer_info=layer_info[layer_name])
+                lowered_weight = weight_lowering(weight=weight, layer_info=layer_info[layer_name])
+
+                print(f"Calculating performance with layer: {layer_name}")
+
+                iw, ivecw = lowered_ifm.shape
+                ww, wvecw = lowered_weight.shape
+
+                if ivecw != wvecw:
+                    raise Exception(f'Lowering algorithm may have an error {lowered_ifm.shape} {lowered_weight.shape}')
+
+                self.total_op += iw * ww * ivecw
+
+                imask = lowered_ifm != 0
+                wmask = lowered_weight != 0
+
+                for im_vec in imask:
+                    for wm_vec in wmask:
+                        self.removed_op += int(torch.logical_and(im_vec, wm_vec).count_nonzero())
+
+            return algo_sim_check_hook
+
+        for layer_name, sublayer in model.named_modules():
+            if 'conv' in type(sublayer).__name__.lower() and hasattr(sublayer, 'weight'):
+                sublayer.register_forward_hook(generate_hook(layer_name))
 
 if __name__ == '__main__':
     from models.model_presets import imagenet_quant_pretrained
@@ -37,37 +68,13 @@ if __name__ == '__main__':
     config = imagenet_quant_pretrained['ResNet50']
     model = config.generate()
 
-    def print_children(layer : torch.nn.Module, prefix : str or None=None):
-        prefix = ('' if prefix is None else prefix)
+    sim = PerformanceSim(quant=True)
+    sim.register_model(model)
 
-        for sublayer_name, sublayer in layer.named_children():
-            # if ('conv' in type(sublayer).__name__.lower()) or \
-            #         ('relu' in type(sublayer).__name__.lower()):
-            #     print(prefix + sublayer_name, sublayer)
+    dummy_image = torch.tensor(np.zeros(shape=(1, 3, 226, 226), dtype=np.dtype('float32')))
 
-            if 'conv' in type(sublayer).__name__.lower():
-                print(prefix + sublayer_name, sublayer, sublayer.weight().shape)
+    model.eval()
+    model(dummy_image)
 
-            print_children(sublayer, prefix= prefix + sublayer_name + '.')
-
-    print_children(model)
-
-    # def generate_input_shape_hook(layer_name):
-    #     def hook(model, input_tensor, output_tensor):
-    #         q_input_tensor = input_tensor[0].int_repr()
-    #         sparsity = 1 - torch.count_nonzero(q_input_tensor) / torch.numel(q_input_tensor)
-    #
-    #         print(model)
-    #
-    #         print(f"name: {layer_name:25s}  sparsity: {sparsity:.4f}")
-    #     return hook
-    #
-    # for lname, layer in model.named_modules():
-    #     if 'conv' in type(layer).__name__.lower():
-    #         layer.register_forward_hook(generate_input_shape_hook(lname))
-    #
-    # W, H = 224, 224  # size of input image
-    # dummy_image = torch.tensor(np.zeros(shape=(1, 3, H, W), dtype=np.dtype('float32')))
-    #
-    # model.eval()
-    # model(dummy_image)
+    print(sim.total_op, sim.removed_op)
+    print(1 - sim.removed_op / sim.total_op)

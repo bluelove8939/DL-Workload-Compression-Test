@@ -11,6 +11,7 @@ from models.model_presets import imagenet_quant_pretrained, imagenet_pretrained
 from models.tools.pruning import prune_layer, remove_prune_model
 from models.tools.imagenet_utils.args_generator import args
 from models.tools.imagenet_utils.training import train, validate
+from simulation.algorithm_sim import PerformanceSim
 
 
 parser = argparse.ArgumentParser(description='Extraction Configs')
@@ -26,8 +27,16 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Dataset configuration
 dataset_dirname = args.data
-if not os.path.isdir(dataset_dirname):
-    dataset_dirname = os.path.join('C://', 'torch_data', 'imagenet')
+
+dset_dir_candidate = [
+    args.data,
+    os.path.join('C://', 'torch_data', 'imagenet'),
+    os.path.join('E://', 'torch_data', 'imagenet'),
+]
+
+for path in dset_dir_candidate:
+    if not os.path.isdir(dataset_dirname):
+        dataset_dirname = path
 
 train_dataset = datasets.ImageFolder(
         os.path.join(dataset_dirname, 'train'),
@@ -67,26 +76,41 @@ if __name__ == '__main__':
     save_dirpath = os.path.join(os.curdir, 'model_output')
     os.makedirs(save_dirpath, exist_ok=True)
 
-    for model_type, model_config in imagenet_pretrained.items():
-        if model_type != 'ResNet18' and model_type != 'ResNet34':
-            continue
+    log_dirpath = os.path.join(os.curdir, 'logs')
+    os.makedirs(log_dirpath, exist_ok=True)
+
+    performance_log_filename = 'accelerator_performance_quant.csv'
+    performance_logs = ['model name,total,removed,ratio']
+
+    for model_type, model_config in imagenet_quant_pretrained.items():
+        # if model_type != 'ResNet18' and model_type != 'ResNet34':
+        #     continue
+
+        # if model_type != "InceptionV3":
+        #     continue
 
         full_modelname = f"{model_type}_Imagenet"
         save_modelname = f"{model_type}_Imagenet.pth"
         save_fullpath = os.path.join(save_dirpath, save_modelname)
 
-        print("\nTest Configs:")
+        print("\nAccelerator Simulation Configs:")
         print(f"- full modelname: {full_modelname}")
         print(f"- save modelname: {save_modelname}")
         print(f"- save fullpath:  {save_fullpath}\n")
 
         model = model_config.generate().to(device)
-        torch.save(model.state_dict(), save_fullpath)
 
-        
+        # print(model)
 
-        full_pmodelname = full_modelname + '_pruned'
-        save_pmodelname = f"{full_pmodelname}.pth"
-        save_pfullpath = os.path.join(save_dirpath, save_pmodelname)
+        psim = PerformanceSim(quant=True)
+        psim.register_model(model)
 
-        torch.save(model.state_dict(), save_pfullpath)
+        model.eval()
+        for img, tag in val_loader:
+            model(img)
+            break
+
+        performance_logs.append(f"{model_type},{psim.total_op},{psim.removed_op},{psim.get_performance()}")
+
+    with open(os.path.join(log_dirpath, performance_log_filename), 'wt') as performance_file:
+        performance_file.write('\n'.join(performance_logs))
