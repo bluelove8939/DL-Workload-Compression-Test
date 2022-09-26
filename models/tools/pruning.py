@@ -94,3 +94,18 @@ class PruneModule(object):
         print(f"pruning succeed: acc({chkpoint_acc}) avg_loss({chkpoint_avg_loss})")
         print(f"pruning_amount: {chkpoint_pruning_amount}")
         return model
+
+
+def remove_prune_model(module: torch.nn.Module):
+    for sub_idx, sub_module in module.named_children():
+        if isinstance(sub_module, torch.nn.Conv2d):
+            prune.remove(sub_module, 'weight')
+        elif isinstance(sub_module, torch.nn.Module):
+            remove_prune_model(sub_module)
+
+def prune_layer(module: torch.nn.Module, step: float=0.1):
+    for sub_idx, sub_module in module.named_children():
+        if isinstance(sub_module, torch.nn.Conv2d):
+            prune.l1_unstructured(sub_module, 'weight', amount=step)
+        elif isinstance(sub_module, torch.nn.Module):
+            prune_layer(sub_module, step)
