@@ -100,13 +100,60 @@ class AcceleratorSim(object):
                 sublayer.register_forward_hook(generate_hook(layer_name))
 
 
+class Test(object):
+    def __init__(self, quant : bool=True, device : str='cpu'):
+        self.total_op = 0    # number of total operations
+        self.removed_op = 0  # number of removed operations
+
+        self.total_siz = 0   # total uncompressed size
+        self.compr_siz = {}  # compressed size
+
+        self.quant = quant    # indicating whether target model is quantized (default: True)
+        self.device = device  # pytorch device
+
+    def get_performance(self):
+        return self.total_op / (self.total_op - self.removed_op)
+
+    def get_compression_ratio(self):
+        return {algo_name : (self.total_siz / compr_siz) for algo_name, compr_siz in self.compr_siz.items()}
+
+    def register_model(self, model: torch.nn.Module):
+        layer_info = ConvLayerInfo.generate_from_model(model, input_shape=(1, 3, 226, 226), device=self.device)
+
+        def generate_hook(layer_name : str) -> Callable:
+            def algo_sim_check_hook(layer : torch.nn.Module, input_tensor : torch.Tensor, output_tensor : torch.Tensor):
+                # Generation of lowered input feature map and weight data
+                if 'conv' not in type(layer).__name__.lower():
+                    pass
+
+                ifm = input_tensor[0]
+                weight = model.state_dict()[layer_name + '.weight']
+
+                if self.quant:
+                    ifm = ifm.int_repr()
+                    weight = weight.int_repr()
+
+                lowered_ifm = ifm_lowering(ifm=ifm, layer_info=layer_info[layer_name]).detach().cpu().numpy()
+                lowered_weight = weight_lowering(weight=weight, layer_info=layer_info[layer_name]).detach().cpu().numpy()
+
+                print(f"{layer_name:25s}  "
+                      f"ifm sparsity: {1 - np.count_nonzero(lowered_ifm) / (lowered_ifm.size+1e-10):.6f}   "
+                      f"weight sparsity: {1 - np.count_nonzero(lowered_weight) / (lowered_weight.size+1e-10):.6f}")
+
+            return algo_sim_check_hook
+
+        for layer_name, sublayer in model.named_modules():
+            if 'conv' in type(sublayer).__name__.lower() and hasattr(sublayer, 'weight'):
+                sublayer.register_forward_hook(generate_hook(layer_name))
+
+
 if __name__ == '__main__':
     from models.model_presets import imagenet_quant_pretrained
 
     config = imagenet_quant_pretrained['ResNet50']
     model = config.generate()
 
-    sim = AcceleratorSim(quant=True)
+    sim = Test(quant=True)
     sim.register_model(model)
 
     dummy_image = torch.tensor(np.zeros(shape=(1, 3, 226, 226), dtype=np.dtype('float32')))

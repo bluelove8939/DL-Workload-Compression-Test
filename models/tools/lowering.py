@@ -83,7 +83,8 @@ def ifm_lowering(ifm: torch.Tensor, layer_info: ConvLayerInfo):
     N, Ci, W, H = layer_info.ifm_shape()
     FW, FH, P, S = layer_info.FW, layer_info.FH, layer_info.P, layer_info.S
 
-    ifm = torch.nn.functional.pad(ifm, (P, P, P, P), value=0)  # add zero padding manually
+    if P > 0:
+        ifm = torch.nn.functional.pad(ifm, (P, P, P, P), value=0)  # add zero padding manually
 
     lowered_ifm = []
     for n in range(N):
@@ -96,26 +97,16 @@ def ifm_lowering(ifm: torch.Tensor, layer_info: ConvLayerInfo):
 
 
 if __name__ == '__main__':
-    from models.model_presets import imagenet_quant_pretrained
+    N = 1
+    C = 3
+    W = 10
+    H = 10
+    FW = 3
+    FH = 3
+    S = 2
+    P = 0
 
-    config = imagenet_quant_pretrained['ResNet50']
-    model = config.generate()
-
-    info = ConvLayerInfo.generate_from_model(model, input_shape=(1, 3, 226, 226))
-
-    target_name = 'conv1'
-    print(info[target_name])
-
-    N, Ci, W, H = info[target_name].ifm_shape()
-
-    ifm = torch.tensor(np.arange(0, N*Ci*W*H, 1, dtype=np.dtype('int32')).reshape(info[target_name].ifm_shape()))
-    lowered_ifm = ifm_lowering(ifm, layer_info=info[target_name])
-
-
-    print(ifm.shape)
-    print(lowered_ifm.shape)
-
-    weight = model.state_dict()[target_name + '.weight']
-    lowered_weight = weight_lowering(weight, layer_info=info[target_name])
-
-    print(lowered_weight.shape)
+    t = torch.tensor(torch.arange(0, N*C*W*H, 1)).reshape(N, C, H, W)
+    lt = ifm_lowering(t, ConvLayerInfo(N=N, Ci=C, W=W, H=H, Co=3, FW=FW, FH=FH, S=S, P=P))
+    for v in lt:
+        print(' '.join(map(lambda x: f"{x:4d}", list(v.detach().cpu().numpy()))))
