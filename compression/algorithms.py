@@ -505,7 +505,7 @@ def csr_compression(arr: np.ndarray, wordwidth: int) -> str:
     compr_mat = csr_matrix(arr)
 
     nonzero_num = compr_mat.data.shape[0]
-    index_width = math.ceil(math.log2(nonzero_num))
+    index_width = math.ceil(math.log2(nonzero_num)) if nonzero_num != 0 else 1
 
     compr_data = array2binary(compr_mat.data, wordwidth=wordwidth)
     compr_indptr = array2binary(compr_mat.indptr, wordwidth=index_width)
@@ -517,7 +517,7 @@ def csc_compression(arr: np.ndarray, wordwidth: int) -> str:
     compr_mat = csc_matrix(arr)
 
     nonzero_num = compr_mat.data.shape[0]
-    index_width = math.ceil(math.log2(nonzero_num))
+    index_width = math.ceil(math.log2(nonzero_num)) if nonzero_num != 0 else 1
 
     compr_data = array2binary(compr_mat.data, wordwidth=wordwidth)
     compr_indptr = array2binary(compr_mat.indptr, wordwidth=index_width)

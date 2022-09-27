@@ -79,36 +79,22 @@ if __name__ == '__main__':
     log_dirpath = os.path.join(os.curdir, 'logs')
     os.makedirs(log_dirpath, exist_ok=True)
 
-    performance_log_filename = 'accelerator_performance_quant.csv'
-    performance_logs = ['model name,total,removed,ratio']
+    performance_log_filename = 'accelerator_performance.csv'
+    performance_logs = ['model name,layer name,total,removed,ratio']
 
-    compression_log_filename = 'accelerator_compression_quant.csv'
-    algo_names = sorted(AcceleratorSim.supported_algorithms.keys())
-    compression_logs = [f'model_name,{",".join(algo_names)}']
+    compression_log_filename = 'accelerator_compression.csv'
+    algo_names = AcceleratorSim.algo_names
+    compression_logs = [f'model name,layer name,{",".join(algo_names)}']
 
     # Reconfig the environement if using quantized model
-    quant = True
-    device = 'cpu'
+    quant = False
+    # device = 'cpu'
 
-    for model_type, model_config in imagenet_quant_pretrained.items():
-        # if model_type != 'ResNet18' and model_type != 'ResNet34':
-        #     continue
-
-        # if model_type != "InceptionV3":
-        #     continue
-
-        full_modelname = f"{model_type}_Imagenet"
-        save_modelname = f"{model_type}_Imagenet.pth"
-        save_fullpath = os.path.join(save_dirpath, save_modelname)
-
+    for model_type, model_config in imagenet_pretrained.items():
         print("\nAccelerator Simulation Configs:")
-        print(f"- full modelname: {full_modelname}")
-        print(f"- save modelname: {save_modelname}")
-        print(f"- save fullpath:  {save_fullpath}\n")
+        print(f"- full modelname: {model_type}\n")
 
         model = model_config.generate().to(device)
-
-        # print(model)
 
         sim = AcceleratorSim(quant=quant, device=device)
         sim.register_model(model)
@@ -119,8 +105,57 @@ if __name__ == '__main__':
             model(img)
             break
 
-        performance_logs.append(f"{model_type},{sim.total_op},{sim.removed_op},{sim.get_performance():.6f}")
-        compression_logs.append(f"{model_type},{','.join([f'{sim.get_compression_ratio()[name]:.6f}' for name in algo_names])}")
+        for (model_name, layer_name), (total_op, removed_op, gain) in sim.get_performance().items():
+            performance_logs.append(f"{model_type},{layer_name},{total_op},{removed_op},{gain:.6f}")
+
+        for (model_name, layer_name), compr_ratios in sim.get_compression_ratio().items():
+            compression_logs.append(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
+
+    with open(os.path.join(log_dirpath, performance_log_filename), 'wt') as performance_file:
+        performance_file.write('\n'.join(performance_logs))
+
+    with open(os.path.join(log_dirpath, compression_log_filename), 'wt') as compression_file:
+        compression_file.write('\n'.join(compression_logs))
+
+
+if __name__ == '__main__':
+    save_dirpath = os.path.join(os.curdir, 'model_output')
+    os.makedirs(save_dirpath, exist_ok=True)
+
+    log_dirpath = os.path.join(os.curdir, 'logs')
+    os.makedirs(log_dirpath, exist_ok=True)
+
+    performance_log_filename = 'accelerator_performance_quant.csv'
+    performance_logs = ['model name,layer name,total,removed,ratio']
+
+    compression_log_filename = 'accelerator_compression_quant.csv'
+    algo_names = AcceleratorSim.algo_names
+    compression_logs = [f'model name,layer name,{",".join(algo_names)}']
+
+    # Reconfig the environement if using quantized model
+    quant = True
+    device = 'cpu'
+
+    for model_type, model_config in imagenet_quant_pretrained.items():
+        print("\nAccelerator Simulation Configs:")
+        print(f"- full modelname: {model_type}\n")
+
+        model = model_config.generate().to(device)
+
+        sim = AcceleratorSim(quant=quant, device=device)
+        sim.register_model(model)
+
+        model.eval()
+        for img, tag in val_loader:
+            img, tag = img.to(device), tag.to(device)
+            model(img)
+            break
+
+        for (model_name, layer_name), (total_op, removed_op, gain) in sim.get_performance().items():
+            performance_logs.append(f"{model_type},{layer_name},{total_op},{removed_op},{gain:.6f}")
+
+        for (model_name, layer_name), compr_ratios in sim.get_compression_ratio().items():
+            compression_logs.append(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
 
     with open(os.path.join(log_dirpath, performance_log_filename), 'wt') as performance_file:
         performance_file.write('\n'.join(performance_logs))
