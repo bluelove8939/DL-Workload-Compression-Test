@@ -21,8 +21,8 @@ class ConvLayerInfo(object):
         self.OH = OH        # output height
 
     @classmethod
-    def generate_from_model(cls, model: torch.nn.Module, input_shape=(1, 3, 226, 226)) -> dict:
-        dummy_image = torch.tensor(np.zeros(input_shape, dtype=np.dtype('float32')))
+    def generate_from_model(cls, model: torch.nn.Module, input_shape=(1, 3, 226, 226), device='cpu') -> dict:
+        dummy_image = torch.tensor(np.zeros(input_shape, dtype=np.dtype('float32'))).to(device)
         result = {}
 
         def generate_hook(layer_name):
@@ -89,8 +89,8 @@ def ifm_lowering(ifm: torch.Tensor, layer_info: ConvLayerInfo):
     for n in range(N):
         for rp in range(0, H - FH + (2 * P) + 1, S):
             for cp in range(0, W - FW + (2 * P) + 1, S):
-                lowered_ifm.append(list(ifm[n, :, rp:rp + FH, cp:cp + FW].numpy().flatten()))
-    lowered_ifm = torch.tensor(np.array(lowered_ifm))
+                lowered_ifm.append(list(ifm[n, :, rp:rp + FH, cp:cp + FW].flatten()))
+    lowered_ifm = torch.tensor(lowered_ifm)
 
     return lowered_ifm
 

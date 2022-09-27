@@ -493,6 +493,39 @@ def complementary_decompression(algo0, algo1) -> Callable:
 
 
 
+# Functions for CSC/CSR format
+#
+# Note
+#   These functions are only for accelerator simulation
+#   Returns simple concatenation of non-zero words, index vector and column pointers
+
+from scipy.sparse import csr_matrix, csc_matrix
+
+def csr_compression(arr: np.ndarray, wordwidth: int) -> str:
+    compr_mat = csr_matrix(arr)
+
+    nonzero_num = compr_mat.data.shape[0]
+    index_width = math.ceil(math.log2(nonzero_num))
+
+    compr_data = array2binary(compr_mat.data, wordwidth=wordwidth)
+    compr_indptr = array2binary(compr_mat.indptr, wordwidth=index_width)
+    compr_indices = array2binary(compr_mat.indices, wordwidth=index_width)
+
+    return compr_data + compr_indices + compr_indptr
+
+def csc_compression(arr: np.ndarray, wordwidth: int) -> str:
+    compr_mat = csc_matrix(arr)
+
+    nonzero_num = compr_mat.data.shape[0]
+    index_width = math.ceil(math.log2(nonzero_num))
+
+    compr_data = array2binary(compr_mat.data, wordwidth=wordwidth)
+    compr_indptr = array2binary(compr_mat.indptr, wordwidth=index_width)
+    compr_indices = array2binary(compr_mat.indices, wordwidth=index_width)
+
+    return compr_data + compr_indices + compr_indptr
+
+
 if __name__ == '__main__':
     import os
 

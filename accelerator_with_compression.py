@@ -11,7 +11,7 @@ from models.model_presets import imagenet_quant_pretrained, imagenet_pretrained
 from models.tools.pruning import prune_layer, remove_prune_model
 from models.tools.imagenet_utils.args_generator import args
 from models.tools.imagenet_utils.training import train, validate
-from simulation.algorithm_sim import PerformanceSim
+from simulation.accelerator_sim import AcceleratorSim
 
 
 parser = argparse.ArgumentParser(description='Extraction Configs')
@@ -82,6 +82,14 @@ if __name__ == '__main__':
     performance_log_filename = 'accelerator_performance_quant.csv'
     performance_logs = ['model name,total,removed,ratio']
 
+    compression_log_filename = 'accelerator_compression_quant.csv'
+    algo_names = sorted(AcceleratorSim.supported_algorithms.keys())
+    compression_logs = [f'model_name,{",".join(algo_names)}']
+
+    # Reconfig the environement if using quantized model
+    quant = True
+    device = 'cpu'
+
     for model_type, model_config in imagenet_quant_pretrained.items():
         # if model_type != 'ResNet18' and model_type != 'ResNet34':
         #     continue
@@ -102,15 +110,20 @@ if __name__ == '__main__':
 
         # print(model)
 
-        psim = PerformanceSim(quant=True)
-        psim.register_model(model)
+        sim = AcceleratorSim(quant=quant, device=device)
+        sim.register_model(model)
 
         model.eval()
         for img, tag in val_loader:
+            img, tag = img.to(device), tag.to(device)
             model(img)
             break
 
-        performance_logs.append(f"{model_type},{psim.total_op},{psim.removed_op},{psim.get_performance()}")
+        performance_logs.append(f"{model_type},{sim.total_op},{sim.removed_op},{sim.get_performance():.6f}")
+        compression_logs.append(f"{model_type},{','.join([f'{sim.get_compression_ratio()[name]:.6f}' for name in algo_names])}")
 
     with open(os.path.join(log_dirpath, performance_log_filename), 'wt') as performance_file:
         performance_file.write('\n'.join(performance_logs))
+
+    with open(os.path.join(log_dirpath, compression_log_filename), 'wt') as compression_file:
+        compression_file.write('\n'.join(compression_logs))
