@@ -538,10 +538,11 @@ if __name__ == '__main__':
     # parent_dirname = os.path.join(os.curdir, '..', 'extractions_quant_activations')
 
     # filepath = os.path.join(parent_dirname, 'InceptionV3_Imagenet_output', 'ConvReLU2d_0_output2')
-    filepath = os.path.join(parent_dirname, 'AlexNet_Imagenet_output', 'ReLU_0_output0')
+    # filepath = os.path.join(parent_dirname, 'AlexNet_Imagenet_output', 'ReLU_0_output0')
+    filepath = os.path.join(parent_dirname, 'ResNet50_Imagenet_output', 'Conv2d_0_output0')
 
-    comp_method = bdizv_compression
-    decomp_method = bdizv_decompression
+    comp_method = bdi1b_compression
+    decomp_method = bdi1b_decompression
     dtype = np.dtype('float32')
     wordwidth = 32
     chunksize = 128
