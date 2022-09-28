@@ -95,14 +95,14 @@ class AcceleratorSim(object):
                         compr_siz[algo_name] = 0
 
                     if algo_name == 'CSR' or algo_name == 'CSC':
-                        compr_siz[algo_name] += len(algo_method(lowered_ifm, lowered_ifm.dtype.itemsize))
-                        compr_siz[algo_name] += len(algo_method(lowered_weight, lowered_weight.dtype.itemsize))
+                        compr_siz[algo_name] += len(algo_method(lowered_ifm, lowered_ifm.dtype.itemsize*8))
+                        compr_siz[algo_name] += len(algo_method(lowered_weight, lowered_weight.dtype.itemsize*8))
                     else:
                         for i_vec in lowered_ifm:
-                            compr_siz[algo_name] += len(algo_method(i_vec, i_vec.dtype.itemsize))
+                            compr_siz[algo_name] += len(algo_method(i_vec, i_vec.dtype.itemsize*8))
 
                         for w_vec in lowered_weight:
-                            compr_siz[algo_name] += len(algo_method(w_vec, w_vec.dtype.itemsize))
+                            compr_siz[algo_name] += len(algo_method(w_vec, w_vec.dtype.itemsize*8))
 
                 self.compression_result[result_key] = [total_siz / compr_siz[name] for name in AcceleratorSim.algo_names]
 

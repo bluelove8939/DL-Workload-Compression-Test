@@ -107,9 +107,11 @@ if __name__ == '__main__':
 
         for (model_name, layer_name), (total_op, removed_op, gain) in sim.get_performance().items():
             performance_logs.append(f"{model_type},{layer_name},{total_op},{removed_op},{gain:.6f}")
+            print(f"{model_type},{layer_name},{total_op},{removed_op},{gain:.6f}")
 
         for (model_name, layer_name), compr_ratios in sim.get_compression_ratio().items():
             compression_logs.append(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
+            print(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
 
     with open(os.path.join(log_dirpath, performance_log_filename), 'wt') as performance_file:
         performance_file.write('\n'.join(performance_logs))
@@ -153,9 +155,11 @@ if __name__ == '__main__':
 
         for (model_name, layer_name), (total_op, removed_op, gain) in sim.get_performance().items():
             performance_logs.append(f"{model_type},{layer_name},{total_op},{removed_op},{gain:.6f}")
+            print(f"{model_type},{layer_name},{total_op},{removed_op},{gain:.6f}")
 
         for (model_name, layer_name), compr_ratios in sim.get_compression_ratio().items():
             compression_logs.append(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
+            print(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
 
     with open(os.path.join(log_dirpath, performance_log_filename), 'wt') as performance_file:
         performance_file.write('\n'.join(performance_logs))
