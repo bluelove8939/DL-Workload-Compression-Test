@@ -20,15 +20,7 @@ class AcceleratorSim(object):
     algo_names = tuple(sorted(supported_algorithms.keys()))
 
     def __init__(self, quant : bool=True, device : str='cpu'):
-        # self.total_op = 0    # number of total operations
-        # self.removed_op = 0  # number of removed operations
-        #
-        # self.total_siz = 0   # total uncompressed size
-        # self.compr_siz = {}  # compressed size
-
-        self.performance_result = {}  # key: (model type, layer name)  value: (total, removed, gain)
-        # self.compression_result = {}  # key: (model type, layer name)  value: list of compression ratios
-
+        self.performance_result = {}  # key: (model type, layer name)  value: (total, valid, gain)
         self.weight_compression_result = {}
         self.ifm_compression_ratio = {}
 
@@ -37,9 +29,6 @@ class AcceleratorSim(object):
 
     def get_performance(self):
         return self.performance_result
-
-    # def get_compression_ratio(self):
-    #     return self.compression_result
 
     def get_weight_compression_ratio(self):
         return self.weight_compression_result
@@ -96,7 +85,6 @@ class AcceleratorSim(object):
                 # Compression Test
                 print(f"\rCalculating compression ratio with layer: {layer_name}", end='')
 
-                # total_siz = (len(lowered_ifm.tobytes()) + len(lowered_weight.tobytes())) * 8
                 ifm_total_siz = len(lowered_ifm.tobytes()) * 8
                 weight_total_siz = len(lowered_weight.tobytes()) * 8
                 weight_compr_siz = {}

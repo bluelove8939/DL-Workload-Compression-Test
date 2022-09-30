@@ -80,7 +80,7 @@ if __name__ == '__main__':
     os.makedirs(log_dirpath, exist_ok=True)
 
     performance_log_filename = 'accelerator_performance.csv'
-    performance_logs = ['model name,layer name,total,removed,ratio']
+    performance_logs = ['model name,layer name,total,valid,ratio']
 
     algo_names = AcceleratorSim.algo_names
     ifm_compression_log_filename = 'accelerator_ifm_compression.csv'
@@ -138,7 +138,7 @@ if __name__ == '__main__':
     os.makedirs(log_dirpath, exist_ok=True)
 
     performance_log_filename = 'accelerator_performance_quant.csv'
-    performance_logs = ['model name,layer name,total,removed,ratio']
+    performance_logs = ['model name,layer name,total,valid,ratio']
 
     algo_names = AcceleratorSim.algo_names
     ifm_compression_log_filename = 'accelerator_ifm_compression_quant.csv'

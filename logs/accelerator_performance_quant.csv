@@ -1,4 +1,4 @@
-model name,layer name,total,removed,ratio
+model name,layer name,total,valid,ratio
 ResNet50,conv1,118013952,111091004,17.046777
 ResNet50,layer1.0.conv1,12845056,10019979,4.546799
 ResNet50,layer1.0.conv2,115605504,55613633,1.927019
