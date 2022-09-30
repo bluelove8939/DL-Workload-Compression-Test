@@ -11,7 +11,7 @@ if __name__ == '__main__':
 
     for model_name, config in imagenet_pretrained.items():
         model = config.generate()
-        tb_configs = ConvLayerInfo.generate_from_model(model, input_shape=(1, 3, 226, 226))
+        tb_configs = ConvLayerInfo.generate_from_model(model, input_shape=(1, 3, 224, 224))
 
         for layer_name, layer_info in tb_configs.items():
             content.append(f"{model_name:15s} {layer_name:30s} {layer_info}")
@@ -26,7 +26,7 @@ if __name__ == '__main__':
 
     for model_name, config in imagenet_quant_pretrained.items():
         model = config.generate()
-        tb_configs = ConvLayerInfo.generate_from_model(model, input_shape=(1, 3, 226, 226))
+        tb_configs = ConvLayerInfo.generate_from_model(model, input_shape=(1, 3, 224, 224))
 
         for layer_name, layer_info in tb_configs.items():
             content.append(f"{model_name:15s} {layer_name:30s} {layer_info}")

@@ -80,7 +80,7 @@ def weight_lowering(weight: torch.Tensor, layer_info: ConvLayerInfo):
     return torch.reshape(weight.detach(), shape=(Co, Ci*FW*FH))
 
 def ifm_lowering(ifm: torch.Tensor, layer_info: ConvLayerInfo):
-    N, Ci, W, H = layer_info.ifm_shape()
+    N, Ci, W, H = ifm.shape
     FW, FH, P, S = layer_info.FW, layer_info.FH, layer_info.P, layer_info.S
 
     if P > 0:

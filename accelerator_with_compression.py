@@ -82,9 +82,11 @@ if __name__ == '__main__':
     performance_log_filename = 'accelerator_performance.csv'
     performance_logs = ['model name,layer name,total,removed,ratio']
 
-    compression_log_filename = 'accelerator_compression.csv'
     algo_names = AcceleratorSim.algo_names
-    compression_logs = [f'model name,layer name,{",".join(algo_names)}']
+    ifm_compression_log_filename = 'accelerator_ifm_compression.csv'
+    ifm_compression_logs = [f'model name,layer name,{",".join(algo_names)}']
+    weight_compression_log_filename = 'accelerator_weight_compression.csv'
+    weight_compression_logs = [f'model name,layer name,{",".join(algo_names)}']
 
     # Reconfig the environement if using quantized model
     quant = False
@@ -104,20 +106,28 @@ if __name__ == '__main__':
             img, tag = img.to(device), tag.to(device)
             model(img)
             break
+        # model(test_dataset[0])
 
         for (model_name, layer_name), (total_op, removed_op, gain) in sim.get_performance().items():
             performance_logs.append(f"{model_type},{layer_name},{total_op},{removed_op},{gain:.6f}")
-            print(f"{model_type},{layer_name},{total_op},{removed_op},{gain:.6f}")
+            # print(f"{model_type},{layer_name},{total_op},{removed_op},{gain:.6f}")
 
-        for (model_name, layer_name), compr_ratios in sim.get_compression_ratio().items():
-            compression_logs.append(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
-            print(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
+        for (model_name, layer_name), compr_ratios in sim.get_ifm_compression_ratio().items():
+            ifm_compression_logs.append(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
+            # print(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
+
+        for (model_name, layer_name), compr_ratios in sim.get_weight_compression_ratio().items():
+            weight_compression_logs.append(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
+            # print(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
 
     with open(os.path.join(log_dirpath, performance_log_filename), 'wt') as performance_file:
         performance_file.write('\n'.join(performance_logs))
 
-    with open(os.path.join(log_dirpath, compression_log_filename), 'wt') as compression_file:
-        compression_file.write('\n'.join(compression_logs))
+    with open(os.path.join(log_dirpath, ifm_compression_log_filename), 'wt') as compression_file:
+        compression_file.write('\n'.join(ifm_compression_logs))
+
+    with open(os.path.join(log_dirpath, weight_compression_log_filename), 'wt') as compression_file:
+        compression_file.write('\n'.join(weight_compression_logs))
 
 
 if __name__ == '__main__':
@@ -130,9 +140,11 @@ if __name__ == '__main__':
     performance_log_filename = 'accelerator_performance_quant.csv'
     performance_logs = ['model name,layer name,total,removed,ratio']
 
-    compression_log_filename = 'accelerator_compression_quant.csv'
     algo_names = AcceleratorSim.algo_names
-    compression_logs = [f'model name,layer name,{",".join(algo_names)}']
+    ifm_compression_log_filename = 'accelerator_ifm_compression_quant.csv'
+    ifm_compression_logs = [f'model name,layer name,{",".join(algo_names)}']
+    weight_compression_log_filename = 'accelerator_weight_compression_quant.csv'
+    weight_compression_logs = [f'model name,layer name,{",".join(algo_names)}']
 
     # Reconfig the environement if using quantized model
     quant = True
@@ -152,17 +164,27 @@ if __name__ == '__main__':
             img, tag = img.to(device), tag.to(device)
             model(img)
             break
+        # model(test_dataset[0])
 
         for (model_name, layer_name), (total_op, removed_op, gain) in sim.get_performance().items():
             performance_logs.append(f"{model_type},{layer_name},{total_op},{removed_op},{gain:.6f}")
-            print(f"{model_type},{layer_name},{total_op},{removed_op},{gain:.6f}")
+            # print(f"{model_type},{layer_name},{total_op},{removed_op},{gain:.6f}")
 
-        for (model_name, layer_name), compr_ratios in sim.get_compression_ratio().items():
-            compression_logs.append(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
-            print(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
+        for (model_name, layer_name), compr_ratios in sim.get_ifm_compression_ratio().items():
+            ifm_compression_logs.append(
+                f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
+            # print(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
+
+        for (model_name, layer_name), compr_ratios in sim.get_weight_compression_ratio().items():
+            weight_compression_logs.append(
+                f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
+            # print(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
 
     with open(os.path.join(log_dirpath, performance_log_filename), 'wt') as performance_file:
         performance_file.write('\n'.join(performance_logs))
 
-    with open(os.path.join(log_dirpath, compression_log_filename), 'wt') as compression_file:
-        compression_file.write('\n'.join(compression_logs))
+    with open(os.path.join(log_dirpath, ifm_compression_log_filename), 'wt') as compression_file:
+        compression_file.write('\n'.join(ifm_compression_logs))
+
+    with open(os.path.join(log_dirpath, weight_compression_log_filename), 'wt') as compression_file:
+        compression_file.write('\n'.join(weight_compression_logs))
