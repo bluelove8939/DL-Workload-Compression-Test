@@ -10,13 +10,11 @@ from models.tools.lowering import weight_lowering, ifm_lowering, ConvLayerInfo
 
 
 class AcceleratorConfig(object):
-    def __init__(self, ve_num: int=128, mac_cycle: int=1,
-                 sparse_aware: bool=True, scheduler: bool=False):
+    def __init__(self, ve_num: int=128, mac_cycle: int=1, scheduler: bool=False):
 
         self.ve_num = ve_num        # number of VEs
         self.mac_cycle = mac_cycle  # mac cycle
 
-        self.sparse_aware = sparse_aware
         self.scheduler = scheduler
 
 
@@ -86,13 +84,13 @@ class CycleSim(object):
                         op_cycle += np.min(self.ve_queue)
                         self.ve_queue -= np.min(self.ve_queue)
 
-                sparse_cycle = op_cycle + np.max(self.ve_queue)
-                dense_cycle = ((iw // self.ac_config.ve_num) + (1 if iw % self.ac_config.ve_num else 0)) * ww * ivecw
+                sparse_cycle = (op_cycle + np.max(self.ve_queue)) * self.ac_config.mac_cycle
+                dense_cycle = ((iw // self.ac_config.ve_num) + (1 if iw % self.ac_config.ve_num else 0)) * ww * ivecw * self.ac_config.mac_cycle
                 self.cycle_result[result_key] = (sparse_cycle, dense_cycle)
 
-                print(f"\rSimulation finished with layer: {layer_name}    "
-                      f"sparse: {sparse_cycle}    "
-                      f"dense: {dense_cycle}", end='\n')
+                print(f"\rSimulation finished with layer: {layer_name:30s}  "
+                      f"sparse: {sparse_cycle:6d}  "
+                      f"dense: {dense_cycle:6d}", end='\n')
 
             return cycle_sim_check_hook
 

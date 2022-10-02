@@ -92,7 +92,7 @@ if __name__ == '__main__':
 
         model = model_config.generate().to(device)
 
-        acc_config = AcceleratorConfig(ve_num=128, mac_cycle=1, sparse_aware=True, scheduler=False)
+        acc_config = AcceleratorConfig(ve_num=128, mac_cycle=1, scheduler=False)
         acc_sim = CycleSim(ac_config=acc_config, quant=quant, device=device)
         acc_sim.register_model(model)
 
