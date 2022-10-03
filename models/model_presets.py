@@ -55,7 +55,7 @@ class ChkpointModelConfig(_MetaModelConfig):
         self.chkpoint = chkpoint
         self.default_weights = default_weights
 
-    def generate(self, load_chkpoint=False):
+    def generate(self, load_chkpoint=True):
         model = self.model_type(weights=self.weights)
         if load_chkpoint:
             model.load_state_dict(torch.load(self.chkpoint))
@@ -140,7 +140,43 @@ imagenet_clust_pretrained = {
 imagenet_pruned = {
     'AlexNet': ChkpointModelConfig(
         torchvision.models.alexnet,
-        chkpoint=os.path.join('C:/', 'torch_data', 'pruned_weights', 'AlexNet.pth'),
+        chkpoint=os.path.join(os.curdir, 'model_output', 'AlexNet_Imagenet_pruned_30.pth'),
         weights=torchvision.models.AlexNet_Weights.IMAGENET1K_V1.IMAGENET1K_V1,
+    ),
+
+    'InceptionV3': ChkpointModelConfig(
+        torchvision.models.inception_v3,
+        chkpoint=os.path.join(os.curdir, 'model_output', 'InceptionV3_Imagenet_pruned_30.pth'),
+        weights=torchvision.models.Inception_V3_Weights.IMAGENET1K_V1.IMAGENET1K_V1,
+    ),
+
+    'ResNet18': ChkpointModelConfig(
+        torchvision.models.resnet18,
+        chkpoint=os.path.join(os.curdir, 'model_output', 'ResNet18_Imagenet_pruned_30.pth'),
+        weights=torchvision.models.ResNet18_Weights.IMAGENET1K_V1.IMAGENET1K_V1,
+    ),
+
+    'ResNet34': ChkpointModelConfig(
+        torchvision.models.resnet34,
+        chkpoint=os.path.join(os.curdir, 'model_output', 'ResNet34_Imagenet_pruned_30.pth'),
+        weights=torchvision.models.ResNet34_Weights.IMAGENET1K_V1.IMAGENET1K_V1,
+    ),
+
+    'ResNet50': ChkpointModelConfig(
+        torchvision.models.resnet50,
+        chkpoint=os.path.join(os.curdir, 'model_output', 'ResNet50_Imagenet_pruned_30.pth'),
+        weights=torchvision.models.ResNet50_Weights.IMAGENET1K_V1.IMAGENET1K_V1,
+    ),
+
+    'SqueezeNet': ChkpointModelConfig(
+        torchvision.models.squeezenet1_0,
+        chkpoint=os.path.join(os.curdir, 'model_output', 'SqueezeNet_Imagenet_pruned_30.pth'),
+        weights=torchvision.models.SqueezeNet1_0_Weights.IMAGENET1K_V1.IMAGENET1K_V1,
+    ),
+
+    'VGG16': ChkpointModelConfig(
+        torchvision.models.vgg16,
+        chkpoint=os.path.join(os.curdir, 'model_output', 'VGG16_Imagenet_pruned_30.pth'),
+        weights=torchvision.models.VGG16_Weights.IMAGENET1K_V1.IMAGENET1K_V1,
     ),
 }
