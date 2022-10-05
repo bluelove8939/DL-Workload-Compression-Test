@@ -8,7 +8,7 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 
 from models.model_presets import imagenet_quant_pretrained, imagenet_pretrained
-from models.tools.pruning import prune_layer, remove_prune_model
+from models.tools.pruning import prune_layer, remove_prune_model, grouped_prune_model
 from models.tools.imagenet_utils.args_generator import args
 from models.tools.imagenet_utils.training import train, validate
 
@@ -84,12 +84,12 @@ if __name__ == '__main__':
         save_fullpath = os.path.join(save_dirpath, save_modelname)
 
         step = 0.1
-        target_amount = 0.7
+        target_amount = 0.3
         threshold = 1
         iter_max = 10
 
         print("\nTest Configs:")
-        print(f"- step: {step}")
+        # print(f"- step: {step}")
         print(f"- target amount: {target_amount}")
         print(f"- threshold: {threshold}")
         print(f"- max iter: {iter_max}")
@@ -101,20 +101,20 @@ if __name__ == '__main__':
         torch.save(model.state_dict(), save_fullpath)
 
         criterion = torch.nn.CrossEntropyLoss()
-        optimizer = torch.optim.SGD(model.parameters(), 0.0005,
+        optimizer = torch.optim.SGD(model.parameters(), 0.0001,
                                     momentum=args.momentum,
                                     weight_decay=args.weight_decay)
 
-        # normal_acc, _ = validate(val_loader=val_loader, model=model, criterion=criterion, args=args,
-        #                          pbar_header='normal')
+        normal_acc, _ = validate(val_loader=val_loader, model=model, criterion=criterion, args=args,
+                                 pbar_header='normal')
 
-        iter_cnt = 0
-        current_amount = 0
-
+        # iter_cnt = 0
+        # current_amount = 0
+        #
         # while current_amount < target_amount:
         #     current_amount += (1 - current_amount) * step
         #
-        #     prune_layer(model, step=0.1)
+        #     grouped_prune_model(model, step=0.4)
         #
         #     while True:
         #         pruned_acc, _ = validate(val_loader=val_loader, model=model, criterion=criterion, args=args,
@@ -132,15 +132,15 @@ if __name__ == '__main__':
         #
         #         iter_cnt += 1
 
-        prune_layer(model, step=0.3)
-        # pruned_acc, _ = validate(val_loader=val_loader, model=model, criterion=criterion, args=args,
-        #                                                           pbar_header=f'tune{iter_cnt:2d} acc')
-        #
-        # print(f"model name: {full_modelname:20s} normal: {normal_acc:.2f} pruned: {pruned_acc:.2f}")
+        grouped_prune_model(model, step=target_amount)
+        pruned_acc, _ = validate(val_loader=val_loader, model=model, criterion=criterion, args=args,
+                                                                     pbar_header='pruned')
+
+        print(f"model name: {full_modelname:20s} normal: {normal_acc:.2f} pruned: {pruned_acc:.2f}")
 
         remove_prune_model(model)
 
-        full_pmodelname = full_modelname + '_pruned_30'
+        full_pmodelname = full_modelname + f'_pruned_{target_amount*100:.0f}'
         save_pmodelname = f"{full_pmodelname}.pth"
         save_pfullpath = os.path.join(save_dirpath, save_pmodelname)
 

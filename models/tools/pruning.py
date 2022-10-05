@@ -109,3 +109,12 @@ def prune_layer(module: torch.nn.Module, step: float=0.1):
             prune.l1_unstructured(sub_module, 'weight', amount=step)
         elif isinstance(sub_module, torch.nn.Module):
             prune_layer(sub_module, step)
+
+def grouped_prune_model(model: torch.nn.Module, step: float=0.4,):
+    parameters_to_prune = []
+
+    for module_name, module in model.named_modules():
+        if isinstance(module, torch.nn.Conv2d):
+            parameters_to_prune.append((module, "weight"))
+
+    prune.global_unstructured(parameters_to_prune, pruning_method=prune.L1Unstructured, amount=step,)
