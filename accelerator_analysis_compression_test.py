@@ -62,8 +62,8 @@ if __name__ == '__main__':
     ax.grid(visible=True, which='major', axis='y', color='gray')
     ax.tick_params(axis='y', which='both', color='white')
 
-    ax.set_xlabel('testbenches', fontsize=13)
-    ax.set_ylabel('compression ratio', fontsize=13)
+    # ax.set_xlabel('testbenches', fontsize=13)
+    ax.set_ylabel('compression ratio', fontsize=11, fontweight='bold')
 
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
