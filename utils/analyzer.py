@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Iterable
 import numpy as np
 import matplotlib.axes as axes
 import matplotlib.pyplot as plt
@@ -6,14 +6,16 @@ import matplotlib.pyplot as plt
 
 class CSVAnalyzer(object):
     def __init__(self, filepaths: str or list, header: bool=True, category_col: int=1, dtype: str='float', sep: str='_',
-                 colors: tuple=('gray', 'darkorange', 'olivedrab', 'steelblue', 'blue')):
+                 colors: Iterable=('gray', 'darkorange', 'olivedrab', 'steelblue', 'blue'),
+                 hatches: Iterable=(None, None, None, None)):
 
         self.filepaths: list   = filepaths if isinstance(filepaths, list) else [filepaths]
         self.header: bool      = header
         self.category_col: int = category_col
         self.dtype: str        = dtype
         self.sep: str          = sep
-        self.colors: tuple     = colors
+        self.colors: Iterable  = colors
+        self.hatches: Iterable = hatches
 
         self.categories: list or None = None
         self.results: dict or None    = None
@@ -73,7 +75,8 @@ class CSVAnalyzer(object):
         for idx, key in enumerate(headers):
             val = self.results[key]
             xval = x_axis + ((idx - (len(headers) / 2) + 0.5) * width)
-            ax.bar(xval, val, width=width, label=key, color=self.colors[idx])
+            ax.bar(xval, val, width=width, label=key, color=self.colors[idx], hatch=self.hatches[idx],
+                   edgecolor='black', linewidth=0.5)
 
             if annotate:
                 for i, j in zip(xval, val):

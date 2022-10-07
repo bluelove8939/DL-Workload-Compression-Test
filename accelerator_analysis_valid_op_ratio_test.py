@@ -47,34 +47,49 @@ if __name__ == '__main__':
         f"{result_files[1]}_GoogLeNet_inception4c.branch2.0.conv": 'QGC4',
     }
 
-    algorithms = ['ratio']
+    headers = ['valid_ratio']
 
     category_filter = lambda cat: cat in testbenches.keys()
 
     analyzer = CSVAnalyzer(filepaths=result_files, header=True, category_col=2, dtype='float', sep='_',
-                           colors=('darkorange', 'darkolivegreen', 'teal', 'gray'))
+                           colors=('#A2A2A2', '#EEEEEE'),
+                           hatches=(None, None))
     analyzer.parse_file(category_filter=category_filter)
     analyzer.category_conversion(mappings=testbenches)
-    analyzer.analyze_csv_with_graph(ax=ax, xtic_rotation=45, annotate=False, headers=algorithms)
+    analyzer.results['valid_ratio'] = np.array(analyzer.results['valid']) / np.array(analyzer.results['total'])
+    # analyzer.analyze_csv_with_graph(ax=ax, xtic_rotation=45, annotate=False, headers=headers)
 
-    # ax.set_ylim([0, 4.8])
+    width_max = 0.8
+    width = width_max / len(headers)
+
+    x_axis = np.arange(len(analyzer.categories))
+
+    val = analyzer.results['valid_ratio']
+    xval = x_axis + ((0 - (len(headers) / 2) + 0.5) * width)
+    ax.bar(xval, val, width=width, label='valid', color=analyzer.colors[0], hatch=analyzer.hatches[0],
+           edgecolor='black', linewidth=0.5)
+    ax.bar(xval, 1 - val, width=width, label='redundant', color=analyzer.colors[1], hatch=analyzer.hatches[1],
+           edgecolor='black', linewidth=0.5, bottom=val)
+    ax.set_xticks(x_axis, analyzer.categories, rotation=45, ha='right')
+
+    ax.set_ylim([0, 1])
     ax.set_axisbelow(True)
     ax.grid(visible=True, which='major', axis='y', color='gray')
     ax.tick_params(axis='y', which='both', color='white')
 
     # ax.set_xlabel('testbenches', fontsize=13)
-    ax.set_ylabel('performance gain', fontsize=11, fontweight='bold')
+    ax.set_ylabel('ratio of valid operation', fontsize=11, fontweight='bold')
 
     ax.spines['right'].set_visible(False)
-    ax.spines['top'].set_visible(False)
+    # ax.spines['top'].set_visible(False)
     ax.spines['left'].set_visible(False)
-    ax.spines['bottom'].set_visible(False)
+    # ax.spines['bottom'].set_visible(False)
 
-    # ax.legend(loc='upper center', ncol=4, frameon=False, shadow=False)
+    ax.legend(loc='upper center', ncol=4, frameon=False, shadow=False, bbox_to_anchor=(0,1,1,0.2))
 
-    ax.figure.set_size_inches(7, 4)
+    ax.figure.set_size_inches(7, 2.8)
 
     plt.tight_layout()
-    plt.savefig("G:\내 드라이브\ICEIC 2023\Fig6_accelerator_performance_test.pdf",
+    plt.savefig("G:\내 드라이브\ICEIC 2023\Fig6_accelerator_valid_operation_ratio.pdf",
                 dpi=200, bbox_inches='tight', pad_inches=0)
     # plt.show()

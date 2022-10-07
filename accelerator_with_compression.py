@@ -112,19 +112,19 @@ if __name__ == '__main__':
             performance_logs.append(f"{model_type},{layer_name},{total_op},{removed_op},{gain:.6f}")
             # print(f"{model_type},{layer_name},{total_op},{removed_op},{gain:.6f}")
 
-        for (model_name, layer_name), compr_ratios in sim.get_ifm_compression_ratio().items():
-            ifm_compression_logs.append(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
-            # print(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
-
-        for (model_name, layer_name), compr_ratios in sim.get_weight_compression_ratio().items():
-            weight_compression_logs.append(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
-            # print(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
+        # for (model_name, layer_name), compr_ratios in sim.get_ifm_compression_ratio().items():
+        #     ifm_compression_logs.append(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
+        #     # print(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
+        #
+        # for (model_name, layer_name), compr_ratios in sim.get_weight_compression_ratio().items():
+        #     weight_compression_logs.append(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
+        #     # print(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
 
     with open(os.path.join(log_dirpath, performance_log_filename), 'wt') as performance_file:
         performance_file.write('\n'.join(performance_logs))
 
-    with open(os.path.join(log_dirpath, ifm_compression_log_filename), 'wt') as compression_file:
-        compression_file.write('\n'.join(ifm_compression_logs))
-
-    with open(os.path.join(log_dirpath, weight_compression_log_filename), 'wt') as compression_file:
-        compression_file.write('\n'.join(weight_compression_logs))
+    # with open(os.path.join(log_dirpath, ifm_compression_log_filename), 'wt') as compression_file:
+    #     compression_file.write('\n'.join(ifm_compression_logs))
+    #
+    # with open(os.path.join(log_dirpath, weight_compression_log_filename), 'wt') as compression_file:
+    #     compression_file.write('\n'.join(weight_compression_logs))
