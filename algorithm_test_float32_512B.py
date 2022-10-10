@@ -14,7 +14,7 @@ algo_methods = {
 }
 
 sparsity = np.arange(0, 1, 0.05)
-arrsize = 512
+arrsize = 128
 iternum = 1000
 results = {}
 
@@ -27,9 +27,9 @@ for sp in tqdm.tqdm(sparsity, ncols=50):
         idxvec = []
 
         for _ in range(nz):
-            idx = np.random.randint(0, 512)
+            idx = np.random.randint(0, arrsize)
             while idx in idxvec:
-                idx = np.random.randint(0, 512)
+                idx = np.random.randint(0, arrsize)
             idxvec.append(idx)
 
         arr[idxvec] = 0

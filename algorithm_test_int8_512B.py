@@ -27,9 +27,9 @@ for sp in tqdm.tqdm(sparsity, ncols=50):
         idxvec = []
 
         for _ in range(nz):
-            idx = np.random.randint(0, 512)
+            idx = np.random.randint(0, arrsize)
             while idx in idxvec:
-                idx = np.random.randint(0, 512)
+                idx = np.random.randint(0, arrsize)
             idxvec.append(idx)
 
         arr[idxvec] = 0

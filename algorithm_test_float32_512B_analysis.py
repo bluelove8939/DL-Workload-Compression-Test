@@ -38,7 +38,7 @@ if __name__ == '__main__':
     ax.grid(visible=True, which='major', axis='y', color='gray')
     ax.tick_params(axis='y', which='both', color='white')
 
-    # ax.set_xlabel('testbenches', fontsize=13)
+    ax.set_xlabel('sparsity', fontsize=11, fontweight='bold')
     ax.set_ylabel('compression ratio', fontsize=11, fontweight='bold')
 
     ax.spines['right'].set_visible(False)
@@ -48,7 +48,7 @@ if __name__ == '__main__':
 
     ax.legend(loc='upper center', ncol=4, frameon=False, shadow=False, bbox_to_anchor=(0,0.85,1,0.2))
 
-    ax.figure.set_size_inches(7, 3)
+    ax.figure.set_size_inches(7, 2.7)
 
     plt.tight_layout()
     plt.savefig("G:\내 드라이브\ICEIC 2023\Fig_algorithm_test_float32_512B.pdf",

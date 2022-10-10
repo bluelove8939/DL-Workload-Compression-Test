@@ -71,9 +71,9 @@ if __name__ == '__main__':
     ax.spines['left'].set_visible(False)
     ax.spines['bottom'].set_visible(False)
 
-    ax.legend(loc='upper center', ncol=4, frameon=False, shadow=False, bbox_to_anchor=(0,0.85,1,0.2))
+    ax.legend(loc='upper center', ncol=4, frameon=False, shadow=False, bbox_to_anchor=(0,0.9,1,0.2))
 
-    ax.figure.set_size_inches(7, 3)
+    ax.figure.set_size_inches(7, 2.5)
 
     plt.tight_layout()
     plt.savefig("G:\내 드라이브\ICEIC 2023\Fig5_accelerator_compression_test.pdf",
