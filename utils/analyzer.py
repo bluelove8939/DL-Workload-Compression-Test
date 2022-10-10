@@ -48,7 +48,7 @@ class CSVAnalyzer(object):
 
                 for line in content:
                     cat, dat = self.line_splitter(line)
-                    cat = filepath + '_' + cat
+                    cat = filepath + '_' + cat if len(self.filepaths) != 1 else cat
 
                     if not category_filter(cat):
                         continue
