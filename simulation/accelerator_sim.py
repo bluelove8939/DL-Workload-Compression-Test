@@ -173,32 +173,32 @@ class AcceleratorSim(object):
                 self.performance_result[result_key] = (total_op, valid_op, total_op / (valid_op + 1e-10))
 
                 # Compression Test
-                # print(f"\rCalculating compression ratio with layer: {layer_name}", end='')
-                #
-                # ifm_total_siz = len(lowered_ifm.tobytes()) * 8
-                # weight_total_siz = len(lowered_weight.tobytes()) * 8
-                # weight_compr_siz = {}
-                # ifm_compr_siz = {}
-                #
-                # for algo_name, algo_method in AcceleratorSim.supported_algorithms.items():
-                #     if algo_name not in weight_compr_siz.keys():
-                #         weight_compr_siz[algo_name] = 0
-                #
-                #     if algo_name not in ifm_compr_siz.keys():
-                #         ifm_compr_siz[algo_name] = 0
-                #
-                #     if algo_name == 'CSR' or algo_name == 'CSC':
-                #         ifm_compr_siz[algo_name] += len(algo_method(lowered_ifm, lowered_ifm.dtype.itemsize*8))
-                #         weight_compr_siz[algo_name] += len(algo_method(lowered_weight, lowered_weight.dtype.itemsize*8))
-                #     else:
-                #         for i_vec in lowered_ifm:
-                #             ifm_compr_siz[algo_name] += len(algo_method(i_vec, i_vec.dtype.itemsize*8))
-                #
-                #         for w_vec in lowered_weight:
-                #             weight_compr_siz[algo_name] += len(algo_method(w_vec, w_vec.dtype.itemsize*8))
-                #
-                # self.ifm_compression_ratio[result_key] = [ifm_total_siz / ifm_compr_siz[name] for name in AcceleratorSim.algo_names]
-                # self.weight_compression_result[result_key] = [weight_total_siz / weight_compr_siz[name] for name in AcceleratorSim.algo_names]
+                print(f"\rCalculating compression ratio with layer: {layer_name}", end='')
+
+                ifm_total_siz = len(lowered_ifm.tobytes()) * 8
+                weight_total_siz = len(lowered_weight.tobytes()) * 8
+                weight_compr_siz = {}
+                ifm_compr_siz = {}
+
+                for algo_name, algo_method in AcceleratorSim.supported_algorithms.items():
+                    if algo_name not in weight_compr_siz.keys():
+                        weight_compr_siz[algo_name] = 0
+
+                    if algo_name not in ifm_compr_siz.keys():
+                        ifm_compr_siz[algo_name] = 0
+
+                    if algo_name == 'CSR' or algo_name == 'CSC':
+                        ifm_compr_siz[algo_name] += len(algo_method(lowered_ifm, lowered_ifm.dtype.itemsize*8))
+                        weight_compr_siz[algo_name] += len(algo_method(lowered_weight, lowered_weight.dtype.itemsize*8))
+                    else:
+                        for i_vec in lowered_ifm:
+                            ifm_compr_siz[algo_name] += len(algo_method(i_vec, i_vec.dtype.itemsize*8))
+
+                        for w_vec in lowered_weight:
+                            weight_compr_siz[algo_name] += len(algo_method(w_vec, w_vec.dtype.itemsize*8))
+
+                self.ifm_compression_ratio[result_key] = [ifm_total_siz / ifm_compr_siz[name] for name in AcceleratorSim.algo_names]
+                self.weight_compression_result[result_key] = [weight_total_siz / weight_compr_siz[name] for name in AcceleratorSim.algo_names]
 
                 print(f"\rSimulation finished with layer: {layer_name}", end='\n')
 
@@ -224,4 +224,4 @@ if __name__ == '__main__':
     model(dummy_image)
 
     print(sim.get_performance())
-    print(sim.get_compression_ratio())
+    print(sim.get_ifm_compression_ratio())
