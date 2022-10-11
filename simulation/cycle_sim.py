@@ -72,9 +72,6 @@ class DataStreamer(_SimModule):
             if self.paused == 0:
                 if self.input_buffer is None or self.weight_buffer is None:
                     assert Exception('Input or weight buffer is empty')
-                if self.input_cursor >= self.input_buffer.shape[0] or self.weight_cursor >= self.weight_buffer.shape[0]:
-                    self.state = DataStreamer.IDLE_STATE
-                    return
 
                 ivec = self.input_buffer[self.input_cursor:min(self.input_cursor+self.vector_size, self.input_buffer.shape[0])]
                 wvec = self.weight_buffer[self.weight_cursor:min(self.weight_cursor+self.vector_size, self.weight_buffer.shape[0])]
@@ -109,7 +106,14 @@ class DataStreamer(_SimModule):
                 self.valid_op_num -= 1
 
             if self.valid_op_num <= 0:
-                self.state = DataStreamer.FETCH_STATE
+                if self.input_cursor >= self.input_buffer.shape[0] or self.weight_cursor >= self.weight_buffer.shape[0]:
+                    self.state = DataStreamer.IDLE_STATE
+                    self.input_buffer = None
+                    self.weight_buffer = None
+                    self.input_cursor = 0
+                    self.weight_cursor = 0
+                else:
+                    self.state = DataStreamer.FETCH_STATE
 
     def reset(self):
         self.valid_op_num = None
@@ -146,6 +150,7 @@ class MACUnit(_SimModule):
 
         elif self.state == MACUnit.CALC_STATE:
             self.paused += 1
+            self.data_streamer.op_fifo -= 1
 
             if self.paused >= self.mac_cycle:
                 if self.data_streamer.op_fifo <= 0:
@@ -273,7 +278,7 @@ class AcceleratorCycleSim(_SimModule):
                 print(f"\rSimulation finished with layer: {layer_name:30s}  "
                       f"cycle: {self.cycle:7d}  "
                       f"total: {total:7d}  "
-                      f"input: {lowered_ifm.shape}  "
+                      f"input: {lowered_ifm.shape}\t"
                       f"weight: {lowered_weight.shape}  ", end='\n')
             return accelerator_cycle_sim_hook
 
