@@ -6,16 +6,17 @@ import matplotlib.pyplot as plt
 
 class CSVAnalyzer(object):
     def __init__(self, filepaths: str or list, header: bool=True, category_col: int=1, dtype: str='float', sep: str='_',
-                 colors: Iterable=('gray', 'darkorange', 'olivedrab', 'steelblue', 'blue'),
-                 hatches: Iterable=(None, None, None, None)):
+                 colors: list or tuple=('gray', 'darkorange', 'olivedrab', 'steelblue', 'blue'),
+                 hatches: list or tuple=(None, None, None, None)):
 
         self.filepaths: list   = filepaths if isinstance(filepaths, list) else [filepaths]
         self.header: bool      = header
         self.category_col: int = category_col
         self.dtype: str        = dtype
         self.sep: str          = sep
-        self.colors: Iterable  = colors
-        self.hatches: Iterable = hatches
+
+        self.colors: list or tuple  = colors
+        self.hatches: list or tuple = hatches
 
         self.categories: list or None = None
         self.results: dict or None    = None
