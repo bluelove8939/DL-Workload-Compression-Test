@@ -200,7 +200,7 @@ class AcceleratorCycleSim(_SimModule):
     def trigger(self):
         for vidx, (ds, mac) in enumerate(zip(self.data_streamers, self.mac_units)):
             if not self.done[vidx]:
-                if ds.state == DataStreamer.IDLE_STATE:
+                if ds.input_buffer is None or ds.weight_buffer is None:
                     if self.weight_mapping[vidx] < self.weight_mat.shape[0] - 1:
                         self.weight_mapping[vidx] += 1
                         ds.weight_buffer = self.weight_mat[self.weight_mapping[vidx]]
