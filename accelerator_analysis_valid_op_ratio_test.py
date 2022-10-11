@@ -78,16 +78,16 @@ if __name__ == '__main__':
     ax.tick_params(axis='y', which='both', color='white')
 
     # ax.set_xlabel('testbenches', fontsize=13)
-    ax.set_ylabel('ratio of valid operation', fontsize=11, fontweight='bold')
+    ax.set_ylabel('valid ratio', fontsize=11, fontweight='bold')
 
     ax.spines['right'].set_visible(False)
     # ax.spines['top'].set_visible(False)
     ax.spines['left'].set_visible(False)
     # ax.spines['bottom'].set_visible(False)
 
-    ax.legend(loc='upper center', ncol=4, frameon=False, shadow=False, bbox_to_anchor=(0,1,1,0.2))
+    ax.legend(loc='upper center', ncol=4, frameon=False, shadow=False, bbox_to_anchor=(0,1.2,1,0.2))
 
-    ax.figure.set_size_inches(7, 2.8)
+    ax.figure.set_size_inches(7, 2.5)
 
     plt.tight_layout()
     plt.savefig("G:\내 드라이브\ICEIC 2023\Fig6_accelerator_valid_operation_ratio.pdf",
