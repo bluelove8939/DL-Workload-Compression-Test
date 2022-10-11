@@ -12,14 +12,14 @@ class AcceleratorConfig(object):
         self.ve_num = ve_num  # number of vector engines
 
         # Parameters of Data Stremer
-        self.vector_size = vector_size  # number of elements within vector tile
+        self.vector_size = vector_size      # number of elements within vector tile
         self.fifo_capacity = fifo_capacity  # capacity of input and weight FIFO in terms of element number
 
         self.fetch_cycle = fetch_cycle  # cycles spent on fetching data from buffers
         self.index_cycle = index_cycle  # cycles spent on generating nonzero indices
 
         # Parameters of MAC Unit
-        self.mac_cycle   = mac_cycle    # cycles spent on mac operation
+        self.mac_cycle   = mac_cycle  # cycles spent on mac operation
 
 
 class _SimModule(metaclass=abc.ABCMeta):
@@ -65,14 +65,14 @@ class DataStreamer(_SimModule):
     def trigger(self):
         if self.state == DataStreamer.IDLE_STATE:
             if self.input_buffer is not None and self.weight_buffer is not None:
-                if self.input_cursor < self.input_buffer.shape[0] and self.weight_buffer < self.weight_buffer.shape[0]:
+                if self.input_cursor < self.input_buffer.shape[0] and self.weight_cursor < self.weight_buffer.shape[0]:
                     self.state = DataStreamer.FETCH_STATE
 
         elif self.state == DataStreamer.FETCH_STATE:
             if self.paused == 0:
                 if self.input_buffer is None or self.weight_buffer is None:
                     assert Exception('Input or weight buffer is empty')
-                if self.input_cursor >= self.input_buffer.shape[0] or self.weight_buffer >= self.weight_buffer.shape[0]:
+                if self.input_cursor >= self.input_buffer.shape[0] or self.weight_cursor >= self.weight_buffer.shape[0]:
                     self.state = DataStreamer.IDLE_STATE
                     return
 
@@ -82,8 +82,8 @@ class DataStreamer(_SimModule):
                 self.input_cursor += ivec.shape[0]
                 self.weight_cursor += wvec.shape[0]
 
-                imask = ivec != 0
-                wmask = wvec != 0
+                imask = (ivec != 0).cpu()
+                wmask = (wvec != 0).cpu()
 
                 self.valid_op_num = torch.count_nonzero(torch.logical_and(imask, wmask))
 
@@ -199,9 +199,13 @@ class AcceleratorCycleSim(_SimModule):
                     if self.weight_mapping[vidx] < self.weight_mat.shape[0] - 1:
                         self.weight_mapping[vidx] += 1
                         ds.weight_buffer = self.weight_mat[self.weight_mapping[vidx]]
-                    elif self.input_mapping[vidx] * self.config.ve_num + vidx < self.input_mat.shape[0] - 1:
+
+                    elif ((self.input_mapping[vidx] + 1) * self.config.ve_num + vidx) < self.input_mat.shape[0]:
                         self.input_mapping[vidx] += 1
                         ds.input_buffer = self.input_mat[self.input_mapping[vidx] * self.config.ve_num + vidx]
+                        ds.weight_buffer = self.weight_mat[0]
+                        self.weight_mapping[vidx] = 0
+
                     else:
                         self.done[vidx] = True
 
@@ -233,8 +237,6 @@ class AcceleratorCycleSim(_SimModule):
         while not self.finished():
             self.trigger()
 
-        print(f'total computation cycles: {self.cycle}')
-
     def register_model(self, model: torch.nn.Module, model_name: str='default'):
         model_name = type(model).__name__ if model_name == 'default' else model_name
         layer_info = ConvLayerInfo.generate_from_model(model, input_shape=(1, 3, 226, 226), device=self.device)
@@ -256,12 +258,23 @@ class AcceleratorCycleSim(_SimModule):
                 lowered_ifm = ifm_lowering(ifm=ifm, layer_info=layer_info[layer_name]).detach()
                 lowered_weight = weight_lowering(weight=weight, layer_info=layer_info[layer_name]).detach()
 
+                ih, iw = lowered_ifm.shape
+                wh, ww = lowered_weight.shape
+
+                # Run cycle test
+                print(f"\rRunning cycle-accurate test with: {layer_name}", end='')
+
                 self.reset()
                 self.run_test(input_mat=lowered_ifm, weight_mat=lowered_weight)
+                total = ih * wh * iw // self.config.ve_num
 
-                self.results[result_key] = self.cycle
+                self.results[result_key] = (self.cycle, total)
 
-                print(f"\rSimulation finished with layer: {layer_name}", end='\n')
+                print(f"\rSimulation finished with layer: {layer_name:30s}  "
+                      f"cycle: {self.cycle:7d}  "
+                      f"total: {total:7d}  "
+                      f"input: {lowered_ifm.shape}  "
+                      f"weight: {lowered_weight.shape}  ", end='\n')
             return accelerator_cycle_sim_hook
 
         for layer_name, sublayer in model.named_modules():
@@ -270,15 +283,3 @@ class AcceleratorCycleSim(_SimModule):
 
     def get_performance(self):
         return self.results
-
-
-# if __name__ == '__main__':
-#     from models.model_presets import imagenet_pretrained
-#
-#     model_config = imagenet_pretrained['AlexNet']
-#     model = model_config.generate()
-#
-#     accelerator_config = AcceleratorConfig(ve_num=128, vector_size=64, fifo_capacity=128,
-#                                            fetch_cycle=1, index_cycle=1, mac_cycle=1)
-#     sim = AcceleratorCycleSim(config=accelerator_config, quant=False, device='cuda')
-

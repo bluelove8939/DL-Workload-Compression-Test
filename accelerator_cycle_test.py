@@ -80,7 +80,7 @@ if __name__ == '__main__':
     os.makedirs(log_dirpath, exist_ok=True)
 
     performance_log_filename = 'accelerator_cycles.csv'
-    performance_logs = ['model name,layer name,cycle']
+    performance_logs = ['model name,layer name,cycles,total']
 
     # Reconfig the environement if using quantized model
     quant = False
@@ -103,8 +103,8 @@ if __name__ == '__main__':
             model(img)
             break
 
-        for (model_name, layer_name), (total_op, removed_op, gain) in sim.get_performance().items():
-            performance_logs.append(f"{model_type},{layer_name},{total_op},{removed_op},{gain:.6f}")
+        for (model_name, layer_name), (cycles, total) in sim.get_performance().items():
+            performance_logs.append(f"{model_type},{layer_name},{cycles},{total}")
 
     with open(os.path.join(log_dirpath, performance_log_filename), 'wt') as performance_file:
         performance_file.write('\n'.join(performance_logs))
