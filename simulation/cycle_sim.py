@@ -1,8 +1,12 @@
 import abc
+import math
+
 import torch
-from typing import Callable
+import numpy as np
+from typing import Callable, List
 
 from models.tools.lowering import ifm_lowering, weight_lowering, ConvLayerInfo
+from models.tools.progressbar import progressbar
 
 
 class AcceleratorConfig(object):
@@ -37,26 +41,27 @@ class _SimModule(metaclass=abc.ABCMeta):
 
 class DataStreamer(_SimModule):
     IDLE_STATE  = 0
-    FETCH_STATE = 1
     INDEX_STATE = 2
     PUSH_STATE  = 3
 
     def __init__(self, config: AcceleratorConfig):
         super(DataStreamer, self).__init__()
 
-        self.vector_size = config.vector_size      # number of elements within vector tile
-        self.fifo_capacity = config.fifo_capacity  # capacity of input and weight FIFO in terms of element number
+        self.vector_size = config.vector_size
+        self.fifo_capacity = config.fifo_capacity
 
-        self.fetch_cycle = config.fetch_cycle  # cycles spent on fetching data from buffers
-        self.index_cycle = config.index_cycle  # cycles spent on generating nonzero indices
+        self.fetch_cycle = config.fetch_cycle
+        self.index_cycle = config.index_cycle
 
         self.op_fifo = 0  # number of elements inside the operand FIFO
 
         self.valid_op_num = None  # number of valid operands pairs
 
-        self.input_buffer: torch.tensor or None = None   # input buffer containing row vector
-        self.weight_buffer: torch.tensor or None = None  # weight buffer containing row vector
-        self.input_cursor = 0   # current cursor of the input buffer
+        self.input_buffer: List[torch.tensor] or None  = None  # input buffer containing row vectors
+        self.weight_buffer: List[torch.tensor] or None = None  # weight buffer containing row vectors
+        self.input_idx  = 0  # index of current input vector
+        self.weight_idx = 0  # index of current weight vector
+        self.input_cursor  = 0  # current cursor of the input buffer
         self.weight_cursor = 0  # currsne cursor of the weight buffer
 
         self.paused = 0  # paused cycles
@@ -64,17 +69,17 @@ class DataStreamer(_SimModule):
 
     def trigger(self):
         if self.state == DataStreamer.IDLE_STATE:
-            if self.input_buffer is not None and self.weight_buffer is not None:
-                if self.input_cursor < self.input_buffer.shape[0] and self.weight_cursor < self.weight_buffer.shape[0]:
-                    self.state = DataStreamer.FETCH_STATE
-
-        elif self.state == DataStreamer.FETCH_STATE:
             if self.paused == 0:
                 if self.input_buffer is None or self.weight_buffer is None:
-                    assert Exception('Input or weight buffer is empty')
+                    return
+                if self.done():
+                    return
 
-                ivec = self.input_buffer[self.input_cursor:min(self.input_cursor+self.vector_size, self.input_buffer.shape[0])]
-                wvec = self.weight_buffer[self.weight_cursor:min(self.weight_cursor+self.vector_size, self.weight_buffer.shape[0])]
+                input_vector = self.input_buffer[self.input_idx]
+                weight_vector = self.weight_buffer[self.weight_idx]
+
+                ivec = input_vector[self.input_cursor:min(self.input_cursor+self.vector_size, input_vector.shape[0])]
+                wvec = weight_vector[self.weight_cursor:min(self.weight_cursor+self.vector_size, weight_vector.shape[0])]
 
                 self.input_cursor += ivec.shape[0]
                 self.weight_cursor += wvec.shape[0]
@@ -88,7 +93,19 @@ class DataStreamer(_SimModule):
 
             if self.paused >= self.fetch_cycle:
                 if self.valid_op_num == 0:
-                    self.state = DataStreamer.FETCH_STATE
+                    if self.input_cursor >= self.input_buffer[self.input_idx].shape[0] or \
+                            self.weight_cursor >= self.weight_buffer[self.weight_idx].shape[0]:
+
+                        self.weight_idx += 1
+                        if self.weight_idx == len(self.weight_buffer):
+                            self.input_idx += 1
+                            if self.input_idx < len(self.input_buffer):
+                                self.weight_idx = 0
+
+                        self.input_cursor = 0
+                        self.weight_cursor = 0
+
+                    self.state = DataStreamer.IDLE_STATE
                 else:
                     self.state = DataStreamer.INDEX_STATE
                 self.paused = 0
@@ -106,25 +123,41 @@ class DataStreamer(_SimModule):
                 self.valid_op_num -= 1
 
             if self.valid_op_num <= 0:
-                if self.input_cursor >= self.input_buffer.shape[0] or self.weight_cursor >= self.weight_buffer.shape[0]:
-                    self.state = DataStreamer.IDLE_STATE
-                    self.input_buffer = None
-                    self.weight_buffer = None
+                if self.input_cursor >= self.input_buffer[self.input_idx].shape[0] or \
+                        self.weight_cursor >= self.weight_buffer[self.weight_idx].shape[0]:
+
+                    self.weight_idx += 1
+                    if self.weight_idx == len(self.weight_buffer):
+                        self.input_idx += 1
+                        if self.input_idx < len(self.input_buffer):
+                            self.weight_idx = 0
+
                     self.input_cursor = 0
                     self.weight_cursor = 0
-                else:
-                    self.state = DataStreamer.FETCH_STATE
+
+                self.state = DataStreamer.IDLE_STATE
 
     def reset(self):
         self.valid_op_num = None
 
-        self.input_buffer: torch.tensor or None = None
-        self.weight_buffer: torch.tensor or None = None
-        self.input_cursor = 0
+        self.input_buffer  = None
+        self.weight_buffer = None
+        self.input_idx     = 0
+        self.weight_idx    = 0
+        self.input_cursor  = 0
         self.weight_cursor = 0
 
         self.paused = 0
         self.state = DataStreamer.IDLE_STATE
+
+    def buffer_empty(self) -> bool:
+        return self.input_buffer is None and self.weight_buffer is None
+
+    def fifo_empty(self) -> bool:
+        return self.op_fifo <= 0
+
+    def done(self):
+        return self.input_idx >= len(self.input_buffer) and self.weight_idx >= len(self.weight_buffer)
 
 
 class MACUnit(_SimModule):
@@ -145,7 +178,7 @@ class MACUnit(_SimModule):
 
     def trigger(self):
         if self.state == MACUnit.IDLE_STATE:
-            if self.data_streamer.op_fifo > 0:
+            if not self.data_streamer.fifo_empty():
                 self.state = MACUnit.CALC_STATE
 
         elif self.state == MACUnit.CALC_STATE:
@@ -153,7 +186,7 @@ class MACUnit(_SimModule):
             self.data_streamer.op_fifo -= 1
 
             if self.paused >= self.mac_cycle:
-                if self.data_streamer.op_fifo <= 0:
+                if self.data_streamer.fifo_empty():
                     self.state = MACUnit.IDLE_STATE
                 else:
                     self.state = MACUnit.CALC_STATE
@@ -166,19 +199,24 @@ class MACUnit(_SimModule):
 
 
 class AcceleratorCycleSim(_SimModule):
-    def __init__(self, config: AcceleratorConfig, quant : bool=True, device='cpu'):
+    def __init__(self, config: AcceleratorConfig, quant : bool=True, device='cpu',
+                 verbose: bool=True, verbose_step: int=1000):
+
         super(AcceleratorCycleSim, self).__init__()
 
         self.config = config
         self.quant  = quant
         self.device = device
 
+        self.verbose = verbose
+        self.verbose_step = verbose_step
+
         self.data_streamers = []
         self.mac_units = []
 
-        self.input_mapping = []
-        self.weight_mapping = []
-        self.done = []
+        # self.input_mapping = []
+        # self.weight_mapping = []
+        self.done_mapping = []
         self.cycle = 0
 
         self.results = {}
@@ -190,32 +228,21 @@ class AcceleratorCycleSim(_SimModule):
             self.data_streamers.append(ds)
             self.mac_units.append(mac)
 
-            self.input_mapping.append(0)
-            self.weight_mapping.append(0)
-            self.done.append(False)
+            # self.input_mapping.append(0)
+            # self.weight_mapping.append(0)
+            self.done_mapping.append(False)
 
         self.input_mat: torch.tensor or None = None
         self.weight_mat: torch.tensor or None = None
 
     def trigger(self):
         for vidx, (ds, mac) in enumerate(zip(self.data_streamers, self.mac_units)):
-            if not self.done[vidx]:
-                if ds.input_buffer is None or ds.weight_buffer is None:
-                    if self.weight_mapping[vidx] < self.weight_mat.shape[0] - 1:
-                        self.weight_mapping[vidx] += 1
-                        ds.weight_buffer = self.weight_mat[self.weight_mapping[vidx]]
-
-                    elif ((self.input_mapping[vidx] + 1) * self.config.ve_num + vidx) < self.input_mat.shape[0]:
-                        self.input_mapping[vidx] += 1
-                        ds.input_buffer = self.input_mat[self.input_mapping[vidx] * self.config.ve_num + vidx]
-                        ds.weight_buffer = self.weight_mat[0]
-                        self.weight_mapping[vidx] = 0
-
-                    else:
-                        self.done[vidx] = True
-
+            if not self.done_mapping[vidx]:
                 ds.trigger()
                 mac.trigger()
+
+                if ds.done():
+                    self.done_mapping[vidx] = True
 
         self.cycle += 1
 
@@ -224,32 +251,58 @@ class AcceleratorCycleSim(_SimModule):
             ds.reset()
             mac.reset()
 
-        self.input_mapping = [0] * self.config.ve_num
-        self.weight_mapping = [0] * self.config.ve_num
-        self.done = [False] * self.config.ve_num
+        # self.input_mapping = [0] * self.config.ve_num
+        # self.weight_mapping = [0] * self.config.ve_num
+        self.done_mapping = [False] * self.config.ve_num
         self.cycle = 0
 
         self.input_mat = None
         self.weight_mat = None
 
     def finished(self) -> bool:
-        return self.done == ([True] * self.config.ve_num)
+        return self.done_mapping == ([True] * self.config.ve_num)
 
     def run_test(self, input_mat: torch.tensor, weight_mat: torch.tensor):
         self.input_mat = input_mat
         self.weight_mat = weight_mat
 
+        viter = 0
+        ih, iw = input_mat.shape
+        wh, ww = weight_mat.shape
+        total_mapping = (ih + 1) * wh + 1
+
+        weight_buffer = [wvec for wvec in self.weight_mat]
+
+        for didx, ds in enumerate(self.data_streamers):
+            ds.weight_buffer = weight_buffer
+            ds.input_buffer = []
+            for iidx, ivec in enumerate(self.input_mat):
+                if iidx % self.config.ve_num == didx:
+                    ds.input_buffer.append(ivec)
+
         while not self.finished():
+            if self.verbose:
+                if viter % self.verbose_step == 0:
+                    current_mapping = 0
+                    for ds in self.data_streamers:
+                        current_mapping += ds.input_idx * wh + ds.weight_idx
+                    print(f"\r{progressbar(status=current_mapping, total=total_mapping, scale=50)}"
+                          f"{math.ceil(current_mapping / total_mapping * 100):3d}%  "
+                          f"cycle: {self.cycle}", end='')
+                viter += 1
+
             self.trigger()
 
-    def register_model(self, model: torch.nn.Module, model_name: str='default'):
+    def register_model(self, model: torch.nn.Module, model_name: str='default',
+                       layer_filter: Callable=lambda model_name, layer_name: True):
+
         model_name = type(model).__name__ if model_name == 'default' else model_name
         layer_info = ConvLayerInfo.generate_from_model(model, input_shape=(1, 3, 226, 226), device=self.device)
 
         def generate_hook(model_name: str, layer_name : str) -> Callable:
             def accelerator_cycle_sim_hook(layer : torch.nn.Module, input_tensor : torch.Tensor, output_tensor : torch.Tensor):
                 # Generation of lowered input feature map and weight data
-                print(f"Generating lowered data with layer: {layer_name}", end='')
+                print(f"Generating lowered data with layer: {layer_name}", end='\n' if self.verbose else '')
 
                 result_key = (model_name, layer_name)
 
@@ -265,26 +318,29 @@ class AcceleratorCycleSim(_SimModule):
 
                 ih, iw = lowered_ifm.shape
                 wh, ww = lowered_weight.shape
+                total = math.ceil(ih / self.config.ve_num) * wh * iw
 
                 # Run cycle test
-                print(f"\rRunning cycle-accurate test with: {layer_name}", end='')
+                print(f"\rRunning cycle-accurate test with:   {layer_name:30s}  "
+                      f"total: {total:7d}  "
+                      f"input: {lowered_ifm.shape}\t"
+                      f"weight: {lowered_weight.shape}  ", end='\n' if self.verbose else '')
 
                 self.reset()
                 self.run_test(input_mat=lowered_ifm, weight_mat=lowered_weight)
-                total = ih * wh * iw // self.config.ve_num
-
                 self.results[result_key] = (self.cycle, total)
 
-                print(f"\rSimulation finished with layer: {layer_name:30s}  "
+                print(f"\rSimulation finished with layer:     {layer_name:30s}  "
                       f"cycle: {self.cycle:7d}  "
                       f"total: {total:7d}  "
                       f"input: {lowered_ifm.shape}\t"
-                      f"weight: {lowered_weight.shape}  ", end='\n')
+                      f"weight: {lowered_weight.shape}  ", end='\n\n' if self.verbose else '\n')
             return accelerator_cycle_sim_hook
 
         for layer_name, sublayer in model.named_modules():
             if 'conv' in type(sublayer).__name__.lower() and hasattr(sublayer, 'weight'):
-                sublayer.register_forward_hook(generate_hook(model_name, layer_name))
+                if layer_filter(model_name, layer_name):
+                    sublayer.register_forward_hook(generate_hook(model_name, layer_name))
 
     def get_performance(self):
         return self.results
