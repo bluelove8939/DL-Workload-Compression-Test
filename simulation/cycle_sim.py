@@ -157,7 +157,15 @@ class DataStreamer(_SimModule):
         return self.op_fifo <= 0
 
     def done(self):
-        return self.input_idx >= len(self.input_buffer) and self.weight_idx >= len(self.weight_buffer)
+        return self.input_buffer is None or (self.input_idx >= len(self.input_buffer) and self.weight_idx >= len(self.weight_buffer))
+
+    def set_buffers(self, input_buffer, weight_buffer):
+        self.input_buffer = input_buffer
+        self.weight_buffer = weight_buffer
+        self.input_idx = 0
+        self.weight_idx = 0
+        self.input_cursor = 0
+        self.weight_cursor = 0
 
 
 class MACUnit(_SimModule):
@@ -251,8 +259,6 @@ class AcceleratorCycleSim(_SimModule):
             ds.reset()
             mac.reset()
 
-        # self.input_mapping = [0] * self.config.ve_num
-        # self.weight_mapping = [0] * self.config.ve_num
         self.done_mapping = [False] * self.config.ve_num
         self.cycle = 0
 
@@ -269,23 +275,27 @@ class AcceleratorCycleSim(_SimModule):
         viter = 0
         ih, iw = input_mat.shape
         wh, ww = weight_mat.shape
-        total_mapping = (ih + 1) * wh + 1
+        total_mapping = ih*wh
 
         weight_buffer = [wvec for wvec in self.weight_mat]
 
         for didx, ds in enumerate(self.data_streamers):
-            ds.weight_buffer = weight_buffer
-            ds.input_buffer = []
+            input_buffer = []
             for iidx, ivec in enumerate(self.input_mat):
                 if iidx % self.config.ve_num == didx:
-                    ds.input_buffer.append(ivec)
+                    input_buffer.append(ivec)
+
+            if len(input_buffer) == 0:
+                ds.set_buffers(input_buffer=None, weight_buffer=None)
+            else:
+                ds.set_buffers(input_buffer=input_buffer, weight_buffer=weight_buffer)
 
         while not self.finished():
             if self.verbose:
                 if viter % self.verbose_step == 0:
                     current_mapping = 0
                     for ds in self.data_streamers:
-                        current_mapping += ds.input_idx * wh + ds.weight_idx
+                        current_mapping += min(ds.input_idx, ih) * wh + min(ds.weight_idx, wh)
                     print(f"\r{progressbar(status=current_mapping, total=total_mapping, scale=50)}"
                           f"{math.ceil(current_mapping / total_mapping * 100):3d}%  "
                           f"cycle: {self.cycle}", end='')

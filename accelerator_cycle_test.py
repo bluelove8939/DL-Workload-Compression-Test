@@ -80,10 +80,10 @@ testbenches = {
     ("VGG16", "features.19"): 'VC4',
 
     # ResNet50
-    ("ResNet50", "layer1.0.conv3"): 'RC1',
-    ("ResNet50", "layer2.3.conv3"): 'RC2',
-    ("ResNet50", "layer3.5.conv1"): 'RC3',
-    ("ResNet50", "layer4.2.conv3"): 'RC4',
+    ("ResNet50", "layer1.0.conv2"): 'RC1',
+    ("ResNet50", "layer2.3.conv2"): 'RC2',
+    ("ResNet50", "layer3.5.conv2"): 'RC3',
+    ("ResNet50", "layer4.2.conv2"): 'RC4',
 
     # AlexNet
     ("AlexNet", "features.3"):  'AC1',
@@ -94,10 +94,10 @@ testbenches = {
 
 quantized_testbenches = {
     # ResNet50
-    ("ResNet50", "layer1.0.conv3"): 'QRC1',
-    ("ResNet50", "layer2.3.conv3"): 'QRC2',
-    ("ResNet50", "layer3.5.conv1"): 'QRC3',
-    ("ResNet50", "layer4.2.conv3"): 'QRC4',
+    ("ResNet50", "layer1.0.conv2"): 'QRC1',
+    ("ResNet50", "layer2.3.conv2"): 'QRC2',
+    ("ResNet50", "layer3.5.conv2"): 'QRC3',
+    ("ResNet50", "layer4.2.conv2"): 'QRC4',
 
     # GoogLeNet
     ("GoogLeNet", "inception3a.branch2.1.conv"): 'QGC1',
@@ -121,14 +121,14 @@ if __name__ == '__main__':
     log_dirpath = os.path.join(os.curdir, 'logs')
     os.makedirs(log_dirpath, exist_ok=True)
 
-    performance_log_filename = 'accelerator_cycles.csv'
+    performance_log_filename = 'accelerator_cycles_quant.csv'
     performance_logs = ['model name,layer name,cycles,total']
 
     # Reconfig the environement if using quantized model
-    quant = False
-    # device = 'cpu'
+    quant = True
+    device = 'cpu'
 
-    for model_type, model_config in imagenet_pretrained.items():
+    for model_type, model_config in imagenet_quant_pretrained.items():
         print("\nAccelerator Simulation Configs:")
         print(f"- full modelname: {model_type}\n")
 
@@ -137,7 +137,7 @@ if __name__ == '__main__':
         config = AcceleratorConfig(ve_num=128, vector_size=64, fifo_capacity=128,
                                    fetch_cycle=1, index_cycle=1, mac_cycle=1)
         sim = AcceleratorCycleSim(config=config, quant=quant, device=device)
-        sim.register_model(model, model_name=model_type, layer_filter=layer_filter)
+        sim.register_model(model, model_name=model_type, layer_filter=layer_filter if not quant else quant_layer_filter)
 
         model.eval()
         for img, tag in val_loader:

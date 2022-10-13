@@ -1,0 +1,12 @@
+model name,layer name,cycles,total
+ResNet50,layer1.0.conv2,533760,921600
+ResNet50,layer2.3.conv2,467840,1032192
+ResNet50,layer3.5.conv2,402688,1179648
+ResNet50,layer4.2.conv2,882176,2359296
+AlexNet,features.3,1473216,1843200
+AlexNet,features.6,808704,1327104
+AlexNet,features.10,366592,1179648
+VGG16,features.2,7705728,14450688
+VGG16,features.7,6249088,14450688
+VGG16,features.12,5997056,14745600
+VGG16,features.19,3965440,16515072

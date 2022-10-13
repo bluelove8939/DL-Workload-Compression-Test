@@ -1,0 +1,9 @@
+model name,layer name,cycles,total
+ResNet50,layer1.0.conv2,487438,921600
+ResNet50,layer2.3.conv2,451714,1032192
+ResNet50,layer3.5.conv2,374453,1179648
+ResNet50,layer4.2.conv2,836035,2359296
+GoogLeNet,inception3a.branch2.1.conv,409938,774144
+GoogLeNet,inception3b.branch3.1.conv,126490,193536
+GoogLeNet,inception4a.branch2.1.conv,173908,359424
+GoogLeNet,inception4c.branch2.0.conv,59257,131072

@@ -16,29 +16,29 @@ if __name__ == '__main__':
     testbenches = {
         # Normal testbenches
         # VGG16
-        f"{result_files[0]}_VGG16_features.2":  'VC1',
-        f"{result_files[0]}_VGG16_features.7":  'VC2',
+        f"{result_files[0]}_VGG16_features.2": 'VC1',
+        f"{result_files[0]}_VGG16_features.7": 'VC2',
         f"{result_files[0]}_VGG16_features.12": 'VC3',
         f"{result_files[0]}_VGG16_features.19": 'VC4',
 
         # ResNet50
-        f"{result_files[0]}_ResNet50_layer1.0.conv3": 'RC1',
-        f"{result_files[0]}_ResNet50_layer2.3.conv3": 'RC2',
-        f"{result_files[0]}_ResNet50_layer3.5.conv1": 'RC3',
-        f"{result_files[0]}_ResNet50_layer4.2.conv3": 'RC4',
+        f"{result_files[0]}_ResNet50_layer1.0.conv2": 'RC1',
+        f"{result_files[0]}_ResNet50_layer2.3.conv2": 'RC2',
+        f"{result_files[0]}_ResNet50_layer3.5.conv2": 'RC3',
+        f"{result_files[0]}_ResNet50_layer4.2.conv2": 'RC4',
 
         # AlexNet
-        f"{result_files[0]}_AlexNet_features.3":  'AC1',
-        f"{result_files[0]}_AlexNet_features.6":  'AC2',
+        f"{result_files[0]}_AlexNet_features.3": 'AC1',
+        f"{result_files[0]}_AlexNet_features.6": 'AC2',
         # f"{result_files[0]}_AlexNet_features.8":  'AC3',
         f"{result_files[0]}_AlexNet_features.10": 'AC3',
 
         # Quantized testbenches
         # ResNet50
-        f"{result_files[1]}_ResNet50_layer1.0.conv3": 'QRC1',
-        f"{result_files[1]}_ResNet50_layer2.3.conv3": 'QRC2',
-        f"{result_files[1]}_ResNet50_layer3.5.conv1": 'QRC3',
-        f"{result_files[1]}_ResNet50_layer4.2.conv3": 'QRC4',
+        f"{result_files[1]}_ResNet50_layer1.0.conv2": 'QRC1',
+        f"{result_files[1]}_ResNet50_layer2.3.conv2": 'QRC2',
+        f"{result_files[1]}_ResNet50_layer3.5.conv2": 'QRC3',
+        f"{result_files[1]}_ResNet50_layer4.2.conv2": 'QRC4',
 
         # GoogLeNet
         f"{result_files[1]}_GoogLeNet_inception3a.branch2.1.conv": 'QGC1',
