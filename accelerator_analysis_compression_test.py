@@ -47,7 +47,7 @@ if __name__ == '__main__':
         f"{result_files[1]}_GoogLeNet_inception4c.branch2.0.conv": 'QGC4',
     }
 
-    algorithms = ['BDI', 'ZVC', 'BDIZV', 'CSC']
+    algorithms = ['ZVC', 'BDIZV', 'ZRLE', 'CSC']
 
     category_filter = lambda cat: cat in testbenches.keys()
 
@@ -58,7 +58,7 @@ if __name__ == '__main__':
     analyzer.category_conversion(mappings=testbenches)
     analyzer.analyze_csv_with_graph(ax=ax, xtic_rotation=45, annotate=False, headers=algorithms)
 
-    ax.set_ylim([0, 5.5])
+    ax.set_ylim([0, 5.8])
     ax.set_axisbelow(True)
     ax.grid(visible=True, which='major', axis='y', color='gray')
     ax.tick_params(axis='y', which='both', color='white')

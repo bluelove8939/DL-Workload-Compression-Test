@@ -51,6 +51,6 @@ if __name__ == '__main__':
     ax.figure.set_size_inches(7, 2.7)
 
     plt.tight_layout()
-    plt.savefig("G:\내 드라이브\ICEIC 2023\Fig_algorithm_test.pdf",
-                dpi=200, bbox_inches='tight', pad_inches=0)
-    # plt.show()
+    # plt.savefig("G:\내 드라이브\ICEIC 2023\Fig_algorithm_test.pdf",
+    #             dpi=200, bbox_inches='tight', pad_inches=0)
+    plt.show()

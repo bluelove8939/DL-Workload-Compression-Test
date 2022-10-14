@@ -14,8 +14,8 @@ algo_methods = {
 }
 
 sparsity = np.arange(0, 1, 0.05)
-arrsize = 512
-iternum = 1000
+arrsize = 128
+iternum = 2000
 results = {}
 
 for sp in tqdm.tqdm(sparsity, ncols=50):

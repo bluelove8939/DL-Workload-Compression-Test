@@ -79,27 +79,67 @@ if __name__ == '__main__':
     log_dirpath = os.path.join(os.curdir, 'logs')
     os.makedirs(log_dirpath, exist_ok=True)
 
-    performance_log_filename = 'accelerator_performance.csv'
+    performance_log_filename = 'accelerator_performance_quant.csv'
     performance_logs = ['model name,layer name,total,valid,ratio']
 
     algo_names = AcceleratorSim.algo_names
-    ifm_compression_log_filename = 'accelerator_ifm_compression.csv'
+    ifm_compression_log_filename = 'accelerator_ifm_compression_quant.csv'
     ifm_compression_logs = [f'model name,layer name,{",".join(algo_names)}']
-    weight_compression_log_filename = 'accelerator_weight_compression.csv'
+    weight_compression_log_filename = 'accelerator_weight_compression_qant.csv'
     weight_compression_logs = [f'model name,layer name,{",".join(algo_names)}']
 
     # Reconfig the environement if using quantized model
-    quant = False
-    # device = 'cpu'
+    quant = True
+    device = 'cpu'
 
-    for model_type, model_config in imagenet_pretrained.items():
+    testbenches = {
+        # VGG16
+        ("VGG16", "features.2"): 'VC1',
+        ("VGG16", "features.7"): 'VC2',
+        ("VGG16", "features.12"): 'VC3',
+        ("VGG16", "features.19"): 'VC4',
+
+        # ResNet50
+        ("ResNet50", "layer1.0.conv2"): 'RC1',
+        ("ResNet50", "layer2.3.conv2"): 'RC2',
+        ("ResNet50", "layer3.5.conv2"): 'RC3',
+        ("ResNet50", "layer4.2.conv2"): 'RC4',
+
+        # AlexNet
+        ("AlexNet", "features.3"): 'AC1',
+        ("AlexNet", "features.6"): 'AC2',
+        # ("lexNet", "features.8"):  'AC3',
+        ("AlexNet", "features.10"): 'AC3',
+    }
+
+    quantized_testbenches = {
+        # ResNet50
+        ("ResNet50", "layer1.0.conv2"): 'QRC1',
+        ("ResNet50", "layer2.3.conv2"): 'QRC2',
+        ("ResNet50", "layer3.5.conv2"): 'QRC3',
+        ("ResNet50", "layer4.2.conv2"): 'QRC4',
+
+        # GoogLeNet
+        ("GoogLeNet", "inception3a.branch2.1.conv"): 'QGC1',
+        ("GoogLeNet", "inception3b.branch3.1.conv"): 'QGC2',
+        ("GoogLeNet", "inception4a.branch2.1.conv"): 'QGC3',
+        ("GoogLeNet", "inception4c.branch2.0.conv"): 'QGC4',
+    }
+
+    def layer_filter(model_name, layer_name):
+        return (model_name, layer_name) in testbenches.keys()
+
+    def quant_layer_filter(model_name, layer_name):
+        return (model_name, layer_name) in quantized_testbenches.keys()
+
+    for model_type, model_config in imagenet_quant_pretrained.items():
         print("\nAccelerator Simulation Configs:")
         print(f"- full modelname: {model_type}\n")
 
         model = model_config.generate().to(device)
 
         sim = AcceleratorSim(quant=quant, device=device)
-        sim.register_model(model)
+        sim.register_model(model, model_name=model_type, layer_filter=quant_layer_filter)
 
         model.eval()
         for img, tag in val_loader:
@@ -112,19 +152,19 @@ if __name__ == '__main__':
             performance_logs.append(f"{model_type},{layer_name},{total_op},{removed_op},{gain:.6f}")
             # print(f"{model_type},{layer_name},{total_op},{removed_op},{gain:.6f}")
 
-        # for (model_name, layer_name), compr_ratios in sim.get_ifm_compression_ratio().items():
-        #     ifm_compression_logs.append(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
-        #     # print(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
-        #
-        # for (model_name, layer_name), compr_ratios in sim.get_weight_compression_ratio().items():
-        #     weight_compression_logs.append(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
-        #     # print(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
+        for (model_name, layer_name), compr_ratios in sim.get_ifm_compression_ratio().items():
+            ifm_compression_logs.append(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
+            # print(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
+
+        for (model_name, layer_name), compr_ratios in sim.get_weight_compression_ratio().items():
+            weight_compression_logs.append(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
+            # print(f"{model_type},{layer_name},{','.join(map(lambda x: f'{x:.6f}', compr_ratios))}")
 
     with open(os.path.join(log_dirpath, performance_log_filename), 'wt') as performance_file:
         performance_file.write('\n'.join(performance_logs))
 
-    # with open(os.path.join(log_dirpath, ifm_compression_log_filename), 'wt') as compression_file:
-    #     compression_file.write('\n'.join(ifm_compression_logs))
-    #
-    # with open(os.path.join(log_dirpath, weight_compression_log_filename), 'wt') as compression_file:
-    #     compression_file.write('\n'.join(weight_compression_logs))
+    with open(os.path.join(log_dirpath, ifm_compression_log_filename), 'wt') as compression_file:
+        compression_file.write('\n'.join(ifm_compression_logs))
+
+    with open(os.path.join(log_dirpath, weight_compression_log_filename), 'wt') as compression_file:
+        compression_file.write('\n'.join(weight_compression_logs))

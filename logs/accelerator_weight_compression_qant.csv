@@ -1,0 +1,9 @@
+model name,layer name,BDIZV,CSC,ZRLE,ZVC
+ResNet50,layer1.0.conv2,1.018789,0.401772,1.017299,1.019864
+ResNet50,layer2.3.conv2,0.902285,0.311377,0.895908,0.902727
+ResNet50,layer3.5.conv2,0.903607,0.290302,0.896530,0.903828
+ResNet50,layer4.2.conv2,0.899981,0.270061,0.894697,0.900091
+GoogLeNet,inception3a.branch2.1.conv,0.909444,0.326808,0.899725,0.910042
+GoogLeNet,inception3b.branch3.1.conv,0.898830,0.350559,0.894898,0.900586
+GoogLeNet,inception4a.branch2.1.conv,0.905816,0.313464,0.897892,0.906410
+GoogLeNet,inception4c.branch2.0.conv,0.905731,0.339071,0.898007,0.906734

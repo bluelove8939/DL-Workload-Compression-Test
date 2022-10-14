@@ -4,7 +4,7 @@ import numpy as np
 from scipy.sparse import csr_matrix
 
 from compression.binary_array import array2binary
-from compression.algorithms import bdizv_compression, bdi1b_compression, csr_compression, csc_compression, zeroval_compression
+from compression.algorithms import bdizv_compression, bdi1b_compression, csr_compression, csc_compression, zeroval_compression, zrle_compression
 
 from models.tools.lowering import weight_lowering, ifm_lowering, ConvLayerInfo
 
@@ -34,7 +34,7 @@ class CycleSim(object):
     def _sim_init(self):
         self.ve_queue = np.array([0] * self.ac_config.ve_num)
 
-    def register_model(self, model: torch.nn.Module, model_name: str='default'):
+    def register_model(self, model: torch.nn.Module, model_name: str='default', layer_filter: Callable=lambda x, y: True):
         model_name = type(model).__name__ if model_name == 'default' else model_name
         layer_info = ConvLayerInfo.generate_from_model(model, input_shape=(1, 3, 226, 226), device=self.device)
 
@@ -96,16 +96,16 @@ class CycleSim(object):
 
         for layer_name, sublayer in model.named_modules():
             if 'conv' in type(sublayer).__name__.lower() and hasattr(sublayer, 'weight'):
-                sublayer.register_forward_hook(generate_hook(model_name, layer_name))
+                if layer_filter(model_name, layer_name):
+                    sublayer.register_forward_hook(generate_hook(model_name, layer_name))
 
 
 class AcceleratorSim(object):
     supported_algorithms: Dict[str, Callable] = {
         'BDIZV': bdizv_compression,
-        'BDI'  : bdi1b_compression,
         'ZVC'  : zeroval_compression,
-        'CSR'  : csr_compression,
         'CSC'  : csc_compression,
+        'ZRLE' : zrle_compression,
     }
     algo_names = tuple(sorted(supported_algorithms.keys()))
 
@@ -126,7 +126,7 @@ class AcceleratorSim(object):
     def get_ifm_compression_ratio(self):
         return self.ifm_compression_ratio
 
-    def register_model(self, model: torch.nn.Module, model_name: str='default'):
+    def register_model(self, model: torch.nn.Module, model_name: str='default', layer_filter: Callable=lambda x, y: True):
         model_name = type(model).__name__ if model_name == 'default' else model_name
         layer_info = ConvLayerInfo.generate_from_model(model, input_shape=(1, 3, 226, 226), device=self.device)
 
@@ -206,7 +206,8 @@ class AcceleratorSim(object):
 
         for layer_name, sublayer in model.named_modules():
             if 'conv' in type(sublayer).__name__.lower() and hasattr(sublayer, 'weight'):
-                sublayer.register_forward_hook(generate_hook(model_name, layer_name))
+                if layer_filter(model_name, layer_name):
+                    sublayer.register_forward_hook(generate_hook(model_name, layer_name))
 
 
 if __name__ == '__main__':
