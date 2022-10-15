@@ -14,9 +14,9 @@ from models.tools.imagenet_utils.training import train, validate
 
 
 parser = argparse.ArgumentParser(description='Extraction Configs')
-parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extractions_quant_activations'),
-                    help='Directory of model extraction files', dest='extdir')
-comp_args, _ = parser.parse_known_args()
+# parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, 'extractions_quant_activations'),
+#                     help='Directory of model extraction files', dest='extdir')
+# comp_args, _ = parser.parse_known_args()
 
 args.batch_size = 1  # batch size is 1 (activation for only one image)
 
@@ -76,15 +76,15 @@ if __name__ == '__main__':
     os.makedirs(save_dirpath, exist_ok=True)
 
     for model_type, model_config in imagenet_pretrained.items():
-        # if model_type != 'ResNet18' and model_type != 'ResNet34':
-        #     continue
+        if model_type != 'AlexNet':
+            continue
 
         full_modelname = f"{model_type}_Imagenet"
         save_modelname = f"{model_type}_Imagenet.pth"
         save_fullpath = os.path.join(save_dirpath, save_modelname)
 
-        step = 0.1
-        target_amount = 0.3
+        step = 0.2
+        target_amount = 0.5
         threshold = 1
         iter_max = 10
 
@@ -101,36 +101,37 @@ if __name__ == '__main__':
         torch.save(model.state_dict(), save_fullpath)
 
         criterion = torch.nn.CrossEntropyLoss()
-        optimizer = torch.optim.SGD(model.parameters(), 0.0001,
-                                    momentum=args.momentum,
-                                    weight_decay=args.weight_decay)
+        # optimizer = torch.optim.SGD(model.parameters(), 0.0001,
+        #                             momentum=args.momentum,
+        #                             weight_decay=args.weight_decay)
+        optimizer = torch.optim.SGD(model.parameters(), lr=0.00001)
 
         normal_acc, _ = validate(val_loader=val_loader, model=model, criterion=criterion, args=args,
                                  pbar_header='normal')
 
-        # iter_cnt = 0
-        # current_amount = 0
-        #
-        # while current_amount < target_amount:
-        #     current_amount += (1 - current_amount) * step
-        #
-        #     grouped_prune_model(model, step=0.4)
-        #
-        #     while True:
-        #         pruned_acc, _ = validate(val_loader=val_loader, model=model, criterion=criterion, args=args,
-        #                                  pbar_header=f'tune{iter_cnt:2d} acc')
-        #
-        #         if (normal_acc - pruned_acc) < threshold:
-        #             print(f'pruning succeed at iter {iter_cnt}')
-        #             break
-        #         if iter_cnt >= iter_max:
-        #             print(f'pruning failed at iter {iter_cnt}')
-        #             break
-        #
-        #         train(train_loader, model, criterion, optimizer, epoch=1, args=args, at_prune=False,
-        #               pbar_header='prune tuning')
-        #
-        #         iter_cnt += 1
+        iter_cnt = 0
+        current_amount = 0
+
+        while current_amount < target_amount:
+            current_amount += (1 - current_amount) * step
+
+            grouped_prune_model(model, step=step)
+
+            while True:
+                pruned_acc, _ = validate(val_loader=val_loader, model=model, criterion=criterion, args=args,
+                                         pbar_header=f'tune{iter_cnt:2d} acc')
+
+                if (normal_acc - pruned_acc) < threshold:
+                    print(f'pruning succeed at iter {iter_cnt}')
+                    break
+                if iter_cnt >= iter_max:
+                    print(f'pruning failed at iter {iter_cnt}')
+                    break
+
+                train(train_loader, model, criterion, optimizer, epoch=1, args=args, at_prune=False,
+                      pbar_header='prune tuning')
+
+                iter_cnt += 1
 
         grouped_prune_model(model, step=target_amount)
         pruned_acc, _ = validate(val_loader=val_loader, model=model, criterion=criterion, args=args,

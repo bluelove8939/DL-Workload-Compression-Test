@@ -68,7 +68,7 @@ if __name__ == '__main__':
     xval = x_axis + ((0 - (len(headers) / 2) + 0.5) * width)
     ax.bar(xval, val, width=width, label='valid', color=analyzer.colors[0], hatch=analyzer.hatches[0],
            edgecolor='black', linewidth=0.5)
-    ax.bar(xval, 1 - val, width=width, label='redundant', color=analyzer.colors[1], hatch=analyzer.hatches[1],
+    ax.bar(xval, 1 - val, width=width, label='unnecessary', color=analyzer.colors[1], hatch=analyzer.hatches[1],
            edgecolor='black', linewidth=0.5, bottom=val)
     ax.set_xticks(x_axis, analyzer.categories, rotation=45, ha='right')
 
