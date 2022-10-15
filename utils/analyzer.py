@@ -29,7 +29,7 @@ class CSVAnalyzer(object):
             if cat in mappings.keys():
                 self.categories[idx] = mappings[cat]
 
-    def parse_file(self, category_filter: Callable=lambda x: True, header_filter: Callable=lambda x: True) -> None:
+    def parse_file(self, cat_file=False, category_filter: Callable=lambda x: True, header_filter: Callable=lambda x: True) -> None:
         self.categories = []
         self.results = {}
 
@@ -49,7 +49,7 @@ class CSVAnalyzer(object):
 
                 for line in content:
                     cat, dat = self.line_splitter(line)
-                    cat = filepath + '_' + cat if len(self.filepaths) != 1 else cat
+                    cat = filepath + '_' + cat if (len(self.filepaths) != 1) or cat_file else cat
 
                     if not category_filter(cat):
                         continue

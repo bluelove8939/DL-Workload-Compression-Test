@@ -8,10 +8,10 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 
 from models.model_presets import imagenet_quant_pretrained, imagenet_pretrained, imagenet_pruned
-from models.tools.pruning import prune_layer, remove_prune_model
+from models.tools.pruning import prune_layer, remove_prune_model, grouped_prune_model
 from models.tools.imagenet_utils.args_generator import args
 from models.tools.imagenet_utils.training import train, validate
-from simulation.accelerator_sim import CycleSim, AcceleratorConfig
+from simulation.cycle_sim import AcceleratorCycleSim, AcceleratorConfig
 
 
 parser = argparse.ArgumentParser(description='Extraction Configs')
@@ -72,6 +72,35 @@ val_loader = torch.utils.data.DataLoader(
     num_workers=args.workers, pin_memory=True, sampler=val_sampler)
 
 
+testbenches = {
+    # VGG16
+    # ("VGG16", "features.2"): 'VC1',
+    # ("VGG16", "features.7"): 'VC2',
+    # ("VGG16", "features.12"): 'VC3',
+    # ("VGG16", "features.19"): 'VC4',
+
+    # ResNet50
+    ("ResNet50", "layer1.0.conv2"): 'RC1',
+    ("ResNet50", "layer2.3.conv2"): 'RC2',
+    ("ResNet50", "layer3.5.conv2"): 'RC3',
+    ("ResNet50", "layer4.2.conv2"): 'RC4',
+
+    # AlexNet
+    ("AlexNet", "features.3"): 'AC1',
+    ("AlexNet", "features.6"): 'AC2',
+    # ("lexNet", "features.8"):  'AC3',
+    ("AlexNet", "features.10"): 'AC3',
+}
+
+target_models = []
+for model_name, _ in testbenches.keys():
+    if model_name not in target_models:
+        target_models.append(model_name)
+
+def layer_filter(model_name, layer_name):
+    return (model_name, layer_name) in testbenches.keys()
+
+
 if __name__ == '__main__':
     save_dirpath = os.path.join(os.curdir, 'model_output')
     os.makedirs(save_dirpath, exist_ok=True)
@@ -79,31 +108,43 @@ if __name__ == '__main__':
     log_dirpath = os.path.join(os.curdir, 'logs')
     os.makedirs(log_dirpath, exist_ok=True)
 
-    cycle_log_filename = 'accelerator_cycle_pruned_30.csv'
-    cycle_logs = ['model name,layer name,sparse cycles,dense cycles']
+    # prune_amount = 0.5
 
-    # Reconfig the environement if using quantized model
-    quant = False
-    # device = 'cpu'
+    for prune_amount in [0.5, 0.3, 0.1]:
+        performance_log_filename = f'accelerator_cycles_pruned_{prune_amount*100:.0f}.csv'
+        performance_logs = ['model name,layer name,cycles,total']
 
-    for model_type, model_config in imagenet_pruned.items():
-        print("\nAccelerator Simulation Configs:")
-        print(f"- full modelname: {model_type}\n")
+        # Reconfig the environement if using quantized model
+        quant = False
+        # device = 'cpu'
 
-        model = model_config.generate(load_chkpoint=True).to(device)
+        for model_type, model_config in imagenet_pretrained.items():
+            print("\nAccelerator Simulation Configs:")
+            print(f"- prune amount: {prune_amount}")
+            print(f"- full modelname: {model_type}\n")
 
-        acc_config = AcceleratorConfig(ve_num=128, mac_cycle=1, scheduler=False)
-        acc_sim = CycleSim(ac_config=acc_config, quant=quant, device=device)
-        acc_sim.register_model(model)
+            if model_type not in target_models:
+                continue
 
-        model.eval()
-        for img, tag in val_loader:
-            img, tag = img.to(device), tag.to(device)
-            model(img)
-            break
+            model = model_config.generate().to(device)
 
-        for (model_name, layer_name), (sparse_cycle, dense_cycle) in acc_sim.get_cycle().items():
-            cycle_logs.append(f"{model_type},{layer_name},{sparse_cycle},{dense_cycle}")
+            grouped_prune_model(model, step=prune_amount)
+            remove_prune_model(model)
 
-    with open(os.path.join(log_dirpath, cycle_log_filename), 'wt') as file:
-        file.write('\n'.join(cycle_logs))
+            config = AcceleratorConfig(ve_num=128, vector_size=64, fifo_capacity=128,
+                                       fetch_cycle=1, index_cycle=1, mac_cycle=1)
+            sim = AcceleratorCycleSim(config=config, quant=quant, device=device)
+            sim.register_model(model, model_name=model_type, layer_filter=layer_filter)
+
+            model.eval()
+            for img, tag in val_loader:
+                img, tag = img.to(device), tag.to(device)
+                model(img)
+                break
+            # model(test_dataset[0])
+
+            for (model_name, layer_name), (cycles, total) in sim.get_performance().items():
+                performance_logs.append(f"{model_type},{layer_name},{cycles},{total}")
+
+        with open(os.path.join(log_dirpath, performance_log_filename), 'wt') as performance_file:
+            performance_file.write('\n'.join(performance_logs))

@@ -210,6 +210,72 @@ class AcceleratorSim(object):
                     sublayer.register_forward_hook(generate_hook(model_name, layer_name))
 
 
+class AcceleratorRedundancySim(object):
+    def __init__(self, quant : bool=True, device : str='cpu'):
+        self.performance_result = {}  # key: (model type, layer name)  value: (total, valid, gain)
+
+        self.quant = quant    # indicating whether target model is quantized (default: True)
+        self.device = device  # pytorch device
+
+    def get_performance(self):
+        return self.performance_result
+
+    def register_model(self, model: torch.nn.Module, model_name: str='default', layer_filter: Callable=lambda x, y: True):
+        model_name = type(model).__name__ if model_name == 'default' else model_name
+        layer_info = ConvLayerInfo.generate_from_model(model, input_shape=(1, 3, 226, 226), device=self.device)
+
+        def generate_hook(model_name: str, layer_name : str) -> Callable:
+            def algo_sim_check_hook(layer : torch.nn.Module, input_tensor : torch.Tensor, output_tensor : torch.Tensor):
+                # Generation of lowered input feature map and weight data
+                print(f"Generating lowered data with layer: {layer_name}", end='')
+
+                result_key = (model_name, layer_name)
+
+                if 'conv' not in type(layer).__name__.lower():
+                    pass
+
+                ifm = input_tensor[0]
+                weight = model.state_dict()[layer_name + '.weight']
+
+                if self.quant:
+                    ifm = ifm.int_repr()
+                    weight = weight.int_repr()
+
+                lowered_ifm = ifm_lowering(ifm=ifm, layer_info=layer_info[layer_name]).detach().cpu().numpy()
+                lowered_weight = weight_lowering(weight=weight, layer_info=layer_info[layer_name]).detach().cpu().numpy()
+
+                # Performance Test
+                print(f"\rCalculating performance with layer: {layer_name}", end='')
+                # self.performance_result[result_key] = [0, 0, 0]
+
+                iw, ivecw = lowered_ifm.shape
+                ww, wvecw = lowered_weight.shape
+
+                if ivecw != wvecw:
+                    raise Exception(f'Lowering algorithm may have an error {lowered_ifm.shape} {lowered_weight.shape}')
+
+                total_op = iw * ww * ivecw
+                valid_op = 0
+
+                imask = lowered_ifm != 0
+                wmask = lowered_weight != 0
+
+                for im_vec in imask:
+                    for wm_vec in wmask:
+                        valid_op += int(np.count_nonzero(np.logical_and(im_vec, wm_vec)))
+
+                self.performance_result[result_key] = (total_op, valid_op, total_op / (valid_op + 1e-10))
+
+                print(f"\rSimulation finished with layer: {layer_name}", end='\n')
+
+            return algo_sim_check_hook
+
+        for layer_name, sublayer in model.named_modules():
+            if 'conv' in type(sublayer).__name__.lower() and hasattr(sublayer, 'weight'):
+                if layer_filter(model_name, layer_name):
+                    sublayer.register_forward_hook(generate_hook(model_name, layer_name))
+
+
 if __name__ == '__main__':
     from models.model_presets import imagenet_quant_pretrained
 
