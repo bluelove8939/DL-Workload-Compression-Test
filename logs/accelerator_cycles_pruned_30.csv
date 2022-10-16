@@ -1,0 +1,8 @@
+model name,layer name,cycles,total
+ResNet50,layer1.0.conv2,409342,921600
+ResNet50,layer2.3.conv2,385929,1032192
+ResNet50,layer3.5.conv2,308520,1179648
+ResNet50,layer4.2.conv2,605156,2359296
+AlexNet,features.3,1074208,1843200
+AlexNet,features.6,590944,1327104
+AlexNet,features.10,249720,1179648

@@ -9,10 +9,10 @@ if __name__ == '__main__':
     ax = plt.axes()
 
     result_files = {
-        0 : os.path.join(os.curdir, 'logs', 'accelerator_performance.csv'),
-        10: os.path.join(os.curdir, 'logs', 'accelerator_performance_pruned_10.csv'),
-        30: os.path.join(os.curdir, 'logs', 'accelerator_performance_pruned_30.csv'),
-        50: os.path.join(os.curdir, 'logs', 'accelerator_performance_pruned_50.csv'),
+        0 : os.path.join(os.curdir, 'logs', 'accelerator_cycles.csv'),
+        10: os.path.join(os.curdir, 'logs', 'accelerator_cycles_pruned_10.csv'),
+        30: os.path.join(os.curdir, 'logs', 'accelerator_cycles_pruned_30.csv'),
+        50: os.path.join(os.curdir, 'logs', 'accelerator_cycles_pruned_50.csv'),
     }
 
     testbenches = {
@@ -79,7 +79,7 @@ if __name__ == '__main__':
         analyzer.category_conversion(mappings=testbenches)
         categories = analyzer.categories
 
-        tmp = 1 - np.array(analyzer.results['valid']) / np.array(analyzer.results['total'])
+        tmp = np.array(analyzer.results['total']) / np.array(analyzer.results['cycles'])
 
         results[pamount] = tmp
         headers.append(pamount)
@@ -106,7 +106,7 @@ if __name__ == '__main__':
 
     ax.set_xticks(x_axis, categories, rotation=45, ha='right')
 
-    ax.set_ylim([0, 1])
+    # ax.set_ylim([0, 1])
     ax.set_axisbelow(True)
     ax.grid(visible=True, which='major', axis='y', color='gray')
     ax.tick_params(axis='y', which='both', color='white')
@@ -124,6 +124,6 @@ if __name__ == '__main__':
     ax.figure.set_size_inches(7, 2.5)
 
     plt.tight_layout()
-    # plt.savefig("G:\내 드라이브\ICEIC 2023\Fig_accelerator_performance_gain_pruned.pdf",
-    #             dpi=200, bbox_inches='tight', pad_inches=0)
-    plt.show()
+    plt.savefig("G:\내 드라이브\ICEIC 2023\Fig_accelerator_performance_gain_pruned.pdf",
+                dpi=200, bbox_inches='tight', pad_inches=0)
+    # plt.show()
