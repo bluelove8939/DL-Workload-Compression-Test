@@ -12,6 +12,7 @@ from models.tools.pruning import prune_layer, remove_prune_model
 from models.tools.imagenet_utils.args_generator import args
 from models.tools.imagenet_utils.training import train, validate
 from simulation.accelerator_sim import AcceleratorSim
+from simulation.testbenches import testbenches, quantized_testbenches, layer_filter, quant_layer_filter
 
 
 parser = argparse.ArgumentParser(description='Extraction Configs')
@@ -91,46 +92,6 @@ if __name__ == '__main__':
     # Reconfig the environement if using quantized model
     quant = True
     device = 'cpu'
-
-    testbenches = {
-        # VGG16
-        ("VGG16", "features.2"): 'VC1',
-        ("VGG16", "features.7"): 'VC2',
-        ("VGG16", "features.12"): 'VC3',
-        ("VGG16", "features.19"): 'VC4',
-
-        # ResNet50
-        ("ResNet50", "layer1.0.conv2"): 'RC1',
-        ("ResNet50", "layer2.3.conv2"): 'RC2',
-        ("ResNet50", "layer3.5.conv2"): 'RC3',
-        ("ResNet50", "layer4.2.conv2"): 'RC4',
-
-        # AlexNet
-        ("AlexNet", "features.3"): 'AC1',
-        ("AlexNet", "features.6"): 'AC2',
-        # ("lexNet", "features.8"):  'AC3',
-        ("AlexNet", "features.10"): 'AC3',
-    }
-
-    quantized_testbenches = {
-        # ResNet50
-        ("ResNet50", "layer1.0.conv2"): 'QRC1',
-        ("ResNet50", "layer2.3.conv2"): 'QRC2',
-        ("ResNet50", "layer3.5.conv2"): 'QRC3',
-        ("ResNet50", "layer4.2.conv2"): 'QRC4',
-
-        # GoogLeNet
-        ("GoogLeNet", "inception3a.branch2.1.conv"): 'QGC1',
-        ("GoogLeNet", "inception3b.branch3.1.conv"): 'QGC2',
-        ("GoogLeNet", "inception4a.branch2.1.conv"): 'QGC3',
-        ("GoogLeNet", "inception4c.branch2.0.conv"): 'QGC4',
-    }
-
-    def layer_filter(model_name, layer_name):
-        return (model_name, layer_name) in testbenches.keys()
-
-    def quant_layer_filter(model_name, layer_name):
-        return (model_name, layer_name) in quantized_testbenches.keys()
 
     for model_type, model_config in imagenet_quant_pretrained.items():
         print("\nAccelerator Simulation Configs:")
