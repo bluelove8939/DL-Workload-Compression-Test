@@ -48,7 +48,7 @@ for sp in tqdm.tqdm(sparsity, ncols=50):
 
 
 filename = 'algorithm_ratio_averages.csv'
-dirname = os.path.join(os.curdir, 'logs')
+dirname = os.path.join(os.curdir, '..', 'logs')
 
 with open(os.path.join(dirname, filename), 'wt') as file:
     lines = [f'sparsity,{",".join(sorted(algo_methods.keys()))}']
