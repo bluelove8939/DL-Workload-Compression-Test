@@ -1,0 +1,6 @@
+layer_name,M,N,K
+features.0,64,51076,363
+features.3,192,729,1600
+features.6,384,169,1728
+features.8,256,169,3456
+features.10,256,169,2304
