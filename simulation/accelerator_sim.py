@@ -117,6 +117,8 @@ class AcceleratorSim(object):
         self.quant = quant    # indicating whether target model is quantized (default: True)
         self.device = device  # pytorch device
 
+        self.compr_gran = 8
+
     def get_performance(self):
         return self.performance_result
 
@@ -192,6 +194,8 @@ class AcceleratorSim(object):
                         weight_compr_siz[algo_name] += len(algo_method(lowered_weight, lowered_weight.dtype.itemsize*8))
                     else:
                         for i_vec in lowered_ifm:
+                            for offset in range(0, len(i_vec), self.compr_gran):
+                                ii_vec = i_vec[offset]
                             ifm_compr_siz[algo_name] += len(algo_method(i_vec, i_vec.dtype.itemsize*8))
 
                         for w_vec in lowered_weight:
