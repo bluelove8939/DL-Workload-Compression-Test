@@ -10,15 +10,8 @@ from models.tools.imagenet_utils.args_generator import args
 from models.tools.imagenet_utils.dataset_loader import train_loader, val_loader
 
 
-parser = argparse.ArgumentParser(description='Quantized Model Generation Configs')
-parser.add_argument('--normal-validate', default=False, action='store_true',
-                    help='Calculate accuracy of unquantized models', dest='normal_validate')
-quant_args, _ = parser.parse_known_args()
-
-
 if __name__ == "__main__":
     # Setups
-    # dirname = os.path.join('/home', 'shared', 'Quantized_Models')
     dirname = os.path.join(os.curdir, 'model_output')
     pth_filename_fmt = "{name}_quantized_tuned_citer_{citer}.pth"
     txt_filename_fmt = "{name}_quantized_tuned_citer_{citer}.txt"
@@ -48,19 +41,16 @@ if __name__ == "__main__":
         qmodel = qmod.quantize(model=model, citer=citer, verbose=1)  # calibration
 
         # Accuracy check
-        if quant_args.normal_validate:
-            r_top1_acc, r_top5_acc, _ = validate(
-                val_loader=val_loader, model=model, criterion=criterion, args=args, device='cpu', at_prune=False, pbar_header='normal', ret_top5=True)
-        else:
-            r_top1_acc, r_top5_acc = 0, 0
+        r_top1_acc, r_top5_acc, _ = validate(
+            val_loader=val_loader, model=model, criterion=criterion, args=args, device='cpu', at_prune=False, pbar_header='normal', ret_top5=True)
         q_top1_acc, q_top5_acc, _ = validate(
-            val_loader=val_loader, model=qmodel, criterion=criterion, args=args, device='cpu', at_prune=False, pbar_header='quant ', ret_top5=True)
+            val_loader=val_loader, model=qmodel, criterion=criterion, args=args, device='cuda', at_prune=False, pbar_header='quant ', ret_top5=True)
 
         # Save state dictionary
         os.makedirs(dirname, exist_ok=True)
         torch.save(qmodel.state_dict(), os.path.join(dirname, pth_filename_fmt.format(name=name, citer=citer)))
 
-        # Save informations
+        # Save information
         with open(os.path.join(os.curdir, 'utils', 'quant_res_template.txt'), 'rt') as fmtfile:
             fmt = fmtfile.read()
 
