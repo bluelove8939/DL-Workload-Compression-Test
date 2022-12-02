@@ -11,7 +11,7 @@ from models.tools.imagenet_utils.dataset_loader import train_loader, val_loader
 
 
 parser = argparse.ArgumentParser(description='Quantized Model Generation Configs')
-parser.add_argument('--normal-validate', default=False, type=bool,
+parser.add_argument('--normal-validate', default=False, action='store_true',
                     help='Calculate accuracy of unquantized models', dest='normal_validate')
 quant_args, _ = parser.parse_known_args()
 
@@ -49,11 +49,11 @@ if __name__ == "__main__":
         # Accuracy check
         if quant_args.normal_validate:
             r_top1_acc, r_top5_acc, _ = validate(
-                val_loader=val_loader, model=model, criterion=criterion, args=args, device='cpu', at_prune=False, pbar_header='')
+                val_loader=val_loader, model=model, criterion=criterion, args=args, device='cpu', at_prune=False, pbar_header='normal', ret_top5=True)
         else:
             r_top1_acc, r_top5_acc = 0, 0
         q_top1_acc, q_top5_acc, _ = validate(
-            val_loader=val_loader, model=qmodel, criterion=criterion, args=args, device='cpu', at_prune=False, pbar_header='')
+            val_loader=val_loader, model=qmodel, criterion=criterion, args=args, device='cpu', at_prune=False, pbar_header='quant ', ret_top5=True)
 
         # Save state dictionary
         os.makedirs(dirname, exist_ok=True)
