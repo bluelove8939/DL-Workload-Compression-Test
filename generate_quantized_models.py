@@ -42,21 +42,18 @@ if __name__ == "__main__":
         criterion = torch.nn.CrossEntropyLoss()
         optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 
-        try:
-            # Quantize model
-            qmod = QuantizationModule(tuning_dataloader=tuning_dataloader, criterion=criterion, optimizer=optimizer)
-            qmodel = qmod.quantize(model=model, citer=citer, verbose=1)  # calibration
+        # Quantize model
+        qmod = QuantizationModule(tuning_dataloader=tuning_dataloader, criterion=criterion, optimizer=optimizer)
+        qmodel = qmod.quantize(model=model, citer=citer, verbose=1)  # calibration
 
-            # Accuracy check
-            if quant_args.normal_validate:
-                r_top1_acc, r_top5_acc, _ = validate(
-                    val_loader=val_loader, model=model, criterion=criterion, args=args, device='cpu', at_prune=False, pbar_header='')
-            q_top1_acc, q_top5_acc, _ = validate(
-                val_loader=val_loader, model=qmodel, criterion=criterion, args=args, device='cpu', at_prune=False, pbar_header='')
-        except:
-            print(f"\nError occurred on quantization process (model: {name})")
-            print("Skipping to next process\n")
-            continue
+        # Accuracy check
+        if quant_args.normal_validate:
+            r_top1_acc, r_top5_acc, _ = validate(
+                val_loader=val_loader, model=model, criterion=criterion, args=args, device='cpu', at_prune=False, pbar_header='')
+        else:
+            r_top1_acc, r_top5_acc = 0, 0
+        q_top1_acc, q_top5_acc, _ = validate(
+            val_loader=val_loader, model=qmodel, criterion=criterion, args=args, device='cpu', at_prune=False, pbar_header='')
 
         # Save state dictionary
         os.makedirs(dirname, exist_ok=True)
