@@ -68,7 +68,7 @@ def train(train_loader, model, criterion, optimizer, epoch, args, device='defaul
         print(f"\r{pbar_header} [epoch {e+1}]{progressbar(100, 100, scale=50)} {progress.summary()}", end='\n')
 
 
-def validate(val_loader, model, criterion, args, device='default', at_prune=False, pbar_header=''):
+def validate(val_loader, model, criterion, args, device='default', at_prune=False, pbar_header='', ret_top5=False):
     def run_validate(loader, base_progress=0):
         # print("run_validate called")
         with torch.no_grad():
@@ -133,6 +133,9 @@ def validate(val_loader, model, criterion, args, device='default', at_prune=Fals
 
     # progress.display_summary()
 
+    if ret_top5:
+        return top1.avg, top5.avg, losses.avg
+    
     return top1.avg, losses.avg
 
 

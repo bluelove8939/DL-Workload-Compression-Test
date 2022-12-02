@@ -1,0 +1,14 @@
+File Information
+-	dirname:	{dirname}
+-	filename:	{filename}
+
+Accuracy
+-	reference acc:	top1 {r_top1_acc:.3f}	top5 {r_top5_acc:.3f}
+-	quantized acc:	top1 {q_top1_acc:.3f}	top5 {q_top5_acc:.3f}
+
+Environment
+-	quantization method: FX graph module
+-	calibration
+	1)	iteration: {citer}
+	2)	criterion: {criterion}
+	3)	optimizer: {optimizer} ({optim_parameters})
