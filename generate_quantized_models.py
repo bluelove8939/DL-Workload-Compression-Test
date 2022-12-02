@@ -18,7 +18,8 @@ quant_args, _ = parser.parse_known_args()
 
 if __name__ == "__main__":
     # Setups
-    dirname = os.path.join('/home', 'shared', 'Quantized_Models')
+    # dirname = os.path.join('/home', 'shared', 'Quantized_Models')
+    dirname = os.path.join(os.curdir, 'model_output')
     pth_filename_fmt = "{name}_quantized_tuned_citer_{citer}.pth"
     txt_filename_fmt = "{name}_quantized_tuned_citer_{citer}.txt"
 
@@ -57,7 +58,7 @@ if __name__ == "__main__":
 
         # Save state dictionary
         os.makedirs(dirname, exist_ok=True)
-        torch.save(qmodel.state_dict(), os.path.join(dirname, pth_filename_fmt.format(name, citer)))
+        torch.save(qmodel.state_dict(), os.path.join(dirname, pth_filename_fmt.format(name=name, citer=citer)))
 
         # Save informations
         with open(os.path.join(os.curdir, 'utils', 'quant_res_template.txt'), 'rt') as fmtfile:
@@ -68,8 +69,7 @@ if __name__ == "__main__":
                 r_top1_acc=r_top1_acc, r_top5_acc=r_top5_acc,
                 q_top1_acc=q_top1_acc, q_top5_acc=q_top5_acc,
                 citer=citer,
-                criterion=type(criterion).__name__,
-                optimizer=type(optimizer).__name__,
+                criterion=type(criterion).__name__, optimizer=type(optimizer).__name__,
                 optim_parameters=f'learning_rate={learning_rate}',
             )
 
