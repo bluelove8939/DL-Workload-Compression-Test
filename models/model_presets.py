@@ -45,7 +45,8 @@ class QuantModelConfig(_MetaModelConfig):
 
 def generate_from_chkpoint(model_primitive: torch.nn.Module, chkpoint_path: str):
     state_dict = torch.load(chkpoint_path)
-    model = copy.deepcopy(model_primitive).load_state_dict(state_dict)
+    model = copy.deepcopy(model_primitive)
+    model.load_state_dict(state_dict)
     return model
 
 def generate_from_quant_chkpoint(model_primitive: torch.nn.Module, chkpoint_path: str):
