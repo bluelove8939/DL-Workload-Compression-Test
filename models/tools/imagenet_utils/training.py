@@ -39,8 +39,8 @@ def train(train_loader, model, criterion, optimizer, epoch, args, device='defaul
                 images = images.cuda(args.gpu, non_blocking=True)
                 target = target.cuda(args.gpu, non_blocking=True)
             else:
-                images.to(device)
-                target.to(device)
+                images = images.to(device)
+                target = target.to(device)
 
             # compute output
             output = model(images)
@@ -81,8 +81,8 @@ def validate(val_loader, model, criterion, args, device='default', at_prune=Fals
                     images = images.cuda(args.gpu, non_blocking=True)
                     target = target.cuda(args.gpu, non_blocking=True)
                 else:
-                    images.to(device)
-                    target.to(device)
+                    images = images.to(device)
+                    target = target.to(device)
 
                 # compute output
                 output = model(images)

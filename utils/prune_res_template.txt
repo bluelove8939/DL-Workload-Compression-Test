@@ -1,0 +1,15 @@
+File Information
+-	dirname:	{dirname}
+-	filename:	{filename}
+
+Accuracy
+-	reference acc:	top1 {r_top1_acc:.3f}	top5 {r_top5_acc:.3f}
+-	quantized acc:	top1 {p_top1_acc:.3f}	top5 {p_top5_acc:.3f}
+
+Environment
+-	pruning method: Grouped Pruning
+-   pruning amount: {pamt}
+-	fine-tuning configuration
+	1)  epoch: {epoch}
+	2)	criterion: {criterion}
+	3)	optimizer: {optimizer} ({optim_parameters})

@@ -16,8 +16,8 @@ if __name__ == "__main__":
     pth_filename_fmt = "{name}_quantized_tuned_citer_{citer}.pth"
     txt_filename_fmt = "{name}_quantized_tuned_citer_{citer}.txt"
 
-    tuning_dataloader = train_loader
-    
+    os.makedirs(dirname, exist_ok=True)
+
     for name, config in imagenet_pretrained.items():
         if name in ('AlexNet', 'VGG16'):
             continue
