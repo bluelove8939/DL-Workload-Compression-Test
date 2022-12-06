@@ -1,7 +1,10 @@
 import os
+import copy
 import abc
 import torch
 import torchvision
+
+from models.tools.quanitzation import QuantizationModule
 
 
 class _MetaModelConfig(metaclass=abc.ABCMeta):
@@ -39,21 +42,18 @@ class QuantModelConfig(_MetaModelConfig):
     def generate(self):
         return self.model_type(weights=self.weights, quantize=True)
 
-class ChkpointModelConfig(_MetaModelConfig):
-    def __init__(self, model_type, chkpoint, weights=None, default_traces=tuple(), default_weights=None):
-        super(ChkpointModelConfig, self).__init__(model_type, weights, default_traces)
-        self.chkpoint = chkpoint
-        self.default_weights = default_weights
 
-    def generate(self, load_chkpoint=True):
-        model = self.model_type(weights=self.weights)
-        if load_chkpoint:
-            model.load_state_dict(torch.load(self.chkpoint))
-        return model
+def generate_from_chkpoint(model_primitive: torch.nn.Module, chkpoint_path: str):
+    state_dict = torch.load(chkpoint_path)
+    model = copy.deepcopy(model_primitive).load_state_dict(state_dict)
+    return model
 
-    def get_chkpoint(self):
-        return torch.load(self.chkpoint)
-
+def generate_from_quant_chkpoint(model_primitive: torch.nn.Module, chkpoint_path: str):
+    state_dict = torch.load(chkpoint_path)
+    qmod = QuantizationModule()
+    qmodel = qmod.quantize(model_primitive, citer=0, verbose=0)
+    qmodel.load_state_dict(state_dict)
+    return qmodel
 
 imagenet_pretrained = {
     'ResNet50': ModelConfig(
@@ -111,49 +111,5 @@ imagenet_quant_pretrained = {
     'InceptionV3': QuantModelConfig(
         torchvision.models.quantization.inception_v3,
         weights=torchvision.models.quantization.Inception_V3_QuantizedWeights.IMAGENET1K_FBGEMM_V1,
-    ),
-}
-
-imagenet_pruned = {
-    'AlexNet': ChkpointModelConfig(
-        torchvision.models.alexnet,
-        chkpoint=os.path.join(os.curdir, 'model_output', 'AlexNet_Imagenet_pruned_30.pth'),
-        weights=torchvision.models.AlexNet_Weights.IMAGENET1K_V1.IMAGENET1K_V1,
-    ),
-
-    'InceptionV3': ChkpointModelConfig(
-        torchvision.models.inception_v3,
-        chkpoint=os.path.join(os.curdir, 'model_output', 'InceptionV3_Imagenet_pruned_30.pth'),
-        weights=torchvision.models.Inception_V3_Weights.IMAGENET1K_V1.IMAGENET1K_V1,
-    ),
-
-    'ResNet18': ChkpointModelConfig(
-        torchvision.models.resnet18,
-        chkpoint=os.path.join(os.curdir, 'model_output', 'ResNet18_Imagenet_pruned_30.pth'),
-        weights=torchvision.models.ResNet18_Weights.IMAGENET1K_V1.IMAGENET1K_V1,
-    ),
-
-    'ResNet34': ChkpointModelConfig(
-        torchvision.models.resnet34,
-        chkpoint=os.path.join(os.curdir, 'model_output', 'ResNet34_Imagenet_pruned_30.pth'),
-        weights=torchvision.models.ResNet34_Weights.IMAGENET1K_V1.IMAGENET1K_V1,
-    ),
-
-    'ResNet50': ChkpointModelConfig(
-        torchvision.models.resnet50,
-        chkpoint=os.path.join(os.curdir, 'model_output', 'ResNet50_Imagenet_pruned_30.pth'),
-        weights=torchvision.models.ResNet50_Weights.IMAGENET1K_V1.IMAGENET1K_V1,
-    ),
-
-    'SqueezeNet': ChkpointModelConfig(
-        torchvision.models.squeezenet1_0,
-        chkpoint=os.path.join(os.curdir, 'model_output', 'SqueezeNet_Imagenet_pruned_30.pth'),
-        weights=torchvision.models.SqueezeNet1_0_Weights.IMAGENET1K_V1.IMAGENET1K_V1,
-    ),
-
-    'VGG16': ChkpointModelConfig(
-        torchvision.models.vgg16,
-        chkpoint=os.path.join(os.curdir, 'model_output', 'VGG16_Imagenet_pruned_30.pth'),
-        weights=torchvision.models.VGG16_Weights.IMAGENET1K_V1.IMAGENET1K_V1,
     ),
 }

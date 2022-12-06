@@ -1,13 +1,10 @@
 import os
 import copy
-import torch
-import torch.nn.utils.prune as prune
 
+import torch
 from torch.utils.data import DataLoader
-import torchvision.transforms as transforms
 
 from models.model_presets import imagenet_pretrained
-
 from models.tools.pruning import grouped_prune_model, remove_prune_model
 
 from models.tools.imagenet_utils.training import validate, train
@@ -27,32 +24,31 @@ if __name__ == "__main__":
     os.makedirs(dirname, exist_ok=True)
     
     for name, config in imagenet_pretrained.items():
-        if name != "AlexNet":
-            continue
-
         print(f"Pruning model: {name}...")
 
         # Generate model without quantization
         model = config.generate().to(device)
         # normal_statedict = copy.deepcopy(model.state_dict())
 
-        # Quantization setup
+        # Pruning setup
         pamt = 0.5
-        learning_rate = 0.0001
-        epoch = 5
+        lr = 0.0001
+        momentum = 0
+        epoch = 1
+        batch_size = 32
 
         tuning_loader = torch.utils.data.DataLoader(
-            train_dataset, batch_size=32, shuffle=(train_sampler is None),
+            train_dataset, batch_size=batch_size, shuffle=(train_sampler is None),
             num_workers=args.workers, pin_memory=True, sampler=train_sampler)
-
-        criterion = torch.nn.CrossEntropyLoss()
-        optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 
         # Pruning model
         pmodel = copy.deepcopy(model).to(device)
         grouped_prune_model(model=pmodel, step=pamt)
 
         # Fine-tuning
+        criterion = torch.nn.CrossEntropyLoss()
+        optimizer = torch.optim.SGD(pmodel.parameters(), lr=lr, momentum=momentum)
+
         train(
             train_loader=tuning_loader, model=pmodel, optimizer=optimizer, criterion=criterion, device=device,
             epoch=epoch, args=args, pbar_header='tuning')
@@ -78,9 +74,9 @@ if __name__ == "__main__":
                 dirname=dirname, filename=txt_filename_fmt.format(name=name, pamt=pamt),
                 r_top1_acc=r_top1_acc, r_top5_acc=r_top5_acc,
                 p_top1_acc=p_top1_acc, p_top5_acc=p_top5_acc,
-                pamt=pamt,
+                pamt=pamt, epoch=epoch,
                 criterion=type(criterion).__name__, optimizer=type(optimizer).__name__,
-                optim_parameters=f'learning_rate={learning_rate}',
+                optim_parameters=f'lr={lr}, momentum={momentum:.1f}',
             )
 
             with open(os.path.join(dirname, txt_filename_fmt.format(name=name, pamt=pamt)), 'wt') as outfile:

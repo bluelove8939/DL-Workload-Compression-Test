@@ -12,4 +12,4 @@ Environment
 -	fine-tuning configuration
 	1)  epoch: {epoch}
 	2)	criterion: {criterion}
-	3)	optimizer: {optimizer} ({optim_parameters})
+	3)	optimizer: {optimizer}({optim_parameters})
