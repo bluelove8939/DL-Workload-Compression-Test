@@ -4,7 +4,7 @@ import numpy as np
 
 
 parser = argparse.ArgumentParser(description='Sparsity Test Configs')
-parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, '../extractions_quant_wfile'),
+parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, '../../extractions_quant_wfile'),
                     help='Directory of model extraction files', dest='extdir')
 parser.add_argument('-dt', '--dtype', default='int8', type=str, help='Dtype of numpy array', dest='dtypename')
 comp_args, _ = parser.parse_known_args()
@@ -45,7 +45,7 @@ if __name__ == '__main__':
 
         print()
 
-    logdirname = os.path.join(os.curdir, '../logs')
+    logdirname = os.path.join(os.curdir, '../../logs')
     logfilename = 'sparsity_test'
 
     os.makedirs(logdirname, exist_ok=True)

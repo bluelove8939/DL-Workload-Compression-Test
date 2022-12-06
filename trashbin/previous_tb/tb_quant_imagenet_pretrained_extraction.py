@@ -11,11 +11,10 @@ from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 
-from models.tools.progressbar import progressbar
 from models.tools.imagenet_utils.args_generator import args
-from models.model_presets import imagenet_pretrained
-from models.tools.extractor import ModelExtractor, weight_trace, bias_trace
-from models.tools.quanitzation import QuantWrapper
+from models.model_presets import imagenet_quant_pretrained
+from models.tools.extractor import QuantModelExtractor, ModelExtractor, weight_trace, bias_trace
+from models.tools.quanitzation import QuantizationModule
 
 
 parser = argparse.ArgumentParser(description='Extraction Configs')
@@ -67,14 +66,14 @@ test_loader = torch.utils.data.DataLoader(
 
 
 if __name__ == '__main__':
-    save_dirpath = os.path.join(os.curdir, '../model_output')
+    save_dirpath = os.path.join(os.curdir, '../../model_output')
     os.makedirs(save_dirpath, exist_ok=True)
 
     extracted_resultfiles = []
 
-    for model_type, model_config in imagenet_pretrained.items():
-        full_modelname = f"{model_type}_custom_quant_Imagenet"
-        save_modelname = f"{model_type}_custom_quant_Imagenet.pth"
+    for model_type, model_config in imagenet_quant_pretrained.items():
+        full_modelname = f"{model_type}_quant_Imagenet"
+        save_modelname = f"{model_type}_quant_Imagenet.pth"
         save_fullpath = os.path.join(save_dirpath, save_modelname)
 
         print("Test Configs:")
@@ -82,18 +81,7 @@ if __name__ == '__main__':
         print(f"- save modelname: {save_modelname}")
         print(f"- save fullpath:  {save_fullpath}\n")
 
-        model = QuantWrapper(model=model_config.generate())
-        model.eval()
-        model.qconfig = torch.quantization.get_default_qconfig('fbgemm')
-        model_prepared = torch.quantization.prepare(model)
-
-        for i, (images, target) in enumerate(train_loader):
-            if i >= 10:
-                break
-            output = model(images)
-            print(f"\r{progressbar(i, len(train_loader), scale=50)} [{i}/{len(train_loader)}]", end='')
-
-        quant_model = torch.quantization.convert(model_prepared)
+        model = model_config.generate()
         # lr = 0.0001
         # optimizer = optim.Adam(model.parameters(), lr=lr)
         # loss_fn = nn.CrossEntropyLoss().to(device)
@@ -107,12 +95,11 @@ if __name__ == '__main__':
 
         print(f"extracting '{full_modelname}' at {save_extraction_dir}")
 
-        extractor_module = ModelExtractor(target_model=quant_model, output_modelname=full_modelname, verbose=False)
+        extractor_module = ModelExtractor(target_model=model, output_modelname=full_modelname, verbose=False)
         extractor_module.reset()
-        # extractor_module.add_param_trace(weight_trace)
-        # extractor_module.add_param_trace(bias_trace)
-        # extractor_module.extract_params()
-        # extractor_module.save_params(savepath=save_extraction_dir, only_quant=True)
-
+        extractor_module.add_param_trace(weight_trace)
+        extractor_module.add_param_trace(bias_trace)
+        extractor_module.extract_params()
+        extractor_module.save_params(savepath=save_extraction_dir, only_quant=True)
 
         print(f"extracting '{full_modelname}' completed")

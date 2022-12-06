@@ -25,7 +25,7 @@ if __name__ == '__main__':
         for name in algo_names:
             ratr[name] = []
 
-        with open(os.path.join(os.curdir, '../logs', f'ratio_test_result{"_quant" if quant else ""}_{dtypename}_cs{chunksize}', f"ratio_test_result_nz_{nz}.csv"), 'rt') as file:
+        with open(os.path.join(os.curdir, '../../logs', f'ratio_test_result{"_quant" if quant else ""}_{dtypename}_cs{chunksize}', f"ratio_test_result_nz_{nz}.csv"), 'rt') as file:
             content = file.readlines()
             for line in content:
                 if len(line.strip()) == 0:

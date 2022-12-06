@@ -5,7 +5,7 @@ import numpy as np
 # from models.tools.imagenet_utils.args_generator import args
 # from models.tools.imagenet_utils.dataset_loader import val_loader
 from models.tools.lowering import ifm_lowering, weight_lowering, ConvLayerInfo
-from models.model_presets import imagenet_quant_pretrained
+from models.model_presets import generate_from_quant_chkpoint, imagenet_pretrained
 
 from compression.algorithms import zeroval_compression, bdizv_compression, bitplane_compression, csc_compression
 
@@ -66,9 +66,11 @@ if __name__ == '__main__':
 
     compr_tb = CompressionQuantTestbench()
 
-    for name, config in imagenet_quant_pretrained.items():
+    for name, config in imagenet_pretrained.items():
         # Generate model
-        model = config.generate()
+        model = generate_from_quant_chkpoint(
+            model_primitive=config.generate(),
+            chkpoint_path=os.path.join(os.curdir, 'model_output', f"{name}_quantized_tuned_citer_10.pth"),)
         compr_tb.register_model(model=model, model_name=name)
 
         dummy_image = torch.tensor(np.zeros(shape=(1, 3, 226, 226), dtype=np.dtype('float32')))

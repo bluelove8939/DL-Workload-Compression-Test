@@ -7,7 +7,7 @@ from compression.custom_streams import FileStream
 
 
 parser = argparse.ArgumentParser(description='Testbench Configs')
-parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, '../extractions_quant_activations', 'InceptionV3_Imagenet_output'),
+parser.add_argument('-dir', '--directory', default=os.path.join(os.curdir, '../../extractions_quant_activations', 'InceptionV3_Imagenet_output'),
                     help='Directory of model extraction files', dest='dirname')
 parser.add_argument('-cs', '--chunksize', default=16, type=int,
                     help='Size of a chunk (Bytes)', dest='chunksize')
@@ -17,7 +17,7 @@ parser.add_argument('-dt', '--dtype', default='int8', type=str,
                     help='Dtype of numpy array', dest='dtypename')
 parser.add_argument('-vs', '--verbose_step', default=1000, type=int,
                     help='Step of verbose (print log for every Nth step for integer value N)', dest='vstep')
-parser.add_argument('-ld', '--logdirname', default=os.path.join(os.curdir, '../logs'), type=str,
+parser.add_argument('-ld', '--logdirname', default=os.path.join(os.curdir, '../../logs'), type=str,
                     help='Directory of output log files', dest='logdirname')
 parser.add_argument('-lf', '--logfilename', default='sparsity_ratio_test_result.csv', type=str,
                     help='Name of logfile', dest='logfilename')

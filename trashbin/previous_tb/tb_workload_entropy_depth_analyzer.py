@@ -5,21 +5,21 @@ import matplotlib.pyplot as plt
 
 
 parser = argparse.ArgumentParser(description='Test Result Analyzing Configs')
-parser.add_argument('-fp', '--filepath', default=os.path.join(os.curdir, '../logs', 'sparsity_test_fp32.csv'),
+parser.add_argument('-fp', '--filepath', default=os.path.join(os.curdir, '../../logs', 'entropy_test.csv'),
                     help='Path to result csv file', dest='filepath')
 comp_args, _ = parser.parse_known_args()
 
 
 if __name__ == '__main__':
     target_modelnames = ['AlexNet', 'VGG16']
-    # targets = ['ReLU','Conv2d']
+    # targets = ['ReLU', 'Conv2d']
     targets = ['ReLU']
     maxdepths = [7, 15]
 
     fig, axes = plt.subplots(1, 2, gridspec_kw={'width_ratios': [1, 2]})
 
     for target_modelname, maxdepth, axis in zip(target_modelnames, maxdepths, axes):
-        categories = np.array(list(range(1, maxdepth+1, 1)))  # x-axis by depth
+        categories = np.array(list(range(1, maxdepth + 1, 1)))  # x-axis by depth
         results = {}
 
         logfilepath = comp_args.filepath
@@ -29,7 +29,7 @@ if __name__ == '__main__':
             for target_layer_type in targets:
                 results[target_layer_type] = np.array([0] * maxdepth, dtype=np.dtype('float32'))
 
-            for modelname, filename, arrsize, zerocnt in content:
+            for modelname, filename, entropy in content:
                 modelname = modelname.split('_')[0]
                 layer_type, depth, outputname = filename.split('_')
 
@@ -37,7 +37,7 @@ if __name__ == '__main__':
                     continue
 
                 if int(depth) < maxdepth:
-                    results[layer_type][int(depth)] += int(zerocnt) / int(arrsize)
+                    results[layer_type][int(depth)] += float(entropy)
 
             print(results)
 
@@ -52,14 +52,14 @@ if __name__ == '__main__':
             xval = x_axis + ((idx - (len(results.keys()) / 2) + 0.5) * width)
             axis.bar(xval, val, width=width, label=key)
             for i, j in zip(xval, val):
-                axis.annotate(f"{j:.2f}", xy=(i, j + 0.02), ha='center', size=7)
+                axis.annotate(f"{j:.2f}", xy=(i, j + 0.1), ha='center', size=7)
         axis.set_xticks(x_axis, categories, rotation=0, ha='center')
-        axis.set_ylim([0.0, 1.0])
+        # axis.set_ylim([0.0, 1.0])
 
         axis.set_xlabel('depth')
-        axis.set_ylabel('sparsity')
+        axis.set_ylabel('entropy')
 
-        axis.set_title(f"Sparsity of activations by depth ({target_modelname})")
+        axis.set_title(f"Entropy of layers by depth ({target_modelname})")
         axis.legend()
 
     plt.tight_layout()

@@ -37,8 +37,13 @@ if __name__ == "__main__":
         epoch = 1
         batch_size = 32
 
+        train_size = len(train_dataset)
+        tuning_ratio = 0.3
+        tuning_size = int(train_size*tuning_ratio)
+        tuning_dataset, _ = torch.utils.data.random_split(train_dataset, lengths=(tuning_size, train_size-tuning_size))
+
         tuning_loader = torch.utils.data.DataLoader(
-            train_dataset, batch_size=batch_size, shuffle=(train_sampler is None),
+            tuning_dataset, batch_size=batch_size, shuffle=(train_sampler is None),
             num_workers=args.workers, pin_memory=True, sampler=train_sampler)
 
         # Pruning model

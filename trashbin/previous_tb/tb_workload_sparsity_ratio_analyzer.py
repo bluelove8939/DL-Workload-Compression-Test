@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-filepath = os.path.join(os.curdir, '../logs', 'sparsity_ratio_test_result3.csv')
+filepath = os.path.join(os.curdir, '../../logs', 'sparsity_ratio_test_result3.csv')
 chunksize = 16
 layerfilter = 'ConvReLU2d'
 outputfilter = 'output0'
