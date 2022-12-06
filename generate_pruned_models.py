@@ -18,8 +18,8 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 if __name__ == "__main__":
     # Setups
     dirname = os.path.join(os.curdir, 'model_output')
-    pth_filename_fmt = "{name}_pruned_tuned_pamt_{pamt}.pth"
-    txt_filename_fmt = "{name}_pruned_tuned_pamt_{pamt}.txt"
+    pth_filename_fmt = "{name}_pruned_tuned_pamt_{pamt:.1f}.pth"
+    txt_filename_fmt = "{name}_pruned_tuned_pamt_{pamt:.1f}.txt"
 
     os.makedirs(dirname, exist_ok=True)
     
