@@ -2,7 +2,8 @@ import os
 import torch
 import numpy as np
 
-from models.model_presets import generate_from_chkpoint, imagenet_pretrained
+from models.tools.imagenet_utils.dataset_loader import val_loader
+from models.model_presets import imagenet_pretrained, generate_from_chkpoint
 from simulation.compression_sim import CompressionTestbench
 
 
@@ -20,13 +21,13 @@ if __name__ == '__main__':
         # Generate model
         model = generate_from_chkpoint(
             model_primitive=config.generate(),
-            chkpoint_path=filepath_fmt.format(name=name),)
-        compr_tb.register_weight_compression(model=model, model_name=name)
+            chkpoint_path=filepath_fmt.format(name=name), )
+        compr_tb.register_activation_compression(model=model, model_name=name)
 
-        dummy_image = torch.tensor(np.zeros(shape=(1, 3, 226, 226), dtype=np.dtype('float32')))
+        images, target = next(iter(val_loader))
 
         model.eval()
-        model(dummy_image)
+        model(images)
 
     print(compr_tb.result)
 

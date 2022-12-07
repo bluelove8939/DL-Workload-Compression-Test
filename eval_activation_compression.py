@@ -2,31 +2,26 @@ import os
 import torch
 import numpy as np
 
-from models.model_presets import generate_from_chkpoint, imagenet_pretrained
+from models.tools.imagenet_utils.dataset_loader import val_loader
+from models.model_presets import imagenet_pretrained
 from simulation.compression_sim import CompressionTestbench
 
 
 if __name__ == '__main__':
     log_dirname = os.path.join(os.curdir, 'logs')
     log_filename = f"{os.path.split(__file__)[1].split('.')[0]}.csv"
-    filepath_fmt = os.path.join(os.curdir, 'model_output', "{name}_pruned_tuned_pamt_0.5.pth")
 
-    compr_tb = CompressionTestbench()
+    compr_tb = CompressionTestbench(linesize=8)
 
     for name, config in imagenet_pretrained.items():
-        if not os.path.isfile(filepath_fmt.format(name=name)):
-            continue
-
         # Generate model
-        model = generate_from_chkpoint(
-            model_primitive=config.generate(),
-            chkpoint_path=filepath_fmt.format(name=name),)
-        compr_tb.register_weight_compression(model=model, model_name=name)
+        model = config.generate()
+        compr_tb.register_activation_compression(model=model, model_name=name)
 
-        dummy_image = torch.tensor(np.zeros(shape=(1, 3, 226, 226), dtype=np.dtype('float32')))
+        images, target = next(iter(val_loader))
 
         model.eval()
-        model(dummy_image)
+        model(images)
 
     print(compr_tb.result)
 
