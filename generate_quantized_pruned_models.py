@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
         # Generate model without quantization
         model = generate_from_chkpoint(
-            model_primitive=config.generate(),
+            model_primitive=config.generate().to('cpu'),
             chkpoint_path=os.path.join(os.curdir, 'model_output', f'{name}_pruned_tuned_pamt_{pamt}.pth'),
         )
 
