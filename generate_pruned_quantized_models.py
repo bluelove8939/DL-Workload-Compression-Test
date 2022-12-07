@@ -16,8 +16,8 @@ if __name__ == "__main__":
 
     # Setups
     dirname = os.path.join(os.curdir, 'model_output')
-    pth_filename_fmt = "{name}_quantized_tuned_citer_{citer}_pruned_pamt_{pamt:.1f}.pth"
-    txt_filename_fmt = "{name}_quantized_tuned_citer_{citer}_pruned_pamt_{pamt:.1f}.txt"
+    pth_filename_fmt = "{name}_quantized_tuned_citer_{citer}_pruned_pamt_{pamt}.pth"
+    txt_filename_fmt = "{name}_quantized_tuned_citer_{citer}_pruned_pamt_{pamt}.txt"
 
     os.makedirs(dirname, exist_ok=True)
 

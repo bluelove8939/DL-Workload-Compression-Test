@@ -24,11 +24,14 @@ if __name__ == "__main__":
     os.makedirs(dirname, exist_ok=True)
     
     for name, config in imagenet_pretrained.items():
+        if name == 'ResNet50' or name == 'ResNet34' or name == 'ResNet18' or name == 'AlexNet'\
+                or name == 'VGG16':
+            continue
+
         print(f"Pruning model: {name}...")
 
         # Generate model without quantization
         model = config.generate().to(device)
-        # normal_statedict = copy.deepcopy(model.state_dict())
 
         # Pruning setup
         pamt = 0.5
@@ -38,7 +41,7 @@ if __name__ == "__main__":
         batch_size = 32
 
         train_size = len(train_dataset)
-        tuning_ratio = 0.3
+        tuning_ratio = 1
         tuning_size = int(train_size*tuning_ratio)
         tuning_dataset, _ = torch.utils.data.random_split(train_dataset, lengths=(tuning_size, train_size-tuning_size))
 
