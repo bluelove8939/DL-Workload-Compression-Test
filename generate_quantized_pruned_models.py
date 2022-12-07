@@ -50,7 +50,7 @@ if __name__ == "__main__":
         r_top1_acc, r_top5_acc, _ = validate(
             val_loader=val_loader, model=model, criterion=criterion, args=args, device='cpu', at_prune=False, pbar_header='normal', ret_top5=True)
         q_top1_acc, q_top5_acc, _ = validate(
-            val_loader=val_loader, model=qmodel, criterion=criterion, args=args, device='cuda', at_prune=False, pbar_header='quant ', ret_top5=True)
+            val_loader=val_loader, model=qmodel, criterion=criterion, args=args, device='cpu', at_prune=False, pbar_header='quant ', ret_top5=True)
 
         # Save state dictionary
         os.makedirs(dirname, exist_ok=True)
