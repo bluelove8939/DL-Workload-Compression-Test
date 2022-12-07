@@ -25,6 +25,13 @@ def train(train_loader, model, criterion, optimizer, epoch, args, device='defaul
         prefix="Epoch: [{}]".format(epoch))
 
     # switch to train mode
+    if torch.cuda.is_available() and device == 'default' and at_prune is False:
+        model = model.to('cuda')
+    elif device == 'default':
+        model = model.to('cpu')
+    else:
+        model = model.to(device)
+
     model.train()
 
     for e in range(epoch):
@@ -115,6 +122,13 @@ def validate(val_loader, model, criterion, args, device='default', at_prune=Fals
         prefix='Test: ')
 
     # switch to evaluate mode
+    if torch.cuda.is_available() and device == 'default' and at_prune is False:
+        model = model.to('cuda')
+    elif device == 'default':
+        model = model.to('cpu')
+    else:
+        model = model.to(device)
+
     model.eval()
 
     run_validate(val_loader)

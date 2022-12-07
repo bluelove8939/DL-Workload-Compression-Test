@@ -22,15 +22,18 @@ if __name__ == "__main__":
     os.makedirs(dirname, exist_ok=True)
 
     for name, config in imagenet_pretrained.items():
-        if name != 'AlexNet':
+        if name == 'AlexNet':
             continue
 
         print(f"Quantizing model: {name}...")
 
         # Generate model without quantization
+        if not os.path.isfile(os.path.join(os.curdir, 'model_output', f'{name}_pruned_tuned_pamt_{pamt:.1f}.pth')):
+            continue
+
         model = generate_from_chkpoint(
-            model_primitive=config.generate().to('cpu'),
-            chkpoint_path=os.path.join(os.curdir, 'model_output', f'{name}_pruned_tuned_pamt_{pamt}.pth'),
+            model_primitive=config.generate(),
+            chkpoint_path=os.path.join(os.curdir, 'model_output', f'{name}_pruned_tuned_pamt_{pamt:.1f}.pth'),
         )
 
         # Quantization setup
@@ -48,7 +51,7 @@ if __name__ == "__main__":
 
         # Accuracy check
         r_top1_acc, r_top5_acc, _ = validate(
-            val_loader=val_loader, model=model, criterion=criterion, args=args, device='cpu', at_prune=False, pbar_header='normal', ret_top5=True)
+            val_loader=val_loader, model=model, criterion=criterion, args=args, device='cuda', at_prune=False, pbar_header='normal', ret_top5=True)
         q_top1_acc, q_top5_acc, _ = validate(
             val_loader=val_loader, model=qmodel, criterion=criterion, args=args, device='cpu', at_prune=False, pbar_header='quant ', ret_top5=True)
 
