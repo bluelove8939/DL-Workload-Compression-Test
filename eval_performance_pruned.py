@@ -2,7 +2,7 @@ import os
 import torch
 from torch.utils.data import DataLoader
 
-from models.model_presets import imagenet_pretrained, generate_from_quant_chkpoint
+from models.model_presets import imagenet_pretrained, generate_from_chkpoint
 from models.tools.imagenet_utils.dataset_loader import val_dataset, val_sampler
 from simulation.accelerator_sim import PerformanceSim
 from simulation.testbenches import testbench_filter
@@ -22,7 +22,7 @@ if __name__ == '__main__':
             continue
 
         # Generate model
-        model = generate_from_quant_chkpoint(
+        model = generate_from_chkpoint(
             model_primitive=config.generate(),
             chkpoint_path=filepath_fmt.format(name=name),)
         perf_tb.register_model(model=model, model_name=name, testbench_filter=testbench_filter)
