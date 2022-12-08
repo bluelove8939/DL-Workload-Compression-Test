@@ -1,5 +1,4 @@
 import numpy as np
-import tqdm
 
 from compression.algorithms import zeroval_compression, bdizv_compression, bitplane_compression, csc_compression
 from models.tools.lowering import ConvLayerInfo, weight_lowering, ifm_lowering
