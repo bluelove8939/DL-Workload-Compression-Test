@@ -26,11 +26,11 @@ if __name__ == '__main__':
             print(f"Running script: {sp}")
             ec = subprocess.run(['python', sp], stdout=logfile, stderr=logfile)
 
-            if ec.returncode != 0:
-                print(f"- error occurred on running the script ({ec})")
-                print(f"- you can see the details of the error at the logfile: {os.path.join(log_dirname, log_filename)}")
-            else:
-                print(f"- succeed on running the script")
-                print(f"- logfile: {os.path.join(log_dirname, log_filename)}")
-                print(f"- results: {os.path.join(log_dirname, res_filename)}")
+        if ec.returncode != 0:
+            print(f"- error occurred on running the script ({ec})")
+            print(f"- you can see the details of the error at the logfile: {os.path.join(log_dirname, log_filename)}")
+        else:
+            print(f"- succeed on running the script")
+            print(f"- results: {os.path.join(log_dirname, res_filename)}")
+            os.remove(os.path.join(log_dirname, log_filename))
 

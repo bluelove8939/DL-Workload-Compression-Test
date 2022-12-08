@@ -46,4 +46,4 @@ if __name__ == '__main__':
 
     plt.tight_layout()
     plt.savefig(os.path.join(image_dirname, image_filename), dpi=200, bbox_inches='tight', pad_inches=0)
-    # plt.show()
+    plt.show()

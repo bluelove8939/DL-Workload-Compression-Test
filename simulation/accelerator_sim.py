@@ -31,17 +31,17 @@ class CycleSim(Sim):
         self.ve_queue = np.array([0] * self.ac_config.ve_num)
 
     def generate_hook(self, model_name: str, submodule_name: str, submodule_info: ConvLayerInfo) -> Callable:
-        def cycle_sim_check_hook(layer: torch.nn.Module, input_tensor: torch.Tensor, output_tensor: torch.Tensor):
+        def cycle_sim_check_hook(submodule: torch.nn.Module, input_tensor: torch.Tensor, output_tensor: torch.Tensor):
             print(f'cycle evaluation hook called for {model_name}.{submodule_name}')
 
             result_key = (model_name, submodule_name)
 
-            if 'conv' not in type(layer).__name__.lower():
+            if 'conv' not in type(submodule).__name__.lower():
                 pass
 
             print('- lowering input feature map and weight tensor')
             ifm = input_tensor[0]
-            weight = model.state_dict()[submodule_name + '.weight']
+            weight = submodule.weight if not self.quant else submodule.weight()
 
             if self.quant:
                 ifm = ifm.int_repr()
@@ -101,17 +101,17 @@ class PerformanceSim(Sim):
         self.compr_gran = 8
 
     def generate_hook(self, model_name, submodule_name, submodule_info) -> callable:
-        def performance_eval_hook(layer: torch.nn.Module, input_tensor: torch.Tensor, output_tensor: torch.Tensor):
+        def performance_eval_hook(submodule: torch.nn.Module, input_tensor: torch.Tensor, output_tensor: torch.Tensor):
             print(f'performance evaluation hook called for {model_name}.{submodule_name}')
 
             result_key = (model_name, submodule_name)
 
-            if 'conv' not in type(layer).__name__.lower():
+            if 'conv' not in type(submodule).__name__.lower():
                 pass
 
             print('- lowering input feature map and weight tensor')
             ifm = input_tensor[0]
-            weight = model.state_dict()[submodule_name + '.weight']
+            weight = submodule.weight if not self.quant else submodule.weight()
 
             if self.quant:
                 ifm = ifm.int_repr()
@@ -139,11 +139,11 @@ class PerformanceSim(Sim):
                 for wm_vec in wmask:
                     valid_op += int(np.count_nonzero(np.logical_and(im_vec, wm_vec)))
 
-            self.result[result_key] = (total_op, valid_op, total_op / (valid_op + 1e-10))
+            self.result[result_key] = (total_op, valid_op, valid_op / (total_op + 1e-10))
 
             print(
                 f"performance evaluation: {model_name:15s} {submodule_name:30s} "
-                f"total: {total_op}, valid: {valid_op}, ratio: {total_op / (valid_op + 1e-10) * 100:.2f}%"
+                f"total: {total_op}, valid: {valid_op}, ratio: {valid_op / (total_op + 1e-10) * 100:.2f}%"
             )
 
         return performance_eval_hook
