@@ -15,7 +15,7 @@ if __name__ == '__main__':
     log_dirname = os.path.join(os.curdir, 'logs')
     log_filename = f"{os.path.split(__file__)[1].split('.')[0]}.csv"
 
-    compr_tb = ActivationCompressionSim(linesize=8)
+    compr_tb = ActivationCompressionSim(linesize=8, algo_names=('ZVC', 'BDIZV', 'ZRLE', 'CSC'))
 
     for name, config in imagenet_pretrained.items():
         # Generate model

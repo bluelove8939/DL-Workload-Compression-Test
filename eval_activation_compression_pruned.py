@@ -16,7 +16,7 @@ if __name__ == '__main__':
     log_filename = f"{os.path.split(__file__)[1].split('.')[0]}.csv"
     filepath_fmt = os.path.join(os.curdir, 'model_output', "{name}_pruned_tuned_pamt_0.5.pth")
 
-    compr_tb = ActivationCompressionSim(linesize=8)
+    compr_tb = ActivationCompressionSim(linesize=8, algo_names=('ZVC', 'BDIZV', 'ZRLE', 'CSC'))
 
     for name, config in imagenet_pretrained.items():
         if not os.path.isfile(filepath_fmt.format(name=name)):

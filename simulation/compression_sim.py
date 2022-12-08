@@ -12,7 +12,7 @@ def sparsity(arr: np.ndarray):
 
 class WeightCompressionSim(Sim):
     def __init__(self, quant: bool=False, linesize: int=-1,
-                 algo_names = ('ZVC', 'BDIZV', 'BPC', 'CSC')) -> None:
+                 algo_names = ('ZVC', 'BDIZV', 'ZRLE', 'CSC')) -> None:
         super(WeightCompressionSim, self).__init__()
 
         self.quant = quant
