@@ -17,7 +17,7 @@ if __name__ == '__main__':
     # Path
     filename = args.filename
     result_file = os.path.join(os.curdir, 'logs', f'{filename}.csv')
-    image_dirname = os.path.join('G:', '내 드라이브', 'ESL2023')
+    image_dirname = os.path.join('G:', '내 드라이브', 'ESL2023', 'Figures')
     image_filename = f'Fig_{filename}.pdf'
 
     os.makedirs(image_dirname, exist_ok=True)
