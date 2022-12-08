@@ -39,7 +39,7 @@ class WeightCompressionSim(Sim):
                     compr_siz[aidx] = total_siz / len(compression_algorithms[aname](lowered_weight, wordwidth=lowered_weight.dtype.itemsize*8))
                 else:
                     for weight_vec in lowered_weight:
-                        if self.linesize != -1:
+                        if (self.linesize != -1) and (aname != 'ZRLE'):
                             for st_idx in range(0, len(weight_vec), self.linesize):
                                 ed_idx = min(st_idx + self.linesize, len(weight_vec))
                                 compr_siz[aidx] += len(compression_algorithms[aname](weight_vec[st_idx:ed_idx],
