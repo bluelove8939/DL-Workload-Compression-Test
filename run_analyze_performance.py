@@ -2,11 +2,13 @@ import os
 import subprocess
 
 
+extension = 'pdf'
+
 options = [
-    ['python', os.path.join(os.curdir, 'analyze_eval_performance.py'), '--filename', 'eval_performance'],
-    ['python', os.path.join(os.curdir, 'analyze_eval_performance.py'), '--filename', 'eval_performance_pruned'],
-    ['python', os.path.join(os.curdir, 'analyze_eval_performance.py'), '--filename', 'eval_performance_quant'],
-    ['python', os.path.join(os.curdir, 'analyze_eval_performance.py'), '--filename', 'eval_performance_quant_pruned'],
+    ['python', os.path.join(os.curdir, 'analyze_eval_performance.py'), '--filename', 'eval_performance', '--image-extension', extension],
+    ['python', os.path.join(os.curdir, 'analyze_eval_performance.py'), '--filename', 'eval_performance_pruned', '--image-extension', extension],
+    ['python', os.path.join(os.curdir, 'analyze_eval_performance.py'), '--filename', 'eval_performance_quant', '--image-extension', extension],
+    ['python', os.path.join(os.curdir, 'analyze_eval_performance.py'), '--filename', 'eval_performance_quant_pruned', '--image-extension', extension],
 ]
 
 log_dirname = os.path.join(os.curdir, 'logs')

@@ -10,6 +10,8 @@ from simulation.testbenches import testbenches
 parser = argparse.ArgumentParser(description='Analysis Configs')
 parser.add_argument('-f', '--filename', default='eval_activation_compression_pruned',
                     help='Name of the result file (without extension)', dest='filename')
+parser.add_argument('-ie', '--image-extension', default='pdf',
+                    help='Extension of image file', dest='extension')
 args, _ = parser.parse_known_args()
 
 
@@ -18,7 +20,7 @@ if __name__ == '__main__':
     filename = args.filename
     result_file = os.path.join(os.curdir, 'logs', f'{filename}.csv')
     image_dirname = os.path.join('G:', '내 드라이브', 'ESL2023', 'Figures')
-    image_filename = f'Fig_{filename}.pdf'
+    image_filename = f'Fig_{filename}.{args.extension}'
 
     os.makedirs(image_dirname, exist_ok=True)
 

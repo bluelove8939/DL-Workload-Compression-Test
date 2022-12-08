@@ -1,17 +1,18 @@
 import os
 import subprocess
 
+extension = 'pdf'
 
 options = [
-    ['python', os.path.join(os.curdir, 'analyze_eval_compression.py'), '--filename', 'eval_activation_compression'],
-    ['python', os.path.join(os.curdir, 'analyze_eval_compression.py'), '--filename', 'eval_activation_compression_pruned'],
-    ['python', os.path.join(os.curdir, 'analyze_eval_compression.py'), '--filename', 'eval_activation_compression_quant'],
-    ['python', os.path.join(os.curdir, 'analyze_eval_compression.py'), '--filename', 'eval_activation_compression_quant_pruned'],
+    ['python', os.path.join(os.curdir, 'analyze_eval_compression.py'), '--filename', 'eval_activation_compression', '--image-extension', extension],
+    ['python', os.path.join(os.curdir, 'analyze_eval_compression.py'), '--filename', 'eval_activation_compression_pruned', '--image-extension', extension],
+    ['python', os.path.join(os.curdir, 'analyze_eval_compression.py'), '--filename', 'eval_activation_compression_quant', '--image-extension', extension],
+    ['python', os.path.join(os.curdir, 'analyze_eval_compression.py'), '--filename', 'eval_activation_compression_quant_pruned', '--image-extension', extension],
 
-    ['python', os.path.join(os.curdir, 'analyze_eval_compression.py'), '--filename', 'eval_weight_compression'],
-    ['python', os.path.join(os.curdir, 'analyze_eval_compression.py'), '--filename', 'eval_weight_compression_pruned'],
-    ['python', os.path.join(os.curdir, 'analyze_eval_compression.py'), '--filename', 'eval_weight_compression_quant'],
-    ['python', os.path.join(os.curdir, 'analyze_eval_compression.py'), '--filename', 'eval_weight_compression_quant_pruned'],
+    ['python', os.path.join(os.curdir, 'analyze_eval_compression.py'), '--filename', 'eval_weight_compression', '--image-extension', extension],
+    ['python', os.path.join(os.curdir, 'analyze_eval_compression.py'), '--filename', 'eval_weight_compression_pruned', '--image-extension', extension],
+    ['python', os.path.join(os.curdir, 'analyze_eval_compression.py'), '--filename', 'eval_weight_compression_quant', '--image-extension', extension],
+    ['python', os.path.join(os.curdir, 'analyze_eval_compression.py'), '--filename', 'eval_weight_compression_quant_pruned', '--image-extension', extension],
 ]
 
 log_dirname = os.path.join(os.curdir, 'logs')
