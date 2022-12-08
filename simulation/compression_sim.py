@@ -82,7 +82,7 @@ class ActivationCompressionSim(Sim):
                 input_tensor = input_tensor[0]
 
             print('- lowering input tensor')
-            lowered_input = ifm_lowering(ifm=input_tensor, layer_info=submodule_info, verbose=True).detach().cpu().numpy()
+            lowered_input = ifm_lowering(ifm=input_tensor, layer_info=submodule_info, verbose=False).detach().cpu().numpy()
             total_siz = lowered_input.dtype.itemsize*8 * lowered_input.size
 
             for aidx, aname in enumerate(self.algo_names):
