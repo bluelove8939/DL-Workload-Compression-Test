@@ -1,6 +1,9 @@
+import sys
 import math
 import torch
 import numpy as np
+
+from models.tools.progressbar import progressbar
 
 
 class ConvLayerInfo(object):
@@ -8,17 +11,18 @@ class ConvLayerInfo(object):
                        Co : int or None=None, FW : int or None=None, FH : int or None=None, S : int or None=None,
                        P  : int or None=None, OW : int or None=None, OH : int or None=None):
 
-        self.N  = N         # batch size
-        self.Ci = Ci        # input channel
-        self.W  = W         # image width
-        self.H  = H         # image height
-        self.Co = Co        # output channel
-        self.FW = FW        # filter width
-        self.FH = FH        # filter height
-        self.S  = S         # stride
-        self.P  = P         # padding
-        self.OW = OW        # output width
-        self.OH = OH        # output height
+        self.N  = N   # batch size
+        self.Ci = Ci  # input channel
+        self.W  = W   # image width
+        self.H  = H   # image height
+        self.Co = Co  # output channel
+        self.FW = FW  # filter width
+        self.FH = FH  # filter height
+        self.S  = S   # stride
+        self.P  = P   # padding
+
+        self.OW = OW if OW is not None else math.floor((W - FW + (2 * P)) / S) + 1  # output width
+        self.OH = OH if OH is not None else math.floor((H - FH + (2 * P)) / S) + 1  # output height
 
     @classmethod
     def generate_from_model(cls, model: torch.nn.Module, input_shape=(1, 3, 226, 226), device='cpu') -> dict:
@@ -79,18 +83,33 @@ def weight_lowering(weight: torch.Tensor, layer_info: ConvLayerInfo):
     Co, Ci, FW, FH = layer_info.weight_shape()
     return torch.reshape(weight.detach(), shape=(Co, Ci*FW*FH))
 
-def ifm_lowering(ifm: torch.Tensor, layer_info: ConvLayerInfo):
+def ifm_lowering(ifm: torch.Tensor, layer_info: ConvLayerInfo, verbose: bool=False):
     N, Ci, W, H = ifm.shape
     FW, FH, P, S = layer_info.FW, layer_info.FH, layer_info.P, layer_info.S
 
     if P > 0:
         ifm = torch.nn.functional.pad(ifm, (P, P, P, P), value=0)  # add zero padding manually
 
+    # variables for verbose
+    OW, OH = layer_info.OW, layer_info.OH
+    iter_cnt = 0
+    total_cnt = N*OW*OH
+    if verbose:
+        sys.stdout.write(f"\rlowering {progressbar(status=iter_cnt, total=total_cnt, scale=50)} {iter_cnt/total_cnt*100:.0f}%")
+
     lowered_ifm = []
     for n in range(N):
         for rp in range(0, H - FH + (2 * P) + 1, S):
             for cp in range(0, W - FW + (2 * P) + 1, S):
                 lowered_ifm.append(list(ifm[n, :, rp:rp + FH, cp:cp + FW].flatten()))
+
+                if verbose:
+                    iter_cnt += 1
+                    sys.stdout.write(f"\rlowering {progressbar(status=iter_cnt, total=total_cnt, scale=50)} {iter_cnt/total_cnt*100:.0f}%")
+
+    if verbose:
+        sys.stdout.write('\r')
+
     lowered_ifm = torch.tensor(lowered_ifm)
 
     return lowered_ifm
@@ -107,6 +126,6 @@ if __name__ == '__main__':
     P = 0
 
     t = torch.tensor(torch.arange(0, N*C*W*H, 1)).reshape(N, C, H, W)
-    lt = ifm_lowering(t, ConvLayerInfo(N=N, Ci=C, W=W, H=H, Co=3, FW=FW, FH=FH, S=S, P=P))
+    lt = ifm_lowering(t, ConvLayerInfo(N=N, Ci=C, W=W, H=H, Co=3, FW=FW, FH=FH, S=S, P=P), verbose=True)
     for v in lt:
         print(' '.join(map(lambda x: f"{x:4d}", list(v.detach().cpu().numpy()))))

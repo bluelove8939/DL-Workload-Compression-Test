@@ -26,14 +26,18 @@ class CompressionTestbench(object):
 
     def generate_weight_compr_hook(self, model_name, submodule_name, submodule_info) -> callable:
         def weight_compr_hook(submodule, input_tensor, output_tensor):
+            print(f'weight compression hook called for {model_name}.{submodule_name}')
             key = (model_name, submodule_name)
             compr_siz = [0] * len(self.algo_names)
 
+            print('- lowering weight tensor')
             weight_tensor = submodule.weight if not self.quant else submodule.weight().detach().int_repr()
             lowered_weight = weight_lowering(weight=weight_tensor, layer_info=submodule_info).detach().cpu().numpy()
             total_siz = lowered_weight.dtype.itemsize*8 * lowered_weight.size
 
             for aidx, aname in enumerate(self.algo_names):
+                print(f'- start compressing with {aname}')
+
                 if aname == 'CSC':
                     compr_siz[aidx] = total_siz / len(self.algorithms[aname](lowered_weight, wordwidth=lowered_weight.dtype.itemsize*8))
                 else:
@@ -68,18 +72,21 @@ class CompressionTestbench(object):
 
     def generate_activation_compr_hook(self, model_name, submodule_name, submodule_info) -> callable:
         def activation_compr_hook(submodule, input_tensor, output_tensor):
+            print(f'activation compression hook called for {model_name}.{submodule_name}')
             key = (model_name, submodule_name)
             compr_siz = [0] * len(self.algo_names)
 
             if self.quant:
-                input_tensor = input_tensor.detach().int_repr()[0]
+                input_tensor = input_tensor[0].detach().int_repr()
             else:
                 input_tensor = input_tensor[0]
 
-            lowered_input = ifm_lowering(ifm=input_tensor, layer_info=submodule_info).detach().cpu().numpy()
+            print('- lowering input tensor')
+            lowered_input = ifm_lowering(ifm=input_tensor, layer_info=submodule_info, verbose=True).detach().cpu().numpy()
             total_siz = lowered_input.dtype.itemsize*8 * lowered_input.size
 
             for aidx, aname in enumerate(self.algo_names):
+                print(f'- start compressing with {aname}')
                 if aname == 'CSC':
                     compr_siz[aidx] = total_siz / len(self.algorithms[aname](lowered_input, wordwidth=lowered_input.dtype.itemsize*8))
                 else:
@@ -95,7 +102,7 @@ class CompressionTestbench(object):
             self.result[key] = compr_siz
 
             print(
-                f"compressing activation: {model_name:15s} {submodule_name:30s} "
+                f"- compression result: {model_name:15s} {submodule_name:30s} "
                 f"sparsity: {sparsity(lowered_input) * 100:3.2f}%, "
                 f"result: {', '.join(map(lambda x: f'{x[0]}:{x[1]:.4f}', zip(self.algo_names, compr_siz)))}"
             )
