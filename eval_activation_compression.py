@@ -4,7 +4,8 @@ from torch.utils.data import DataLoader
 
 from models.tools.imagenet_utils.dataset_loader import val_dataset, val_sampler
 from models.model_presets import imagenet_pretrained
-from simulation.compression_sim import CompressionTestbench
+from simulation.compression_sim import ActivationCompressionSim
+from simulation.testbenches import testbench_filter
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -14,12 +15,12 @@ if __name__ == '__main__':
     log_dirname = os.path.join(os.curdir, 'logs')
     log_filename = f"{os.path.split(__file__)[1].split('.')[0]}.csv"
 
-    compr_tb = CompressionTestbench(linesize=8)
+    compr_tb = ActivationCompressionSim(linesize=8)
 
     for name, config in imagenet_pretrained.items():
         # Generate model
         model = config.generate()
-        compr_tb.register_activation_compression(model=model, model_name=name)
+        compr_tb.register_model(model=model, model_name=name, testbench_filter=testbench_filter)
 
         # Inference one batch
         val_loader = DataLoader(dataset=val_dataset, batch_size=1, shuffle=False, sampler=val_sampler)

@@ -1,7 +1,7 @@
 import math
 import zlib
 import numpy as np
-from typing import Iterable, Callable
+from typing import Iterable, Callable, Dict
 from compression.binary_array import array2binary, binary2array
 from compression.binary_array import binary_xor, binary_and, binary_not, binary_or
 from compression.binary_array import trunc_array2binary, binary2integer, each_word_shrinkable
@@ -524,6 +524,31 @@ def csc_compression(arr: np.ndarray, wordwidth: int) -> str:
     compr_indices = array2binary(compr_mat.indices, wordwidth=index_width)
 
     return compr_data + compr_indices + compr_indptr
+
+
+compression_algorithms : Dict[str, Callable] = {
+    'BDI'  : bdi_compression,
+    'BDI1B': bdi1b_compression,
+    'BDI2B': bdi2b_compression,
+    'BDIZV': bdizv_compression,
+    'BPC'  : bitplane_compression,
+    'CSC'  : csc_compression,
+    'CSR'  : csr_compression,
+    'ZVC'  : zeroval_compression,
+    'ZRLE' : zrle_compression,
+}
+
+decompression_algorithms : Dict[str, Callable] = {
+    'BDI'  : bdi_decompression,
+    'BDI1B': bdi1b_decompression,
+    'BDI2B': bdi2b_decompression,
+    'BDIZV': bdizv_decompression,
+    'BPC'  : bitplane_decompression,
+    # 'CSC'  : csc_decompression,  # not supported yet
+    # 'CSR'  : csr_decompression,  # not supported yet
+    'ZVC'  : zeroval_decompression,
+    'ZRLE' : zrle_decompression,
+}
 
 
 if __name__ == '__main__':

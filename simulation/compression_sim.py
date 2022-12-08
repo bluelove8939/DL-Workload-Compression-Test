@@ -1,6 +1,8 @@
 import numpy as np
+import torch.nn
 
-from compression.algorithms import zeroval_compression, bdizv_compression, bitplane_compression, csc_compression
+from simulation.sim_metaclass import Sim
+from compression.algorithms import compression_algorithms
 from models.tools.lowering import ConvLayerInfo, weight_lowering, ifm_lowering
 
 
@@ -8,22 +10,18 @@ def sparsity(arr: np.ndarray):
     return (arr.size - np.count_nonzero(arr)) / arr.size
 
 
-class CompressionTestbench(object):
-    def __init__(self, quant: bool=False, linesize: int=-1) -> None:
+class WeightCompressionSim(Sim):
+    def __init__(self, quant: bool=False, linesize: int=-1,
+                 algo_names = ('ZVC', 'BDIZV', 'BPC', 'CSC')) -> None:
+        super(WeightCompressionSim, self).__init__()
+
         self.quant = quant
         self.linesize = linesize
-
-        self.algorithms = {
-            'ZVC':   zeroval_compression,
-            'BDIZV': bdizv_compression,
-            'BPC':   bitplane_compression,
-            'CSC':   csc_compression,
-        }
-        self.algo_names = ['ZVC', 'BDIZV', 'BPC', 'CSC']
+        self.algo_names = algo_names
 
         self.result = {}
 
-    def generate_weight_compr_hook(self, model_name, submodule_name, submodule_info) -> callable:
+    def generate_hook(self, model_name, submodule_name, submodule_info) -> callable:
         def weight_compr_hook(submodule, input_tensor, output_tensor):
             print(f'weight compression hook called for {model_name}.{submodule_name}')
             key = (model_name, submodule_name)
@@ -38,16 +36,16 @@ class CompressionTestbench(object):
                 print(f'- start compressing with {aname}')
 
                 if aname == 'CSC':
-                    compr_siz[aidx] = total_siz / len(self.algorithms[aname](lowered_weight, wordwidth=lowered_weight.dtype.itemsize*8))
+                    compr_siz[aidx] = total_siz / len(compression_algorithms[aname](lowered_weight, wordwidth=lowered_weight.dtype.itemsize*8))
                 else:
                     for weight_vec in lowered_weight:
                         if self.linesize != -1:
                             for st_idx in range(0, len(weight_vec), self.linesize):
                                 ed_idx = min(st_idx + self.linesize, len(weight_vec))
-                                compr_siz[aidx] += len(self.algorithms[aname](weight_vec[st_idx:ed_idx],
+                                compr_siz[aidx] += len(compression_algorithms[aname](weight_vec[st_idx:ed_idx],
                                                                               wordwidth=weight_vec.dtype.itemsize * 8))
                         else:
-                            compr_siz[aidx] += len(self.algorithms[aname](weight_vec, wordwidth=weight_vec.dtype.itemsize*8))
+                            compr_siz[aidx] += len(compression_algorithms[aname](weight_vec, wordwidth=weight_vec.dtype.itemsize*8))
                     compr_siz[aidx] = total_siz / compr_siz[aidx]
 
             self.result[key] = compr_siz
@@ -60,16 +58,19 @@ class CompressionTestbench(object):
 
         return weight_compr_hook
 
-    def register_weight_compression(self, model, model_name) -> None:
-        layer_info_dict = ConvLayerInfo.generate_from_model(model=model, input_shape=(1, 3, 224, 224))
 
-        for sm_name, sm in model.named_modules():
-            if sm_name in layer_info_dict.keys():
-                sm.register_forward_hook(
-                    self.generate_weight_compr_hook(
-                        model_name=model_name, submodule_name=sm_name, submodule_info=layer_info_dict[sm_name]))
+class ActivationCompressionSim(Sim):
+    def __init__(self, quant: bool=False, linesize: int=-1,
+                 algo_names = ('ZVC', 'BDIZV', 'BPC', 'CSC')) -> None:
+        super(ActivationCompressionSim, self).__init__()
 
-    def generate_activation_compr_hook(self, model_name, submodule_name, submodule_info) -> callable:
+        self.quant = quant
+        self.linesize = linesize
+        self.algo_names = algo_names
+
+        self.result = {}
+
+    def generate_hook(self, model_name, submodule_name, submodule_info) -> callable:
         def activation_compr_hook(submodule, input_tensor, output_tensor):
             print(f'activation compression hook called for {model_name}.{submodule_name}')
             key = (model_name, submodule_name)
@@ -87,15 +88,15 @@ class CompressionTestbench(object):
             for aidx, aname in enumerate(self.algo_names):
                 print(f'- start compressing with {aname}')
                 if aname == 'CSC':
-                    compr_siz[aidx] = total_siz / len(self.algorithms[aname](lowered_input, wordwidth=lowered_input.dtype.itemsize*8))
+                    compr_siz[aidx] = total_siz / len(compression_algorithms[aname](lowered_input, wordwidth=lowered_input.dtype.itemsize*8))
                 else:
                     for activation_vec in lowered_input:
                         if self.linesize != -1:
                             for st_idx in range(0, len(activation_vec), self.linesize):
                                 ed_idx = min(st_idx + self.linesize, len(activation_vec))
-                                compr_siz[aidx] += len(self.algorithms[aname](activation_vec[st_idx:ed_idx], wordwidth=activation_vec.dtype.itemsize*8))
+                                compr_siz[aidx] += len(compression_algorithms[aname](activation_vec[st_idx:ed_idx], wordwidth=activation_vec.dtype.itemsize*8))
                         else:
-                            compr_siz[aidx] += len(self.algorithms[aname](activation_vec, wordwidth=activation_vec.dtype.itemsize*8))
+                            compr_siz[aidx] += len(compression_algorithms[aname](activation_vec, wordwidth=activation_vec.dtype.itemsize*8))
                     compr_siz[aidx] = total_siz / compr_siz[aidx]
 
             self.result[key] = compr_siz
@@ -107,12 +108,3 @@ class CompressionTestbench(object):
             )
 
         return activation_compr_hook
-
-    def register_activation_compression(self, model, model_name) -> None:
-        layer_info_dict = ConvLayerInfo.generate_from_model(model=model, input_shape=(1, 3, 224, 224))
-
-        for sm_name, sm in model.named_modules():
-            if sm_name in layer_info_dict.keys():
-                sm.register_forward_hook(
-                    self.generate_activation_compr_hook(
-                        model_name=model_name, submodule_name=sm_name, submodule_info=layer_info_dict[sm_name]))

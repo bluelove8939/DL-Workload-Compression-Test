@@ -3,19 +3,20 @@ import torch
 import numpy as np
 
 from models.model_presets import imagenet_pretrained
-from simulation.compression_sim import CompressionTestbench
+from simulation.compression_sim import WeightCompressionSim
+from simulation.testbenches import testbench_filter
 
 
 if __name__ == '__main__':
     log_dirname = os.path.join(os.curdir, 'logs')
     log_filename = f"{os.path.split(__file__)[1].split('.')[0]}.csv"
 
-    compr_tb = CompressionTestbench()
+    compr_tb = WeightCompressionSim()
 
     for name, config in imagenet_pretrained.items():
         # Generate model
         model = config.generate()
-        compr_tb.register_weight_compression(model=model, model_name=name)
+        compr_tb.register_model(model=model, model_name=name, testbench_filter=testbench_filter)
 
         dummy_image = torch.tensor(np.zeros(shape=(1, 3, 226, 226), dtype=np.dtype('float32')))
 
