@@ -1,49 +1,47 @@
 import os
 import tqdm
+import random
 import numpy as np
 import matplotlib.pyplot as plt
 
-from compression.algorithms import bdizv_compression, bitplane_compression, csc_compression, zrle_compression, ebp_compression
+from compression.algorithms import zeroval_compression, bitplane_compression, csc_compression, zrle_compression, ebp_compression
 
 algo_methods = {
-    'BDIZV': bdizv_compression,
-    'BPC': bitplane_compression,
-    'EBPC': ebp_compression,
+    'ZVC': zeroval_compression,
+    'ZRLE': bitplane_compression,
     'CSC': csc_compression,
-    'ZRLE': zrle_compression,
 }
 
 sparsity = np.arange(0, 1, 0.05)
-arrsize = 128
-iternum = 2000
+height = 64
+width = 64
+arrsize = height * width
+iternum = 1000
 results = {}
 
 for sp in tqdm.tqdm(sparsity, ncols=50):
     nz = int(np.ceil(arrsize * sp))
     avg_ratio = {}
 
+    mat = np.ceil(np.random.normal(size=arrsize) * 128).astype(np.dtype('int8'))
+    idxvec = random.sample(range(len(mat)), nz)
+    mat[idxvec] = 0
+    mat = np.reshape(mat, newshape=(height, width))
+
     for _ in range(iternum):
-        arr = np.ceil(np.random.normal(size=arrsize) * 128).astype(np.dtype('int8'))
-        idxvec = []
+        for arr in mat:
+            # arr = np.ceil(np.random.normal(size=arrsize) * 128).astype(np.dtype('int8'))
 
-        for _ in range(nz):
-            idx = np.random.randint(0, arrsize)
-            while idx in idxvec:
-                idx = np.random.randint(0, arrsize)
-            idxvec.append(idx)
-
-        arr[idxvec] = 0
-
-        for aname, cmethod in algo_methods.items():
-            if aname not in avg_ratio.keys():
-                avg_ratio[aname] = 0
-            avg_ratio[aname] += arrsize * 8 / len(cmethod(arr, wordwidth=8))
+            for aname, cmethod in algo_methods.items():
+                if aname not in avg_ratio.keys():
+                    avg_ratio[aname] = 0
+                avg_ratio[aname] += arrsize * 8 / len(cmethod(arr, wordwidth=8))
 
     for aname, cmethod in algo_methods.items():
         if aname not in results.keys():
             results[aname] = []
 
-        results[aname].append(avg_ratio[aname] / iternum)
+        results[aname].append(avg_ratio[aname] / (iternum * height))
 
 filename = 'accelerator_algorithm_test.csv'
 dirname = os.path.join(os.curdir, 'logs')
