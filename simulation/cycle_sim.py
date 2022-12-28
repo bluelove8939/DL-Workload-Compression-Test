@@ -120,12 +120,6 @@ class CompressedAcceleratorCycleSim(Sim):
         print((f'\r[tile {tile_index}]  ' if tile_index != -1 else '') + f'- calculating cycle of systolic array (SystolicArray)', end='')
         sa_cycle = systolic_array_cycles(arr_shape=self.sa_shape, act_shape=act_shape, wgt_shape=wgt_shape)
 
-        # checking if tile is all zeros
-        if np.count_nonzero(weight_tensor) == 0:
-            print("weight tensor is all zeros")
-        if np.count_nonzero(input_tensor) == 0:
-            print("input tensor is all zeros")
-
         print((f'\r[tile {tile_index}]  ' if tile_index != -1 else '') + f'- simulating with compressed accelerator (CompressedAccelerator)', end='')
         weight_queue, weight_masks, weight_controls, activation_queue_arr, activation_masks_arr = auto_config_matrices(
             weight=weight_tensor, activation=input_tensor, ve_num=self.ve_num, chunk_size=self.chunk_size,
