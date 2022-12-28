@@ -29,6 +29,9 @@ class QuantizationModule(object):
 
         if citer: self.calibrate(model_prepared, citer=citer, verbose=verbose)
         model_quantized = quantize_fx.convert_fx(model_prepared)
+
+        print()
+
         return model_quantized
 
     def calibrate(self, model, citer, verbose=2):

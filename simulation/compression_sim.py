@@ -1,16 +1,16 @@
 import numpy as np
 import torch.nn
 
-from simulation.sim_metaclass import Sim
+from simulation.sim_metaclass import ConvSim
 from compression.algorithms import compression_algorithms
-from models.tools.lowering import ConvLayerInfo, weight_lowering, ifm_lowering
+from models.tools.lowering import weight_lowering, ifm_lowering
 
 
 def sparsity(arr: np.ndarray):
     return (arr.size - np.count_nonzero(arr)) / arr.size
 
 
-class WeightCompressionSim(Sim):
+class WeightCompressionSim(ConvSim):
     def __init__(self, quant: bool=False, linesize: int=-1,
                  algo_names = ('ZVC', 'BDIZV', 'ZRLE', 'CSC')) -> None:
         super(WeightCompressionSim, self).__init__()
@@ -59,7 +59,7 @@ class WeightCompressionSim(Sim):
         return weight_compr_hook
 
 
-class ActivationCompressionSim(Sim):
+class ActivationCompressionSim(ConvSim):
     def __init__(self, quant: bool=False, linesize: int=-1,
                  algo_names = ('ZVC', 'BDIZV', 'BPC', 'CSC')) -> None:
         super(ActivationCompressionSim, self).__init__()

@@ -2,7 +2,7 @@ from typing import Callable
 import torch
 import numpy as np
 
-from simulation.sim_metaclass import Sim
+from simulation.sim_metaclass import ConvSim
 from models.tools.lowering import weight_lowering, ifm_lowering, ConvLayerInfo
 
 
@@ -15,7 +15,7 @@ class AcceleratorConfig(object):
         self.scheduler = scheduler
 
 
-class CycleSim(Sim):
+class CycleSim(ConvSim):
     def __init__(self, ac_config: AcceleratorConfig, quant: bool=True, device: str='cpu'):
         super(CycleSim, self).__init__()
 
@@ -89,7 +89,7 @@ class CycleSim(Sim):
         return cycle_sim_check_hook
 
 
-class PerformanceSim(Sim):
+class PerformanceSim(ConvSim):
     def __init__(self, quant : bool=True, device : str='cpu'):
         super(PerformanceSim, self).__init__()
 
