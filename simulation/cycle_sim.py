@@ -5,19 +5,19 @@ import numpy as np
 from simulation.sim_metaclass import Sim
 from models.tools.lowering import weight_lowering, ifm_lowering
 
-try:
-    from compressed_accelerator import CompressedAccelerator, auto_config_matrices, restore_activation_mat
-    from systolic_array_only_cycles import systolic_array_cycles
-except ImportError:
-    # This script requires SystemPy library
-    # Add path toward SystemPy manually or simply add new sourcecode directory with interpreter settings
-    # if you are using PyCharm
+# This script requires SystemPy library
+# SystemPy is not available right now because it is on development
+# Please contact to su8939@skku.edu if you have any issue running this script
 
+try:
+    from simulation.accelerators.compressed_accelerator import CompressedAccelerator, auto_config_matrices, restore_activation_mat
+    from simulation.accelerators.systolic_array_only_cycles import systolic_array_cycles
+except ImportError:
     systempy_path = os.path.join(os.curdir, '..', '..', 'SystemPy')
     sys.path.append(systempy_path)
 
-    from compressed_accelerator import CompressedAccelerator, auto_config_matrices, restore_activation_mat
-    from systolic_array_only_cycles import systolic_array_cycles
+    from simulation.accelerators.compressed_accelerator import CompressedAccelerator, auto_config_matrices, restore_activation_mat
+    from simulation.accelerators.systolic_array_only_cycles import systolic_array_cycles
 
 
 class CompressedAcceleratorCycleSim(Sim):
@@ -60,7 +60,10 @@ class CompressedAcceleratorCycleSim(Sim):
                 raise Exception(f"[ERROR] Invalid submodule information: {submodule_info}")
 
             if self.sampling_factor == 0:
-                cycles[0], cycles[1] = self._run_cycle_sim(input_tensor, weight_tensor)
+                if self.tile_shape is None:
+                    cycles[0], cycles[1] = self._run_cycle_sim(input_tensor, weight_tensor)
+                else:
+                    pass
             else:
                 ih, iw = input_tensor.shape
                 wh, ww = weight_tensor.shape
