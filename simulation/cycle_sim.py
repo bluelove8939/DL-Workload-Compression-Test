@@ -21,10 +21,10 @@ except ImportError:
 
 
 class CompressedAcceleratorCycleSim(Sim):
-    def __init__(self, ve_num, chunk_size, fifo_capacity, sa_shape=(8, 8), tile_shape=(32, 32), sampling_factor=10, quant=True):
+    def __init__(self, pe_num, chunk_size, fifo_capacity, sa_shape=(8, 8), tile_shape=(32, 32), sampling_factor=10, quant=True):
         super(CompressedAcceleratorCycleSim, self).__init__()
 
-        self.ve_num        = ve_num         # number of VEs
+        self.pe_num        = pe_num         # number of VEs
         self.chunk_size    = chunk_size     # size of a chunk
         self.fifo_capacity = fifo_capacity  # capacity of FIFO inside the VE
 
@@ -125,18 +125,18 @@ class CompressedAcceleratorCycleSim(Sim):
 
         print((f'\r[tile {tile_index}]  ' if tile_index != -1 else '') + f'- simulating with compressed accelerator (CompressedAccelerator)', end='')
         weight_queue, weight_masks, weight_controls, activation_queue_arr, activation_masks_arr = auto_config_matrices(
-            weight=weight_tensor, activation=input_tensor, ve_num=self.ve_num, chunk_size=self.chunk_size,
+            weight=weight_tensor, activation=input_tensor, pe_num=self.pe_num, chunk_size=self.chunk_size,
         )
 
         print((f'\r[tile {tile_index}]  ' if tile_index != -1 else '') + f'- weight mappings: {len(weight_masks)}  activation mappings: {len(activation_masks_arr[0])}', end='')
         ca_unit = CompressedAccelerator(
-            ve_num=self.ve_num, chunk_size=self.chunk_size, fifo_capacity=self.fifo_capacity).compile(verbose=False)
+            pe_num=self.pe_num, chunk_size=self.chunk_size, fifo_capacity=self.fifo_capacity).compile(verbose=False)
         ca_unit.run(reset_n=1)
         ca_unit.run(reset_n=0)
         ca_unit.run(reset_n=1)
 
-        w_m_valid, a_m_valid = 1, [1] * self.ve_num
-        w_d_valid, a_d_valid = 1, [1] * self.ve_num
+        w_m_valid, a_m_valid = 1, [1] * self.pe_num
+        w_d_valid, a_d_valid = 1, [1] * self.pe_num
 
         ca_cycle = 0
 
@@ -174,7 +174,7 @@ class CompressedAcceleratorCycleSim(Sim):
             else:
                 w_m_valid = 0
 
-            for vidx in range(self.ve_num):
+            for vidx in range(self.pe_num):
                 if ca_unit.a_d_in_required_arr[vidx] == 1 and len(activation_queue_arr[vidx]):
                     del activation_queue_arr[vidx][0]
                     a_d_valid[vidx] = 1 if len(activation_queue_arr[vidx]) else 0
@@ -210,7 +210,7 @@ if __name__ == '__main__':
         model_primitive=imagenet_pretrained['AlexNet'].generate(),
         chkpoint_path=os.path.join(os.curdir, '..', 'model_output', 'AlexNet_quantized_tuned_citer_10_pruned_pamt_0.5.pth'))
 
-    sim = CompressedAcceleratorCycleSim(ve_num=16, chunk_size=4, fifo_capacity=8, sa_shape=(8, 8),
+    sim = CompressedAcceleratorCycleSim(pe_num=16, chunk_size=4, fifo_capacity=8, sa_shape=(8, 8),
                                         tile_shape=(32, 32), sampling_factor=10, quant=True)
     sim.register_model(model=model, model_name='AlexNet')
 

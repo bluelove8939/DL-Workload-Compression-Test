@@ -34,7 +34,7 @@ def compress_vector(vec, chunk_size):
     """
     This function compresses a vector into nonzero array and bitmask. (ZVC algorithm)
     Compression involves reshaping process which matches the row size with 'chunk size'.
-    Therefore, compressed result can directly be assigned to the VectorEngine.
+    Therefore, compressed result can directly be assigned to the ProcessingElement.
 
     For example, if the size of the vector is 32 and chunk size is 8,
     the shape of compressed bitmap will be (4, 8).
@@ -69,7 +69,7 @@ def compress_vector(vec, chunk_size):
     return vec_compressed, mask_reshaped
 
 
-def auto_config_matrices(weight, activation, ve_num, chunk_size, transpose_activation: bool=True):
+def auto_config_matrices(weight, activation, pe_num, chunk_size, transpose_activation: bool=True):
     """
     This function generates weight and activation queue containing the weight and activation values,
     that will to be sequentially assigned to the accelerator. (CompressedAccelerator)
@@ -77,7 +77,7 @@ def auto_config_matrices(weight, activation, ve_num, chunk_size, transpose_activ
 
     :param weight: weight matrix
     :param activation: activation matrix
-    :param ve_num: number of VEs
+    :param pe_num: number of VEs
     :param chunk_size: size of a chunk
     :param transpose_activation: indicates whether to transpose the activation
     :return: weight queue, weight mask, weight control, activation queue array, activation mask array
@@ -90,35 +90,35 @@ def auto_config_matrices(weight, activation, ve_num, chunk_size, transpose_activ
     ah, aw = activation.shape
 
     # Weight mapping
-    weight_queue = np.array(list(weight[np.nonzero(weight)].flatten()) * (aw // ve_num), dtype=weight.dtype)
+    weight_queue = np.array(list(weight[np.nonzero(weight)].flatten()) * (aw // pe_num), dtype=weight.dtype)
     weight_queue = slicing_array_with_chunks(weight_queue, chunk_size=chunk_size)
 
-    weight_masks = np.array(list((weight != 0).astype('int32').flatten()) * (aw // ve_num), dtype=weight.dtype)
+    weight_masks = np.array(list((weight != 0).astype('int32').flatten()) * (aw // pe_num), dtype=weight.dtype)
     weight_masks = slicing_array_with_chunks(weight_masks, chunk_size=chunk_size)
 
-    weight_controls = ([0] * (ww // chunk_size - 1) + [1]) * (wh * (aw // ve_num))
+    weight_controls = ([0] * (ww // chunk_size - 1) + [1]) * (wh * (aw // pe_num))
 
     # Activation Mapping
-    activation_queue_arr = [[] for _ in range(ve_num)]
-    activation_masks_arr = [[] for _ in range(ve_num)]
+    activation_queue_arr = [[] for _ in range(pe_num)]
+    activation_masks_arr = [[] for _ in range(pe_num)]
 
     for ridx, row in enumerate(activation):
         nz_arr = list(row[np.nonzero(row)].flatten()) * wh
         mask = list((row != 0).astype('int32')) * wh
 
-        activation_queue_arr[ridx % ve_num] += nz_arr
-        activation_masks_arr[ridx % ve_num] += mask
+        activation_queue_arr[ridx % pe_num] += nz_arr
+        activation_masks_arr[ridx % pe_num] += mask
 
-    for i in range(ve_num):
+    for i in range(pe_num):
         activation_queue_arr[i] = slicing_array_with_chunks(np.array(activation_queue_arr[i]), chunk_size=chunk_size)
         activation_masks_arr[i] = slicing_array_with_chunks(np.array(activation_masks_arr[i]), chunk_size=chunk_size)
 
     return weight_queue, weight_masks, weight_controls, activation_queue_arr, activation_masks_arr
 
 
-class VectorEngine(Module):
+class ProcessingElement(Module):
     def __init__(self, chunk_size: int, fifo_capacity: int):
-        super(VectorEngine, self).__init__()
+        super(ProcessingElement, self).__init__()
 
         # Configuration
         self.chunk_size = chunk_size      # size of the vector
@@ -348,11 +348,11 @@ class VectorEngine(Module):
 
 
 class CompressedAccelerator(Module):
-    def __init__(self, ve_num: int, chunk_size: int, fifo_capacity: int):
+    def __init__(self, pe_num: int, chunk_size: int, fifo_capacity: int):
         super(CompressedAccelerator, self).__init__()
 
         # Configuration
-        self.ve_num        = ve_num         # number of VEs
+        self.pe_num        = pe_num         # number of VEs
         self.chunk_size    = chunk_size     # size of a chunk
         self.fifo_capacity = fifo_capacity  # FIFO capacity
 
@@ -364,20 +364,20 @@ class CompressedAccelerator(Module):
         self.w_d_valid = InputPort()  # validity of the weight data (for leftmost VE)
         self.w_m_valid = InputPort()  # validity of the weight mask (for leftmost VE)
 
-        self.a_d_valid_arr = [InputPort() for _ in range(self.ve_num)]
-        self.a_m_valid_arr = [InputPort() for _ in range(self.ve_num)]
+        self.a_d_valid_arr = [InputPort() for _ in range(self.pe_num)]
+        self.a_m_valid_arr = [InputPort() for _ in range(self.pe_num)]
 
         self.w_d_in = InputPort(shape=(self.chunk_size, ), dtype='int32')  # weight data input (for leftmost VE)
         self.w_m_in = InputPort(shape=(self.chunk_size, ), dtype='int32')  # weight mask input (for leftmost VE)
 
-        self.a_d_in_arr = [InputPort(shape=(self.chunk_size, ), dtype='int32') for _ in range(self.ve_num)]
-        self.a_m_in_arr = [InputPort(shape=(self.chunk_size, ), dtype='int32') for _ in range(self.ve_num)]
+        self.a_d_in_arr = [InputPort(shape=(self.chunk_size, ), dtype='int32') for _ in range(self.pe_num)]
+        self.a_m_in_arr = [InputPort(shape=(self.chunk_size, ), dtype='int32') for _ in range(self.pe_num)]
 
-        self.ps_out_arr = [OutputPort() for _ in range(self.ve_num)]
-        self.ps_valid_arr = [OutputPort() for _ in range(self.ve_num)]
+        self.ps_out_arr = [OutputPort() for _ in range(self.pe_num)]
+        self.ps_valid_arr = [OutputPort() for _ in range(self.pe_num)]
 
-        self.a_d_in_required_arr = [OutputPort() for _ in range(self.ve_num)]
-        self.a_m_in_required_arr = [OutputPort() for _ in range(self.ve_num)]
+        self.a_d_in_required_arr = [OutputPort() for _ in range(self.pe_num)]
+        self.a_m_in_required_arr = [OutputPort() for _ in range(self.pe_num)]
 
         self.w_d_out = OutputPort()
         self.w_m_out = OutputPort()
@@ -392,22 +392,22 @@ class CompressedAccelerator(Module):
         self.w_m_out_valid = OutputPort()
 
         # VE array
-        self.ve_array = [VectorEngine(chunk_size=chunk_size, fifo_capacity=fifo_capacity) for _ in range(self.ve_num)]
+        self.pe_array = [ProcessingElement(chunk_size=chunk_size, fifo_capacity=fifo_capacity) for _ in range(self.pe_num)]
 
-        for vidx, ve in enumerate(self.ve_array):
+        for vidx, ve in enumerate(self.pe_array):
             ve.assign(
                 clk=self.clk,
                 reset_n=self.reset_n,
 
-                control=self.ve_array[vidx-1].control_out if vidx > 0 else self.control,
+                control=self.pe_array[vidx-1].control_out if vidx > 0 else self.control,
 
-                w_d_valid=self.ve_array[vidx-1].w_d_out_valid if vidx > 0 else self.w_d_valid,
-                w_m_valid=self.ve_array[vidx-1].w_m_out_valid if vidx > 0 else self.w_m_valid,
+                w_d_valid=self.pe_array[vidx-1].w_d_out_valid if vidx > 0 else self.w_d_valid,
+                w_m_valid=self.pe_array[vidx-1].w_m_out_valid if vidx > 0 else self.w_m_valid,
                 a_d_valid=self.a_d_valid_arr[vidx],
                 a_m_valid=self.a_m_valid_arr[vidx],
 
-                w_d_in=self.ve_array[vidx-1].w_d_out if vidx > 0 else self.w_d_in,
-                w_m_in=self.ve_array[vidx-1].w_m_out if vidx > 0 else self.w_m_in,
+                w_d_in=self.pe_array[vidx-1].w_d_out if vidx > 0 else self.w_d_in,
+                w_m_in=self.pe_array[vidx-1].w_m_out if vidx > 0 else self.w_m_in,
 
                 a_d_in=self.a_d_in_arr[vidx],
                 a_m_in=self.a_m_in_arr[vidx],
@@ -418,21 +418,21 @@ class CompressedAccelerator(Module):
                 a_d_in_required=self.a_d_in_required_arr[vidx],
                 a_m_in_required=self.a_m_in_required_arr[vidx],
 
-                w_d_out=self.ve_array[vidx+1].w_d_in if vidx < self.ve_num-1 else self.w_d_out,
-                w_m_out=self.ve_array[vidx+1].w_m_in if vidx < self.ve_num-1 else self.w_m_out,
+                w_d_out=self.pe_array[vidx+1].w_d_in if vidx < self.pe_num-1 else self.w_d_out,
+                w_m_out=self.pe_array[vidx+1].w_m_in if vidx < self.pe_num-1 else self.w_m_out,
 
-                w_d_out_required=self.ve_array[vidx+1].w_d_in_required if vidx < self.ve_num-1 else self.w_d_out_required,
-                w_m_out_required=self.ve_array[vidx+1].w_m_in_required if vidx < self.ve_num-1 else self.w_m_out_required,
+                w_d_out_required=self.pe_array[vidx+1].w_d_in_required if vidx < self.pe_num-1 else self.w_d_out_required,
+                w_m_out_required=self.pe_array[vidx+1].w_m_in_required if vidx < self.pe_num-1 else self.w_m_out_required,
 
-                w_d_in_required=self.ve_array[vidx-1].w_d_out_required if vidx > 0 else self.w_d_in_required,
-                w_m_in_required=self.ve_array[vidx-1].w_m_out_required if vidx > 0 else self.w_m_in_required,
+                w_d_in_required=self.pe_array[vidx-1].w_d_out_required if vidx > 0 else self.w_d_in_required,
+                w_m_in_required=self.pe_array[vidx-1].w_m_out_required if vidx > 0 else self.w_m_in_required,
 
-                w_d_out_valid=self.ve_array[vidx+1].w_d_valid if vidx < self.ve_num-1 else self.w_d_out_valid,
-                w_m_out_valid=self.ve_array[vidx+1].w_m_valid if vidx < self.ve_num-1 else self.w_m_out_valid,
+                w_d_out_valid=self.pe_array[vidx+1].w_d_valid if vidx < self.pe_num-1 else self.w_d_out_valid,
+                w_m_out_valid=self.pe_array[vidx+1].w_m_valid if vidx < self.pe_num-1 else self.w_m_out_valid,
             )
 
     def is_idle(self):
-        return np.count_nonzero(np.logical_not(np.array([len(ve.w_m_fifo) == 0 and len(ve.a_m_fifo) == 0 for ve in self.ve_array]))) == 0
+        return np.count_nonzero(np.logical_not(np.array([len(ve.w_m_fifo) == 0 and len(ve.a_m_fifo) == 0 for ve in self.pe_array]))) == 0
 
 
 # Testbench for CompressedAccelerator
@@ -446,7 +446,7 @@ if __name__ == '__main__':
     wgt_shape = (32, 32)  # shape of weight matrix
     out_shape = (wgt_shape[0], act_shape[1])  # shape of output matrix
 
-    ve_num = 16        # number of VEs
+    pe_num = 16        # number of VEs
     chunk_size = 4     # size of a chunk
     fifo_capacity = 8  # capacity of FIFO inside the VE
     sparsity = 0.5     # sparsity of the input vectors (0 to 1)
@@ -456,7 +456,7 @@ if __name__ == '__main__':
 
     # Instantiation of CompressedAccelerator
     ca_unit = CompressedAccelerator(
-        ve_num=ve_num, chunk_size=chunk_size, fifo_capacity=fifo_capacity).compile(verbose=verbose)
+        pe_num=pe_num, chunk_size=chunk_size, fifo_capacity=fifo_capacity).compile(verbose=verbose)
     ca_unit.run(reset_n=1)
 
     for t in range(testcase):
@@ -468,17 +468,17 @@ if __name__ == '__main__':
         weight_matrix[np.random.choice(2, size=wgt_shape, p=[1 - sparsity, sparsity]).astype('bool')] = 0
 
         weight_queue, weight_masks, weight_controls, activation_queue_arr, activation_masks_arr = auto_config_matrices(
-            weight=weight_matrix, activation=activation_matrix, ve_num=ve_num, chunk_size=chunk_size,
+            weight=weight_matrix, activation=activation_matrix, pe_num=pe_num, chunk_size=chunk_size,
         )
 
         ca_unit.run(reset_n=0)
         ca_unit.run(reset_n=1)
 
-        w_m_valid, a_m_valid = 1, [1] * ve_num
-        w_d_valid, a_d_valid = 1, [1] * ve_num
+        w_m_valid, a_m_valid = 1, [1] * pe_num
+        w_d_valid, a_d_valid = 1, [1] * pe_num
 
         cycle_cnt = 0
-        output_act = [[] for _ in range(ve_num)]
+        output_act = [[] for _ in range(pe_num)]
 
         while True:
             ca_unit.run(
@@ -501,7 +501,7 @@ if __name__ == '__main__':
 
             if verbose:
                 # sys.stdout.write(f"Iter{cycle_cnt}\n")
-                # for vidx, ve_unit in enumerate(ca_unit.ve_array):
+                # for vidx, ve_unit in enumerate(ca_unit.pe_array):
                 #     sys.stdout.write(
                 #         f"- VE{vidx} -> {ve_unit.summary('w_d_in', 'w_m_in', 'a_d_in', 'a_m_in', 'control', 'ps_out')}\n")
                 sys.stdout.write(
@@ -527,7 +527,7 @@ if __name__ == '__main__':
             else:
                 w_m_valid = 0
 
-            for vidx in range(ve_num):
+            for vidx in range(pe_num):
                 if ca_unit.a_d_in_required_arr[vidx] == 1 and len(activation_queue_arr[vidx]):
                     del activation_queue_arr[vidx][0]
                     a_d_valid[vidx] = 1 if len(activation_queue_arr[vidx]) else 0
@@ -564,17 +564,17 @@ if __name__ == '__main__':
             print(f"\tCase #{t + 1}:\ttest {'passed' if np.array_equal(orig_result, test_result) else 'failed'}")
 
 
-# # Testbench for VectorEngine
+# # Testbench for ProcessingElement
 # if __name__ == '__main__':
 #     act_shape = 32  # shape of activation vector
 #     wgt_shape = 32  # shape of weight vector
-#     chunk_size = 8  # size of a chunk
+#     chunk_size = 4  # size of a chunk
 #     sparsity = 0.2  # sparsity of the input vectors (0 to 1)
 #
-#     testcase = 20
-#     verbose = False
+#     testcase = 1
+#     verbose = True
 #
-#     ve_unit = VectorEngine(chunk_size=chunk_size, fifo_capacity=16).compile(verbose=verbose)
+#     ve_unit = ProcessingElement(chunk_size=chunk_size, fifo_capacity=8).compile(verbose=verbose)
 #     ve_unit.run(reset_n=1)
 #
 #     for t in range(testcase):
@@ -591,14 +591,14 @@ if __name__ == '__main__':
 #         a_compr, a_masks = compress_vector(activation_vector, chunk_size=chunk_size)
 #         w_compr, w_masks = compress_vector(weight_vector, chunk_size=chunk_size)
 #
-#         control = 1
+#         # control = 0
 #         w_m_valid, a_m_valid = 1, 1
 #         w_d_valid, a_d_valid = 1, 1
 #
 #         while True:
 #             ve_unit.run(
 #                 clk=0,
-#                 control=control,
+#                 control=1 if len(w_compr) == 1 else 0,
 #                 w_m_valid=w_m_valid,
 #                 a_m_valid=a_m_valid,
 #                 w_d_valid=w_d_valid,
@@ -640,7 +640,9 @@ if __name__ == '__main__':
 #             else:
 #                 a_m_valid = 0
 #
-#             if ve_unit.is_idle() and len(w_masks) == 0 and len(a_masks) == 0:
+#             # if ve_unit.is_idle() and len(w_masks) == 0 and len(a_masks) == 0:
+#             #     break
+#             if ve_unit.ps_valid == 1:
 #                 break
 #
 #         orig_result = np.sum(activation_vector * weight_vector)
