@@ -13,11 +13,9 @@ try:
     from simulation.accelerators.compressed_accelerator import CompressedAccelerator, auto_config_matrices, restore_activation_mat
     from simulation.accelerators.systolic_array_only_cycles import systolic_array_cycles
 except ImportError:
-    systempy_path = os.path.join(os.curdir, '..', '..', 'SystemPy')
-    sys.path.append(systempy_path)
-
-    from simulation.accelerators.compressed_accelerator import CompressedAccelerator, auto_config_matrices, restore_activation_mat
-    from simulation.accelerators.systolic_array_only_cycles import systolic_array_cycles
+    raise Exception("[ERROR] This script requires SystemPy library. "
+                    "SystemPy is not available right now because it is on development. "
+                    "Please contact to su8939@skku.edu if you have any issue running this script. ")
 
 
 class CompressedAcceleratorCycleSim(Sim):
@@ -59,11 +57,8 @@ class CompressedAcceleratorCycleSim(Sim):
             else:
                 raise Exception(f"[ERROR] Invalid submodule information: {submodule_info}")
 
-            if self.sampling_factor == 0:
-                if self.tile_shape is None:
-                    cycles[0], cycles[1] = self._run_cycle_sim(input_tensor, weight_tensor)
-                else:
-                    pass
+            if self.tile_shape is None:
+                cycles[0], cycles[1] = self._run_cycle_sim(input_tensor, weight_tensor)
             else:
                 ih, iw = input_tensor.shape
                 wh, ww = weight_tensor.shape
@@ -86,24 +81,54 @@ class CompressedAcceleratorCycleSim(Sim):
                 input_tensor = input_tensor[:th * (ih // th), :tw * (iw // tw)]
                 weight_tensor = weight_tensor[:th * (wh // th), :tw * (ww // tw)]
 
-                # reshaping input and weight tensors
-                input_tensor = input_tensor.reshape(-1, th, tw)
-                weight_tensor = weight_tensor.reshape(-1, th, tw)
+                # tiled matrix multiplication
+                ih, iw = input_tensor.shape
+                wh, ww = weight_tensor.shape
+                sample_cnt = 0
+                total_tiles = (ih // th) * (wh // th) * (ww // tw)
 
-                print(f"- shape of tiled tensor  weight: {weight_tensor.shape}  input: {input_tensor.shape}")
+                print(f"- calculating tiled multiplication (total tiles: {total_tiles})")
 
-                # sampling tiles
-                for tidx in range(self.sampling_factor):
-                    iidx = np.random.randint(0, len(input_tensor))
-                    widx = np.random.randint(0, len(weight_tensor))
+                if iw != wh:
+                    print(f"- [WARNING] shape mismatch  weight: {weight_tensor.shape}  input: {input_tensor.shape}")
 
-                    ca_cycle, sa_cycle = self._run_cycle_sim(input_tensor[iidx], weight_tensor[widx], tile_index=tidx)
+                for iidx in range(ih // th):
+                    for widx in range(ww // tw):
+                        for tidx in range(wh // th):
+                            if self.sampling_factor != 0 and sample_cnt > self.sampling_factor:
+                                break
 
-                    cycles[0] += ca_cycle
-                    cycles[1] += sa_cycle
+                            input_tile = input_tensor[iidx*th:(iidx+1)*th, tidx*tw:(tidx+1)*tw]
+                            weight_tile = weight_tensor[tidx*th:(tidx+1)*th, widx*tw:(widx+1)*tw]
 
-                cycles[0] = (cycles[0] // self.sampling_factor) * (ih // th) * (iw // tw) * (wh // th) * (ww // tw)
-                cycles[1] = (cycles[1] // self.sampling_factor) * (ih // th) * (iw // tw) * (wh // th) * (ww // tw)
+                            ca_cycle, sa_cycle = self._run_cycle_sim(input_tile, weight_tile, tile_index=sample_cnt)
+
+                            cycles[0] += ca_cycle
+                            cycles[1] += sa_cycle
+                            sample_cnt += 1
+
+                cycles[0] = cycles[0] // sample_cnt
+                cycles[1] = cycles[1] // sample_cnt
+
+                # else:
+                #     # reshaping input and weight tensors
+                #     input_tensor = input_tensor.reshape(-1, th, tw)
+                #     weight_tensor = weight_tensor.reshape(-1, th, tw)
+                #
+                #     print(f"- shape of tiled tensor  weight: {weight_tensor.shape}  input: {input_tensor.shape}")
+                #
+                #     # sampling tiles
+                #     for tidx in range(self.sampling_factor):
+                #         iidx = np.random.randint(0, len(input_tensor))
+                #         widx = np.random.randint(0, len(weight_tensor))
+                #
+                #         ca_cycle, sa_cycle = self._run_cycle_sim(input_tensor[iidx], weight_tensor[widx], tile_index=tidx)
+                #
+                #         cycles[0] += ca_cycle
+                #         cycles[1] += sa_cycle
+                #
+                #     cycles[0] = (cycles[0] // self.sampling_factor) * (ih // th) * (iw // tw) * (wh // th) * (ww // tw)
+                #     cycles[1] = (cycles[1] // self.sampling_factor) * (ih // th) * (iw // tw) * (wh // th) * (ww // tw)
 
             self.result[key] = cycles
 

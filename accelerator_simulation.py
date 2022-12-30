@@ -17,8 +17,8 @@ if __name__ == '__main__':
     log_filename = f"{os.path.split(__file__)[1].split('.')[0]}.csv"
     filepath_fmt = os.path.join(os.curdir, 'model_output', "{name}_quantized_tuned_citer_10_pruned_pamt_0.5.pth")
 
-    sim = CompressedAcceleratorCycleSim(ve_num=16, chunk_size=4, fifo_capacity=8, sa_shape=(8, 8),
-                                        tile_shape=(32, 32), sampling_factor=10, quant=True)
+    sim = CompressedAcceleratorCycleSim(pe_num=16, chunk_size=4, fifo_capacity=8, sa_shape=(8, 8),
+                                        tile_shape=(32, 32), sampling_factor=500, quant=True)
 
     for name, config in imagenet_pretrained.items():
         if not os.path.isfile(filepath_fmt.format(name=name)):

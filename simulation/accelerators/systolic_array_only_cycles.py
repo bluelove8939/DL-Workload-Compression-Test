@@ -4,10 +4,15 @@ def systolic_array_cycles(arr_shape, wgt_shape, act_shape):
     ah, aw = act_shape
 
     unit_cycle = 3*sh + sw - 2
-    wgt_mult = (wh // sh) * (ww // sw)
-    act_mult = (ah // sh) * (aw // sw)
 
-    return unit_cycle * wgt_mult * act_mult
+    if wh == aw:
+        total_mult_num = (ww // sw) * (ah // sh) * (wh // sh)
+    elif ww == ah:
+        total_mult_num = (wh // sh) * (aw // sw) * (ww // sw)
+    else:
+        total_mult_num = (ww // sw) * (ah // sh) * (wh // sh)
+
+    return unit_cycle * total_mult_num
 
 
 if __name__ == '__main__':
