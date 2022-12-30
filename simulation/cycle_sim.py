@@ -19,10 +19,13 @@ except ImportError:
 
 
 class CompressedAcceleratorCycleSim(Sim):
-    def __init__(self, pe_num, chunk_size, fifo_capacity, sa_shape=(8, 8), tile_shape=(32, 32), sampling_factor=10, quant=True):
+    def __init__(self, mult_num, pe_num, chunk_size, fifo_capacity,
+                 sa_shape=(8, 8), tile_shape=(32, 32), sampling_factor=10, quant=True):
+
         super(CompressedAcceleratorCycleSim, self).__init__()
 
-        self.pe_num        = pe_num         # number of VEs
+        self.mult_num      = mult_num       # number of multipliers
+        self.pe_num        = pe_num         # number of PEs
         self.chunk_size    = chunk_size     # size of a chunk
         self.fifo_capacity = fifo_capacity  # capacity of FIFO inside the VE
 
@@ -110,26 +113,6 @@ class CompressedAcceleratorCycleSim(Sim):
                 cycles[0] = cycles[0] // sample_cnt
                 cycles[1] = cycles[1] // sample_cnt
 
-                # else:
-                #     # reshaping input and weight tensors
-                #     input_tensor = input_tensor.reshape(-1, th, tw)
-                #     weight_tensor = weight_tensor.reshape(-1, th, tw)
-                #
-                #     print(f"- shape of tiled tensor  weight: {weight_tensor.shape}  input: {input_tensor.shape}")
-                #
-                #     # sampling tiles
-                #     for tidx in range(self.sampling_factor):
-                #         iidx = np.random.randint(0, len(input_tensor))
-                #         widx = np.random.randint(0, len(weight_tensor))
-                #
-                #         ca_cycle, sa_cycle = self._run_cycle_sim(input_tensor[iidx], weight_tensor[widx], tile_index=tidx)
-                #
-                #         cycles[0] += ca_cycle
-                #         cycles[1] += sa_cycle
-                #
-                #     cycles[0] = (cycles[0] // self.sampling_factor) * (ih // th) * (iw // tw) * (wh // th) * (ww // tw)
-                #     cycles[1] = (cycles[1] // self.sampling_factor) * (ih // th) * (iw // tw) * (wh // th) * (ww // tw)
-
             self.result[key] = cycles
 
             print(
@@ -155,7 +138,7 @@ class CompressedAcceleratorCycleSim(Sim):
 
         print((f'\r[tile {tile_index}]  ' if tile_index != -1 else '') + f'- weight mappings: {len(weight_masks)}  activation mappings: {len(activation_masks_arr[0])}', end='')
         ca_unit = CompressedAccelerator(
-            pe_num=self.pe_num, chunk_size=self.chunk_size, fifo_capacity=self.fifo_capacity).compile(verbose=False)
+            mult_num=self.mult_num, pe_num=self.pe_num, chunk_size=self.chunk_size, fifo_capacity=self.fifo_capacity).compile(verbose=False)
         ca_unit.run(reset_n=1)
         ca_unit.run(reset_n=0)
         ca_unit.run(reset_n=1)

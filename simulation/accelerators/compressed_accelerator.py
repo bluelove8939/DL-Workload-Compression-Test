@@ -117,11 +117,12 @@ def auto_config_matrices(weight, activation, pe_num, chunk_size, transpose_activ
 
 
 class ProcessingElement(Module):
-    def __init__(self, chunk_size: int, fifo_capacity: int):
+    def __init__(self, mult_num: int, chunk_size: int, fifo_capacity: int):
         super(ProcessingElement, self).__init__()
 
         # Configuration
-        self.chunk_size = chunk_size      # size of the vector
+        self.mult_num = mult_num  # number of multipliers
+        self.chunk_size = chunk_size  # size of the vector
         self.fifo_capacity = fifo_capacity  # capacity of the FIFO
 
         # FIFO
@@ -300,13 +301,14 @@ class ProcessingElement(Module):
 
                     # Mapping MAC operation
                     mac_result = self.ps_tmp_reg.get_raw()
-                    if np.count_nonzero(self.c_mask) != 0:
-                        cidx = np.where(self.c_mask == True)[0][0]
-                        widx, aidx = self.w_prefix[cidx], self.a_prefix[cidx]
+                    for _ in range(self.mult_num):  # mapping operands to the multipliers
+                        if np.count_nonzero(self.c_mask) != 0:
+                            cidx = np.where(self.c_mask == True)[0][0]
+                            widx, aidx = self.w_prefix[cidx], self.a_prefix[cidx]
 
-                        wv, av = self.w_fifo[widx], self.a_fifo[aidx]
-                        self.c_mask[cidx] = False
-                        mac_result = self.ps_tmp_reg.get_raw() + (wv * av)
+                            wv, av = self.w_fifo[widx], self.a_fifo[aidx]
+                            self.c_mask[cidx] = False
+                            mac_result += (wv * av)
 
                     # Define temporary buffer
                     if np.count_nonzero(self.c_mask) == 0 and self.con_fifo[0] == 1:
@@ -348,7 +350,7 @@ class ProcessingElement(Module):
 
 
 class CompressedAccelerator(Module):
-    def __init__(self, pe_num: int, chunk_size: int, fifo_capacity: int):
+    def __init__(self, pe_num: int, mult_num: int, chunk_size: int, fifo_capacity: int):
         super(CompressedAccelerator, self).__init__()
 
         # Configuration
@@ -392,7 +394,9 @@ class CompressedAccelerator(Module):
         self.w_m_out_valid = OutputPort()
 
         # VE array
-        self.pe_array = [ProcessingElement(chunk_size=chunk_size, fifo_capacity=fifo_capacity) for _ in range(self.pe_num)]
+        self.pe_array = [ProcessingElement(
+            mult_num=mult_num, chunk_size=chunk_size, fifo_capacity=fifo_capacity
+        ) for _ in range(self.pe_num)]
 
         for vidx, ve in enumerate(self.pe_array):
             ve.assign(
@@ -447,16 +451,17 @@ if __name__ == '__main__':
     out_shape = (wgt_shape[0], act_shape[1])  # shape of output matrix
 
     pe_num = 16        # number of VEs
+    mult_num = 2       # number of multipliers per PE
     chunk_size = 4     # size of a chunk
-    fifo_capacity = 8  # capacity of FIFO inside the VE
-    sparsity = 0.5     # sparsity of the input vectors (0 to 1)
+    fifo_capacity = 8  # capacity of FIFO inside the PE
+    sparsity = 0.7     # sparsity of the input vectors (0 to 1)
 
     testcase = 5
     verbose = False
 
     # Instantiation of CompressedAccelerator
     ca_unit = CompressedAccelerator(
-        pe_num=pe_num, chunk_size=chunk_size, fifo_capacity=fifo_capacity).compile(verbose=verbose)
+        pe_num=pe_num, mult_num=mult_num, chunk_size=chunk_size, fifo_capacity=fifo_capacity).compile(verbose=verbose)
     ca_unit.run(reset_n=1)
 
     for t in range(testcase):
