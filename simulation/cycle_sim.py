@@ -11,7 +11,7 @@ from models.tools.lowering import weight_lowering, ifm_lowering
 
 try:
     from simulation.accelerators.compressed_accelerator import CompressedAccelerator, auto_config_matrices, restore_activation_mat
-    from simulation.accelerators.systolic_array_only_cycles import systolic_array_cycles
+    from simulation.accelerators.systolic_array_only_cycles import systolic_array_cycles_ws
 except ImportError:
     raise Exception("[ERROR] This script requires SystemPy library. "
                     "SystemPy is not available right now because it is on development. "
@@ -19,13 +19,13 @@ except ImportError:
 
 
 class CompressedAcceleratorCycleSim(Sim):
-    def __init__(self, mult_num, pe_num, chunk_size, fifo_capacity,
+    def __init__(self, pe_num, mult_num, chunk_size, fifo_capacity,
                  sa_shape=(8, 8), tile_shape=(32, 32), sampling_factor=10, quant=True):
 
         super(CompressedAcceleratorCycleSim, self).__init__()
 
-        self.mult_num      = mult_num       # number of multipliers
         self.pe_num        = pe_num         # number of PEs
+        self.mult_num      = mult_num       # number of multipliers
         self.chunk_size    = chunk_size     # size of a chunk
         self.fifo_capacity = fifo_capacity  # capacity of FIFO inside the VE
 
@@ -61,7 +61,8 @@ class CompressedAcceleratorCycleSim(Sim):
                 raise Exception(f"[ERROR] Invalid submodule information: {submodule_info}")
 
             if self.tile_shape is None:
-                cycles[0], cycles[1] = self._run_cycle_sim(input_tensor, weight_tensor)
+                cycles[0] += self._run_compressed_accelerator(input_tensor, weight_tensor)
+                cycles[1] += systolic_array_cycles_ws(arr_shape=self.sa_shape, act_shape=input_tensor.shape, wgt_shape=weight_tensor.shape)
             else:
                 ih, iw = input_tensor.shape
                 wh, ww = weight_tensor.shape
@@ -90,7 +91,10 @@ class CompressedAcceleratorCycleSim(Sim):
                 sample_cnt = 0
                 total_tiles = (ih // th) * (wh // th) * (ww // tw)
 
-                print(f"- calculating tiled multiplication (total tiles: {total_tiles})")
+                print(f"- calculating tiled multiplication with systolic array (tile shape: {self.sa_shape})")
+                cycles[1] += systolic_array_cycles_ws(arr_shape=self.sa_shape, act_shape=input_tensor.shape, wgt_shape=weight_tensor.shape)
+
+                print(f"- calculating tiled multiplication with compressed accelerator (total tiles: {total_tiles})")
 
                 if iw != wh:
                     print(f"- [WARNING] shape mismatch  weight: {weight_tensor.shape}  input: {input_tensor.shape}")
@@ -104,14 +108,12 @@ class CompressedAcceleratorCycleSim(Sim):
                             input_tile = input_tensor[iidx*th:(iidx+1)*th, tidx*tw:(tidx+1)*tw]
                             weight_tile = weight_tensor[tidx*th:(tidx+1)*th, widx*tw:(widx+1)*tw]
 
-                            ca_cycle, sa_cycle = self._run_cycle_sim(input_tile, weight_tile, tile_index=sample_cnt)
+                            ca_cycle = self._run_compressed_accelerator(input_tile, weight_tile, tile_index=sample_cnt)
 
                             cycles[0] += ca_cycle
-                            cycles[1] += sa_cycle
                             sample_cnt += 1
 
-                cycles[0] = cycles[0] // sample_cnt
-                cycles[1] = cycles[1] // sample_cnt
+                cycles[0] = (cycles[0] // sample_cnt) * total_tiles
 
             self.result[key] = cycles
 
@@ -124,12 +126,12 @@ class CompressedAcceleratorCycleSim(Sim):
 
         return layer_cycles_hook
 
-    def _run_cycle_sim(self, input_tensor, weight_tensor, tile_index=-1):
-        act_shape = input_tensor.shape
-        wgt_shape = weight_tensor.shape
-
-        print((f'\r[tile {tile_index}]  ' if tile_index != -1 else '') + f'- calculating cycle of systolic array (SystolicArray)', end='')
-        sa_cycle = systolic_array_cycles(arr_shape=self.sa_shape, act_shape=act_shape, wgt_shape=wgt_shape)
+    def _run_compressed_accelerator(self, input_tensor, weight_tensor, tile_index=-1):
+        # act_shape = input_tensor.shape
+        # wgt_shape = weight_tensor.shape
+        #
+        # print((f'\r[tile {tile_index}]  ' if tile_index != -1 else '') + f'- calculating cycle of systolic array (SystolicArray)', end='')
+        # sa_cycle = systolic_array_cycles(arr_shape=self.sa_shape, act_shape=act_shape, wgt_shape=wgt_shape)
 
         print((f'\r[tile {tile_index}]  ' if tile_index != -1 else '') + f'- simulating with compressed accelerator (CompressedAccelerator)', end='')
         weight_queue, weight_masks, weight_controls, activation_queue_arr, activation_masks_arr = auto_config_matrices(
@@ -202,7 +204,7 @@ class CompressedAcceleratorCycleSim(Sim):
 
         print("\r", end='')
 
-        return ca_cycle, sa_cycle
+        return ca_cycle
 
 
 if __name__ == '__main__':

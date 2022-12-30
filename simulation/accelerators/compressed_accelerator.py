@@ -441,6 +441,8 @@ class CompressedAccelerator(Module):
 
 # Testbench for CompressedAccelerator
 if __name__ == '__main__':
+    from simulation.accelerators.systolic_array_only_cycles import systolic_array_cycles_ws
+
     # Verbose options
     np.set_printoptions(threshold=np.inf)
     np.set_printoptions(linewidth=np.inf)
@@ -450,7 +452,10 @@ if __name__ == '__main__':
     wgt_shape = (32, 32)  # shape of weight matrix
     out_shape = (wgt_shape[0], act_shape[1])  # shape of output matrix
 
-    pe_num = 16        # number of VEs
+    # Systolic array cycles
+    print(f"systolic array cycles: {systolic_array_cycles_ws(arr_shape=(8, 8), wgt_shape=wgt_shape, act_shape=act_shape)}")
+
+    pe_num = 32        # number of VEs
     mult_num = 2       # number of multipliers per PE
     chunk_size = 4     # size of a chunk
     fifo_capacity = 8  # capacity of FIFO inside the PE
