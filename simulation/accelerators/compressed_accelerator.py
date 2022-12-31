@@ -448,8 +448,8 @@ if __name__ == '__main__':
     np.set_printoptions(linewidth=np.inf)
 
     # Simulation setup
-    act_shape = (32, 32)  # shape of activation matrix
-    wgt_shape = (32, 32)  # shape of weight matrix
+    act_shape = (256, 256)  # shape of activation matrix
+    wgt_shape = (256, 256)  # shape of weight matrix
     out_shape = (wgt_shape[0], act_shape[1])  # shape of output matrix
 
     # Systolic array cycles
@@ -519,10 +519,13 @@ if __name__ == '__main__':
                     f"ps_out: {np.array([ps.get_raw() for ps in ca_unit.ps_out_arr])}  "
                     f"valid: {np.array([va.get_raw() for va in ca_unit.ps_valid_arr])}\n")
             else:
+                # sys.stdout.write(
+                #     f"\rcycle: {cycle_cnt}  "
+                #     f"ps_out: {np.array([ps.get_raw() for ps in ca_unit.ps_out_arr])}  "
+                #     f"valid: {np.array([va.get_raw() for va in ca_unit.ps_valid_arr])}")
                 sys.stdout.write(
                     f"\rcycle: {cycle_cnt}  "
-                    f"ps_out: {np.array([ps.get_raw() for ps in ca_unit.ps_out_arr])}  "
-                    f"valid: {np.array([va.get_raw() for va in ca_unit.ps_valid_arr])}")
+                    f"ps_out: {np.array([ps.get_raw() for ps in ca_unit.ps_out_arr])}")
 
             if ca_unit.w_d_in_required == 1 and len(weight_queue):
                 del weight_queue[0]
