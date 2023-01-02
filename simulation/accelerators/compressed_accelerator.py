@@ -1,4 +1,5 @@
 import sys
+import math
 import numpy as np
 
 from systempy.elements import InputPort, ClockPort, OutputPort, Register, Wire
@@ -340,10 +341,10 @@ class ProcessingElement(Module):
         return len(self.a_fifo) <= (self.fifo_capacity - self.chunk_size)
 
     def is_w_m_in_available(self):
-        return len(self.w_m_fifo) <= 2
+        return len(self.w_m_fifo) <= math.ceil(self.fifo_capacity / self.chunk_size)
 
     def is_a_m_in_available(self):
-        return len(self.a_m_fifo) <= 2
+        return len(self.a_m_fifo) <= math.ceil(self.fifo_capacity / self.chunk_size)
 
     def is_idle(self):
         return len(self.w_m_fifo) == 0 and len(self.a_m_fifo) == 0
@@ -448,8 +449,8 @@ if __name__ == '__main__':
     np.set_printoptions(linewidth=np.inf)
 
     # Simulation setup
-    act_shape = (256, 256)  # shape of activation matrix
-    wgt_shape = (256, 256)  # shape of weight matrix
+    act_shape = (32, 32)  # shape of activation matrix
+    wgt_shape = (32, 32)  # shape of weight matrix
     out_shape = (wgt_shape[0], act_shape[1])  # shape of output matrix
 
     # Systolic array cycles
