@@ -35,7 +35,7 @@ class CSVAnalyzer(object):
 
         for filepath in self.filepaths:
             with open(filepath, 'rt') as file:
-                content = list(map(lambda x: x.split(','), file.readlines()))
+                content = list(map(lambda x: x.split(','), filter(lambda x: not (x.startswith('#') or (len(x.strip()) == 0)), file.readlines())))
 
                 if self.header:
                     header = list(map(lambda x: x.strip(), content[0][self.category_col:]))

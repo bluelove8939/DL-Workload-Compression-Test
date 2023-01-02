@@ -17,8 +17,18 @@ if __name__ == '__main__':
     log_filename = f"{os.path.split(__file__)[1].split('.')[0]}.csv"
     filepath_fmt = os.path.join(os.curdir, 'model_output', "{name}_quantized_tuned_citer_10_pruned_pamt_0.5.pth")
 
-    sim = CompressedAcceleratorCycleSim(pe_num=32, mult_num=2, chunk_size=4, fifo_capacity=8, sa_shape=(8, 8),
-                                        tile_shape=(32, 32), sampling_factor=10, quant=True)
+    engine_num = 1
+    pe_num = 32
+    mult_num = 2
+    chunk_size = 4
+    fifo_capacity = 8
+    sa_shape = (8, 8)
+    tile_shape = (32, 32)
+    sampling_factor = 500
+
+    sim = CompressedAcceleratorCycleSim(engine_num=2, pe_num=pe_num, mult_num=mult_num, chunk_size=chunk_size,
+                                        fifo_capacity=fifo_capacity, sa_shape=sa_shape,
+                                        tile_shape=tile_shape, sampling_factor=sampling_factor, quant=True)
 
     for name, config in imagenet_pretrained.items():
         if not os.path.isfile(filepath_fmt.format(name=name)):
@@ -50,7 +60,24 @@ if __name__ == '__main__':
         )
 
     with open(os.path.join(log_dirname, log_filename), 'wt') as log_file:
-        content = ['model name,layer name,compressed accelerator,systolic array,performance gain']
+        content = []
+
+        sim_info = {
+            "number of engines": engine_num,
+            "number of PEs": pe_num,
+            "number of multipliers per PE": mult_num,
+            "size of a chunk": chunk_size,
+            "capacity of FIFOs": fifo_capacity,
+            "shape of systolic array": sa_shape,
+            "shape of a tile": tile_shape,
+            "sampling factor": sampling_factor,
+        }
+
+        for key, val in sim_info.items():
+            content.append(f"# {key}: {val}")
+        content.append('')
+
+        content.append('model name,layer name,compressed accelerator,systolic array,performance gain')
         for key, (ca_cycle, sa_cycle) in sim.result.items():
             content.append(f"{','.join(key)},{ca_cycle},{sa_cycle},{sa_cycle / ca_cycle:.6f}")
         log_file.write('\n'.join(content))

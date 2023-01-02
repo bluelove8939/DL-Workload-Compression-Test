@@ -19,11 +19,12 @@ except ImportError:
 
 
 class CompressedAcceleratorCycleSim(Sim):
-    def __init__(self, pe_num, mult_num, chunk_size, fifo_capacity,
+    def __init__(self, engine_num, pe_num, mult_num, chunk_size, fifo_capacity,
                  sa_shape=(8, 8), tile_shape=(32, 32), sampling_factor=10, quant=True):
 
         super(CompressedAcceleratorCycleSim, self).__init__()
 
+        self.engine_num    = engine_num     # number of engines
         self.pe_num        = pe_num         # number of PEs
         self.mult_num      = mult_num       # number of multipliers
         self.chunk_size    = chunk_size     # size of a chunk
@@ -51,12 +52,12 @@ class CompressedAcceleratorCycleSim(Sim):
                 weight_tensor = weight_tensor().detach().int_repr()
 
             if submodule_info.is_linear():
-                input_tensor = input_tensor.numpy()
-                weight_tensor = weight_tensor.numpy().T
+                input_tensor = input_tensor.numpy().T
+                weight_tensor = weight_tensor.numpy()
             elif submodule_info.is_conv():
                 print('- lowering input and weight tensor')
-                input_tensor = ifm_lowering(ifm=input_tensor, layer_info=submodule_info, verbose=False).detach().cpu().numpy()
-                weight_tensor = weight_lowering(weight=weight_tensor, layer_info=submodule_info).detach().cpu().numpy().T
+                input_tensor = ifm_lowering(ifm=input_tensor, layer_info=submodule_info, verbose=False).detach().cpu().numpy().T
+                weight_tensor = weight_lowering(weight=weight_tensor, layer_info=submodule_info).detach().cpu().numpy()
             else:
                 raise Exception(f"[ERROR] Invalid submodule information: {submodule_info}")
 
@@ -67,6 +68,9 @@ class CompressedAcceleratorCycleSim(Sim):
                 ih, iw = input_tensor.shape
                 wh, ww = weight_tensor.shape
                 th, tw = self.tile_shape
+
+                if tw < self.pe_num:
+                    print(f"- [WARNING] tile width is smaller than the number of PEs")
 
                 # zeropad input and weight tensors
                 if ih < th:
@@ -89,31 +93,36 @@ class CompressedAcceleratorCycleSim(Sim):
                 ih, iw = input_tensor.shape
                 wh, ww = weight_tensor.shape
                 sample_cnt = 0
-                total_tiles = (ih // th) * (wh // th) * (ww // tw)
+                total_tmul = (iw // tw) * (wh // th) * (ww // tw)
 
                 print(f"- calculating tiled multiplication with systolic array (tile shape: {self.sa_shape})")
                 cycles[1] += systolic_array_cycles_ws(arr_shape=self.sa_shape, act_shape=input_tensor.shape, wgt_shape=weight_tensor.shape)
 
-                print(f"- calculating tiled multiplication with compressed accelerator (total tiles: {total_tiles})")
+                print(f"- calculating tiled multiplication with compressed accelerator (total tile multiplications: {total_tmul})\n"
+                      f"- weight shape: {weight_tensor.shape}  input shape:  {input_tensor.shape}")
 
-                if iw != wh:
+                if ww != ih:
                     print(f"- [WARNING] shape mismatch  weight: {weight_tensor.shape}  input: {input_tensor.shape}")
 
-                for iidx in range(ih // th):
-                    for widx in range(ww // tw):
-                        for tidx in range(wh // th):
+                for iidx in range(iw // tw):
+                    for widx in range(wh // th):
+                        for tidx in range(ww // tw):
                             if self.sampling_factor != 0 and sample_cnt > self.sampling_factor:
                                 break
 
-                            input_tile = input_tensor[iidx*th:(iidx+1)*th, tidx*tw:(tidx+1)*tw]
-                            weight_tile = weight_tensor[tidx*th:(tidx+1)*th, widx*tw:(widx+1)*tw]
+                            input_tile = input_tensor[tidx*th:(tidx+1)*th, iidx*tw:(iidx+1)*tw]
+                            weight_tile = weight_tensor[widx*th:(widx+1)*th, tidx*tw:(tidx+1)*tw]
+
+                            ith, itw = input_tile.shape
+                            if itw < self.pe_num:
+                                input_tile = np.pad(input_tile, ((0, 0), (0, self.pe_num - itw)), 'constant', constant_values=0)
 
                             ca_cycle = self._run_compressed_accelerator(input_tile, weight_tile, tile_index=sample_cnt)
 
                             cycles[0] += ca_cycle
                             sample_cnt += 1
 
-                cycles[0] = (cycles[0] // sample_cnt) * total_tiles
+                cycles[0] = ((cycles[0] // sample_cnt) * total_tmul) // self.engine_num
 
             self.result[key] = cycles
 
@@ -168,8 +177,7 @@ class CompressedAcceleratorCycleSim(Sim):
             sys.stdout.write(
                 f"\r[tile {tile_index}]  "
                 f"cycle: {ca_cycle}  "
-                f"ps_out: {np.array([ps.get_raw() for ps in ca_unit.ps_out_arr])}  "
-                f"valid: {np.array([va.get_raw() for va in ca_unit.ps_valid_arr])}" + ' '*20)
+                f"ps_out: {np.array([ps.get_raw() for ps in ca_unit.ps_out_arr])}  " + ' '*20)
 
             if ca_unit.w_d_in_required == 1 and len(weight_queue):
                 del weight_queue[0]
@@ -220,7 +228,7 @@ if __name__ == '__main__':
         model_primitive=imagenet_pretrained['AlexNet'].generate(),
         chkpoint_path=os.path.join(os.curdir, '..', 'model_output', 'AlexNet_quantized_tuned_citer_10_pruned_pamt_0.5.pth'))
 
-    sim = CompressedAcceleratorCycleSim(pe_num=16, chunk_size=4, fifo_capacity=8, sa_shape=(8, 8),
+    sim = CompressedAcceleratorCycleSim(pe_num=16, mult_num=2, chunk_size=4, fifo_capacity=8, sa_shape=(8, 8),
                                         tile_shape=(32, 32), sampling_factor=10, quant=True)
     sim.register_model(model=model, model_name='AlexNet')
 

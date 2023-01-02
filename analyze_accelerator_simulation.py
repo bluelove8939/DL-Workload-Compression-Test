@@ -38,7 +38,7 @@ if __name__ == '__main__':
     analyzer.category_conversion(mappings=tb_mappings)
     analyzer.analyze_csv_with_graph(ax=ax, xtic_rotation=45, annotate=False, headers=headers)
 
-    # ax.set_ylim([0, 3.8])
+    # ax.set_ylim([1, 2.2])
     ax.set_axisbelow(True)
     ax.grid(visible=True, which='major', axis='y', color='gray')
     ax.tick_params(axis='y', which='both', color='white')
