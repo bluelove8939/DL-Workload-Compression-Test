@@ -20,7 +20,7 @@ except ImportError:
 
 class CompressedAcceleratorCycleSim(Sim):
     def __init__(self, engine_num, pe_num, mult_num, chunk_size, fifo_capacity,
-                 sa_shape=(8, 8), tile_shape=(32, 32), sampling_factor=10, quant=True):
+                 sa_shape=(8, 8), wgt_tile_shape=(32, 32), act_tile_shape=(32, 32), sampling_factor=10, quant=True):
 
         super(CompressedAcceleratorCycleSim, self).__init__()
 
@@ -32,7 +32,8 @@ class CompressedAcceleratorCycleSim(Sim):
 
         self.sa_shape = sa_shape  # shape of systolic array
 
-        self.tile_shape = tile_shape            # shape of a tile
+        self.wgt_tile_shape = wgt_tile_shape    # shape of a weight tile
+        self.act_tile_shape = act_tile_shape    # shape of a activation tile
         self.sampling_factor = sampling_factor  # number of tiles to sample
 
         self.quant = quant
@@ -61,39 +62,40 @@ class CompressedAcceleratorCycleSim(Sim):
             else:
                 raise Exception(f"[ERROR] Invalid submodule information: {submodule_info}")
 
-            if self.tile_shape is None:
+            if self.wgt_tile_shape is None or self.act_tile_shape is None:
                 cycles[0] += self._run_compressed_accelerator(input_tensor, weight_tensor)
                 cycles[1] += systolic_array_cycles_ws(arr_shape=self.sa_shape, act_shape=input_tensor.shape, wgt_shape=weight_tensor.shape)
             else:
                 ih, iw = input_tensor.shape
                 wh, ww = weight_tensor.shape
-                th, tw = self.tile_shape
+                # th, tw = self.tile_shape
+                wth, wtw = self.wgt_tile_shape
+                ith, itw = self.act_tile_shape
 
-                if tw < self.pe_num:
-                    print(f"- [WARNING] tile width is smaller than the number of PEs")
+                if wtw < self.pe_num:
+                    print(f"- [WARNING] weight tile width is smaller than the number of PEs")
+
+                if ith < self.pe_num:
+                    print(f"- [WARNING] activation tile height is smaller than the number of PEs")
+
+                if wtw != ith:
+                    raise Exception(f"tile shape mismatch -> weight tile: {self.wgt_tile_shape}  activation tile: {self.act_tile_shape}")
 
                 # zeropad input and weight tensors
-                if ih < th:
-                    input_tensor = np.pad(input_tensor, ((0, th-ih), (0, 0)), 'constant', constant_values=0)
-                if iw < tw:
-                    input_tensor = np.pad(input_tensor, ((0, 0), (0, tw-iw)), 'constant', constant_values=0)
-                if wh < th:
-                    weight_tensor = np.pad(weight_tensor, ((0, th-wh), (0, 0)), 'constant', constant_values=0)
-                if ww < th:
-                    weight_tensor = np.pad(weight_tensor, ((0, 0), (0, tw-ww)), 'constant', constant_values=0)
-
-                # slicing input and weight tensors
-                ih, iw = input_tensor.shape
-                wh, ww = weight_tensor.shape
-
-                input_tensor = input_tensor[:th * (ih // th), :tw * (iw // tw)]
-                weight_tensor = weight_tensor[:th * (wh // th), :tw * (ww // tw)]
+                if ih % ith:
+                    input_tensor = np.pad(input_tensor, ((0, ith - (ith % ih)), (0, 0)), 'constant', constant_values=0)
+                if iw % itw:
+                    input_tensor = np.pad(input_tensor, ((0, 0), (0, itw - (itw % iw))), 'constant', constant_values=0)
+                if wh % wth:
+                    weight_tensor = np.pad(weight_tensor, ((0, wth - (wth % wh)), (0, 0)), 'constant', constant_values=0)
+                if ww % wtw:
+                    weight_tensor = np.pad(weight_tensor, ((0, 0), (0, wtw - (wtw % ww))), 'constant', constant_values=0)
 
                 # tiled matrix multiplication
                 ih, iw = input_tensor.shape
                 wh, ww = weight_tensor.shape
                 sample_cnt = 0
-                total_tmul = (iw // tw) * (wh // th) * (ww // tw)
+                total_tmul = (iw // itw) * (wh // wth) * (ww // wtw)
 
                 print(f"- calculating tiled multiplication with systolic array (tile shape: {self.sa_shape})")
                 cycles[1] += systolic_array_cycles_ws(arr_shape=self.sa_shape, act_shape=input_tensor.shape, wgt_shape=weight_tensor.shape)
@@ -104,18 +106,18 @@ class CompressedAcceleratorCycleSim(Sim):
                 if ww != ih:
                     print(f"- [WARNING] shape mismatch  weight: {weight_tensor.shape}  input: {input_tensor.shape}")
 
-                for iidx in range(iw // tw):
-                    for widx in range(wh // th):
-                        for tidx in range(ww // tw):
+                for iidx in range(iw // itw):
+                    for widx in range(wh // wth):
+                        for tidx in range(ww // wtw):
                             if self.sampling_factor != 0 and sample_cnt > self.sampling_factor:
                                 break
 
-                            input_tile = input_tensor[tidx*th:(tidx+1)*th, iidx*tw:(iidx+1)*tw]
-                            weight_tile = weight_tensor[widx*th:(widx+1)*th, tidx*tw:(tidx+1)*tw]
+                            input_tile = input_tensor[tidx*ith:(tidx+1)*ith, iidx*itw:(iidx+1)*itw]
+                            weight_tile = weight_tensor[widx*wth:(widx+1)*wth, tidx*wtw:(tidx+1)*wtw]
 
-                            ith, itw = input_tile.shape
-                            if itw < self.pe_num:
-                                input_tile = np.pad(input_tile, ((0, 0), (0, self.pe_num - itw)), 'constant', constant_values=0)
+                            # ith, itw = input_tile.shape
+                            # if itw < self.pe_num:
+                            #     input_tile = np.pad(input_tile, ((0, 0), (0, self.pe_num - itw)), 'constant', constant_values=0)
 
                             ca_cycle = self._run_compressed_accelerator(input_tile, weight_tile, tile_index=sample_cnt)
 

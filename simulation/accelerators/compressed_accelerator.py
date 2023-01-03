@@ -83,12 +83,13 @@ def auto_config_matrices(weight, activation, pe_num, chunk_size, transpose_activ
     :param transpose_activation: indicates whether to transpose the activation
     :return: weight queue, weight mask, weight control, activation queue array, activation mask array
     """
-    if transpose_activation:
-        activation = activation.T
-
     # Shape of weight and activation
     wh, ww = weight.shape
     ah, aw = activation.shape
+
+    # Transpose activation map if required
+    if transpose_activation:
+        activation = activation.T
 
     # Weight mapping
     weight_queue = np.array(list(weight[np.nonzero(weight)].flatten()) * (aw // pe_num), dtype=weight.dtype)
@@ -449,8 +450,8 @@ if __name__ == '__main__':
     np.set_printoptions(linewidth=np.inf)
 
     # Simulation setup
-    act_shape = (32, 32)  # shape of activation matrix
-    wgt_shape = (32, 32)  # shape of weight matrix
+    act_shape = (32, 64)  # shape of activation matrix
+    wgt_shape = (64, 32)  # shape of weight matrix
     out_shape = (wgt_shape[0], act_shape[1])  # shape of output matrix
 
     # Systolic array cycles

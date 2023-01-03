@@ -23,12 +23,14 @@ if __name__ == '__main__':
     chunk_size = 4
     fifo_capacity = 8
     sa_shape = (8, 8)
-    tile_shape = (32, 32)
+    wgt_tile_shape = (64, 32)
+    act_tile_shape = (32, 64)
     sampling_factor = 500
 
     sim = CompressedAcceleratorCycleSim(engine_num=2, pe_num=pe_num, mult_num=mult_num, chunk_size=chunk_size,
                                         fifo_capacity=fifo_capacity, sa_shape=sa_shape,
-                                        tile_shape=tile_shape, sampling_factor=sampling_factor, quant=True)
+                                        wgt_tile_shape=wgt_tile_shape, act_tile_shape=act_tile_shape,
+                                        sampling_factor=sampling_factor, quant=True)
 
     for name, config in imagenet_pretrained.items():
         if not os.path.isfile(filepath_fmt.format(name=name)):
@@ -69,7 +71,8 @@ if __name__ == '__main__':
             "size of a chunk": chunk_size,
             "capacity of FIFOs": fifo_capacity,
             "shape of systolic array": sa_shape,
-            "shape of a tile": tile_shape,
+            "shape of a weight tile": wgt_tile_shape,
+            "shape of a activation tile": act_tile_shape,
             "sampling factor": sampling_factor,
         }
 
