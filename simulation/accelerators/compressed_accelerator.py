@@ -1,3 +1,4 @@
+import os
 import sys
 import math
 import numpy as np
@@ -242,8 +243,8 @@ class ProcessingElement(Module):
 
             self.w_d_out_reg <<= np.zeros(shape=self.chunk_size, dtype='int32')
             self.w_m_out_reg <<= np.zeros(shape=self.chunk_size, dtype='int32')
-            self.w_d_in_required_reg <<= 1 if self.is_w_m_in_available() else 0
-            self.w_m_in_required_reg <<= 1 if self.is_w_d_in_available() else 0
+            self.w_d_in_required_reg <<= 1 if self.is_w_d_in_available() else 0
+            self.w_m_in_required_reg <<= 1 if self.is_w_m_in_available() else 0
             self.w_d_out_valid_reg <<= 0
             self.w_m_out_valid_reg <<= 0
         else:
@@ -336,16 +337,16 @@ class ProcessingElement(Module):
                         del self.con_fifo[0]
                 
     def is_w_d_in_available(self):
-        return len(self.w_fifo) <= (self.fifo_capacity - self.chunk_size)
+        return len(self.w_fifo) <= (self.fifo_capacity - self.chunk_size) # and len(self.w_d_packet) < math.floor(self.fifo_capacity / self.chunk_size)
 
     def is_a_d_in_available(self):
         return len(self.a_fifo) <= (self.fifo_capacity - self.chunk_size)
 
     def is_w_m_in_available(self):
-        return len(self.w_m_fifo) <= math.ceil(self.fifo_capacity / self.chunk_size)
+        return len(self.w_m_fifo) < math.floor(self.fifo_capacity / self.chunk_size) # and len(self.w_m_packet) < math.floor(self.fifo_capacity / self.chunk_size)
 
     def is_a_m_in_available(self):
-        return len(self.a_m_fifo) <= math.ceil(self.fifo_capacity / self.chunk_size)
+        return len(self.a_m_fifo) < math.floor(self.fifo_capacity / self.chunk_size)
 
     def is_idle(self):
         return len(self.w_m_fifo) == 0 and len(self.a_m_fifo) == 0
