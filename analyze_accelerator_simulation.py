@@ -8,7 +8,7 @@ from simulation.testbenches import testbenches
 
 
 parser = argparse.ArgumentParser(description='Analysis Configs')
-parser.add_argument('-f', '--filename', default='accelerator_simulation_sf500',
+parser.add_argument('-f', '--filename', default='accelerator_simulation_en1_pn32_mn2_cs4_cf8_sf500',
                     help='Name of the result file (without extension)', dest='filename')
 parser.add_argument('-ie', '--image-extension', default='pdf',
                     help='Extension of image file', dest='extension')

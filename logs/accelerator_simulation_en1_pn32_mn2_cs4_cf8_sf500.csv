@@ -1,0 +1,22 @@
+# number of engines: 1
+# number of PEs: 32
+# number of multipliers per PE: 2
+# size of a chunk: 4
+# capacity of FIFOs: 8
+# shape of systolic array: (8, 8)
+# shape of a weight tile: (64, 32)
+# shape of a activation tile: (32, 64)
+# sampling factor: 500
+
+model name,layer name,compressed accelerator,systolic array,performance gain
+ResNet50,layer1.0.conv2,859950,1814976,2.110560
+ResNet50,layer2.3.conv2,768960,1840896,2.394007
+ResNet50,layer3.5.conv2,612144,1944576,3.176664
+ResNet50,layer4.2.conv2,750528,4165632,5.550269
+AlexNet,features.3,1659075,3571200,2.152525
+AlexNet,features.6,557280,1907712,3.423256
+AlexNet,features.10,389952,1695744,4.348597
+VGG16,features.2,14175504,28910016,2.039435
+VGG16,features.7,12369168,28935936,2.339360
+VGG16,features.12,11148480,29039616,2.604805
+VGG16,features.19,8895744,29454336,3.311059
