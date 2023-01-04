@@ -13,9 +13,15 @@ try:
     from simulation.accelerators.compressed_accelerator import CompressedAccelerator, auto_config_matrices, restore_activation_mat
     from simulation.accelerators.systolic_array_only_cycles import systolic_array_cycles_ws
 except ImportError:
-    raise Exception("[ERROR] This script requires SystemPy library. "
-                    "SystemPy is not available right now because it is on development. "
-                    "Please contact to su8939@skku.edu if you have any issue running this script. ")
+    # raise Exception("[ERROR] This script requires SystemPy library. "
+    #                 "SystemPy is not available right now because it is on development. "
+    #                 "Please contact to su8939@skku.edu if you have any issue running this script. ")
+
+    sys.path.append(os.path.join(os.curdir, '..', 'SystemPy'))
+
+    from simulation.accelerators.compressed_accelerator import CompressedAccelerator, auto_config_matrices, \
+        restore_activation_mat
+    from simulation.accelerators.systolic_array_only_cycles import systolic_array_cycles_ws
 
 
 class CompressedAcceleratorCycleSim(Sim):

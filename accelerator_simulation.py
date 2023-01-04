@@ -1,4 +1,5 @@
 import os
+import argparse
 import numpy as np
 from torch.utils.data import DataLoader
 
@@ -9,24 +10,42 @@ from models.model_presets import generate_from_quant_chkpoint, imagenet_pretrain
 from models.tools.imagenet_utils.dataset_loader import val_dataset, val_sampler
 
 
+parser = argparse.ArgumentParser(description='Compressed Accelerator Performance Simulation')
+parser.add_argument('-en', '--engine-num',      default=1,        help='Number of compressed accelerator engines',               dest='engine_num',      type=int)
+parser.add_argument('-pn', '--pe-num',          default=32,       help='Number of processing element within an engine',          dest='pe_num',          type=int)
+parser.add_argument('-mn', '--multiplier-num',  default=2,        help='Number of multipliers within a processing element',      dest='mult_num',        type=int)
+parser.add_argument('-cs', '--chunk-size',      default=4,        help='Size of a chunk',                                        dest='chunk_size',      type=int)
+parser.add_argument('-fc', '--fifo-capacity',   default=8,        help='Capacity of the fifo',                                   dest='fifo_capacity',   type=int)
+parser.add_argument('-ss', '--sa-shape',        default=(8, 8),   help='Shape of the systolic array',                            dest='sa_shape',        type=int, nargs=2)
+parser.add_argument('-wts', '--wgt-tile-shape', default=(64, 32), help='Shape of a weight tile',                                 dest='wgt_tile_shape',  type=int, nargs=2)
+parser.add_argument('-ats', '--act-tile-shape', default=(32, 64), help='Shape of an input activation tile',                      dest='act_tile_shape',  type=int, nargs=2)
+parser.add_argument('-sf', '--sampling-factor', default=500,      help='Number of tile multiplication samples (0 for infinity)', dest='sampling_factor', type=int)
+sim_args = parser.parse_args()
+
+
 if __name__ == '__main__':
     np.set_printoptions(threshold=np.inf)
     np.set_printoptions(linewidth=np.inf)
 
+    # Compressed Accelerator Configs
+    engine_num    = sim_args.engine_num
+    pe_num        = sim_args.pe_num
+    mult_num      = sim_args.mult_num
+    chunk_size    = sim_args.chunk_size
+    fifo_capacity = sim_args.fifo_capacity
+
+    # Simulation Environment Settings
+    sa_shape        = tuple(sim_args.sa_shape)
+    wgt_tile_shape  = tuple(sim_args.wgt_tile_shape)
+    act_tile_shape  = tuple(sim_args.act_tile_shape)
+    sampling_factor = sim_args.sampling_factor
+
+    # Log file and model path
     log_dirname = os.path.join(os.curdir, 'logs')
-    log_filename = f"{os.path.split(__file__)[1].split('.')[0]}.csv"
+    log_filename = f"{os.path.split(__file__)[1].split('.')[0]}_en{engine_num}_pn{pe_num}_mc{mult_num}_cs{chunk_size}_fc{fifo_capacity}_sf{sampling_factor}.csv"
     filepath_fmt = os.path.join(os.curdir, 'model_output', "{name}_quantized_tuned_citer_10_pruned_pamt_0.5.pth")
 
-    engine_num = 1
-    pe_num = 32
-    mult_num = 2
-    chunk_size = 4
-    fifo_capacity = 8
-    sa_shape = (8, 8)
-    wgt_tile_shape = (64, 32)
-    act_tile_shape = (32, 64)
-    sampling_factor = 500
-
+    # Start Simulation
     sim = CompressedAcceleratorCycleSim(engine_num=2, pe_num=pe_num, mult_num=mult_num, chunk_size=chunk_size,
                                         fifo_capacity=fifo_capacity, sa_shape=sa_shape,
                                         wgt_tile_shape=wgt_tile_shape, act_tile_shape=act_tile_shape,
