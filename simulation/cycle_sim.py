@@ -134,7 +134,7 @@ class CompressedAcceleratorCycleSim(Sim):
                                   f"weight sparsity: {(1 - np.count_nonzero(weight_tile) / np.size(weight_tile))*100:5.2f}%  "
                                   f"input sparsity: {(1 - np.count_nonzero(input_tile) / np.size(input_tile))*100:5.2f}%  "
                                   f"cycles: {ca_cycle}({cycles[0] // sample_cnt})  "
-                                  f"expected gain: {cycles[1] / ((cycles[0] // sample_cnt) * total_tmul):.6f}")
+                                  f"expected gain: {cycles[1] / ((cycles[0] // sample_cnt) * total_tmul):.6f}" + ' '*10)
 
 
                 cycles[0] = (cycles[0] // sample_cnt) * total_tmul
