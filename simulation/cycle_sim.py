@@ -3,7 +3,6 @@ import sys
 import numpy as np
 
 from simulation.sim_metaclass import Sim
-from simulation.accelerators.accelerator_configs import CompressedAcceleratorConfig, SystolicArrayWSConfig
 from models.tools.lowering import weight_lowering, ifm_lowering
 
 # This script requires SystemPy library
@@ -12,6 +11,7 @@ from models.tools.lowering import weight_lowering, ifm_lowering
 
 try:
     from simulation.accelerators.run_cycle_simulation import run_systolic_array_only_cycles, run_compressed_accelerator
+    from simulation.accelerators.accelerator_configs import CompressedAcceleratorConfig, SystolicArrayWSConfig
 except ImportError:
     # raise Exception("[ERROR] This script requires SystemPy library. "
     #                 "SystemPy is not available right now because it is on development. "
@@ -20,6 +20,7 @@ except ImportError:
     sys.path.append(os.path.join(os.curdir, '..', 'SystemPy'))
 
     from simulation.accelerators.run_cycle_simulation import run_systolic_array_only_cycles, run_compressed_accelerator
+    from simulation.accelerators.accelerator_configs import CompressedAcceleratorConfig, SystolicArrayWSConfig
 
 
 class CompressedAcceleratorCycleSim(Sim):
