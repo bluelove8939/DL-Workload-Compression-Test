@@ -57,7 +57,8 @@ def run_compressed_accelerator(weight_tensor, input_tensor, config: CompressedAc
                 (f"\r[tile {tile_index}]  " if tile_index != -1 else '\r') +
                 f"[{np.sum(np.array(output_num)) / (target_output_num*len(output_num))*100:5.2f}%]  "
                 f"cycle: {ca_cycle}  "
-                f"ps_out: {np.array([ps.get_raw() for ps in ca_unit.ps_out_arr])}  " + ' ' * 20)
+                # f"ps_out: {np.array([ps.get_raw() for ps in ca_unit.ps_out_arr])}  " + ' ' * 20
+            )
 
         if ca_unit.w_d_in_required == 1 and len(weight_queue):
             del weight_queue[0]
