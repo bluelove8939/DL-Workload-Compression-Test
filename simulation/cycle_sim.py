@@ -130,7 +130,7 @@ class CompressedAcceleratorCycleSim(Sim):
                             cycles[0] += ca_cycle
                             sample_cnt += 1
 
-                            print(f"  tile {sample_cnt}\t"
+                            print(f"  tile {sample_cnt}  "
                                   f"weight sparsity: {(1 - np.count_nonzero(weight_tile) / np.size(weight_tile))*100:5.2f}%  "
                                   f"input sparsity: {(1 - np.count_nonzero(input_tile) / np.size(input_tile))*100:5.2f}%  "
                                   f"cycles: {ca_cycle}({cycles[0] // sample_cnt})  "
