@@ -10,7 +10,7 @@ from models.tools.lowering import weight_lowering, ifm_lowering
 # Please contact to su8939@skku.edu if you have any issue running this script
 
 try:
-    from simulation.accelerators.compressed_accelerator import CompressedAccelerator, auto_config_matrices, restore_activation_mat
+    from simulation.accelerators.compressed_accelerator_prev import CompressedAccelerator, auto_config_matrices, restore_activation_mat
     from simulation.accelerators.systolic_array_only_cycles import systolic_array_cycles_ws
 except ImportError:
     # raise Exception("[ERROR] This script requires SystemPy library. "
@@ -19,7 +19,7 @@ except ImportError:
 
     sys.path.append(os.path.join(os.curdir, '..', 'SystemPy'))
 
-    from simulation.accelerators.compressed_accelerator import CompressedAccelerator, auto_config_matrices, \
+    from simulation.accelerators.compressed_accelerator_prev import CompressedAccelerator, auto_config_matrices, \
         restore_activation_mat
     from simulation.accelerators.systolic_array_only_cycles import systolic_array_cycles_ws
 
@@ -166,6 +166,8 @@ class CompressedAcceleratorCycleSim(Sim):
         w_d_valid, a_d_valid = 1, [1] * self.pe_num
 
         ca_cycle = 0
+        target_output_num = np.count_nonzero(weight_controls)
+        output_num = np.zeros(shape=self.pe_num)
 
         while True:
             ca_unit.run(
@@ -181,6 +183,10 @@ class CompressedAcceleratorCycleSim(Sim):
                 a_m_in_arr=[0 if len(am) == 0 else am[0] for am in activation_masks_arr],
             )
             ca_unit.run(clk=1)
+
+            for ps_idx, ps_valid in enumerate(ca_unit.ps_valid_arr):
+                if ps_valid.get() == 1:
+                    output_num[ps_idx] += 1
 
             sys.stdout.write(
                 f"\r[tile {tile_index}]  "
@@ -213,7 +219,10 @@ class CompressedAcceleratorCycleSim(Sim):
                 else:
                     a_m_valid[vidx] = 0
 
-            if ca_unit.is_idle() and len(weight_masks) == 0:
+            # if ca_unit.is_idle() and len(weight_masks) == 0:
+            #     break
+
+            if np.count_nonzero(np.array(output_num) != target_output_num) == 0:
                 break
 
             ca_cycle += 1

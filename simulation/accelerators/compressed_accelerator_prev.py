@@ -119,89 +119,25 @@ def auto_config_matrices(weight, activation, pe_num, chunk_size, transpose_activ
     return weight_queue, weight_masks, weight_controls, activation_queue_arr, activation_masks_arr
 
 
-class AsyncFIFO_ThreePtr(object):
-    def __init__(self, chunk_size: int, capacity: int, ignore_fetch_ptr: bool=False):
-        super(AsyncFIFO_ThreePtr, self).__init__()
-
-        self.container = []
-
-        self.chunk_size = chunk_size
-        self.capacity = capacity
-        self.ignore_fetch_ptr = ignore_fetch_ptr
-
-        self.w = 0
-        self.r = 0
-        self.f = 0
-
-    def write(self, *values):
-        for value in values:
-            self.container.append(value)
-        self.w += self.chunk_size
-
-        if self.ignore_fetch_ptr:
-            self.f = self.w
-
-    def read(self, addr: int):
-        return self.container[self.r + addr]
-
-    def remove(self, amt: int):
-        self.r += amt
-        self.fit()
-
-    def fetch(self):
-        if self.chunk_size == 1:
-            ret = self.container[self.f]
-        else:
-            ret = self.container[self.f:self.f+self.chunk_size]
-
-        self.f += self.chunk_size
-        self.fit()
-        return ret
-
-    def fit(self):
-        dit = min(self.r, self.f)
-
-        for _ in range(dit):
-            del self.container[0]
-
-            self.w -= 1
-            self.r -= 1
-            self.f -= 1
-
-    def has_plenty(self, amt: int):
-        return (self.w - self.r) >= amt
-
-    def write_available(self):
-        # if self.ignore_fetch_ptr:
-        #     return self.capacity - (self.w - self.r) >= self.chunk_size
-        return self.capacity - (self.w - min(self.r, self.f)) >= self.chunk_size
-
-    def fetch_available(self):
-        return (self.w - self.f) >= self.chunk_size
-
-    def __len__(self):
-        return self.w - self.r
-
-    def __str__(self):
-        return f"{', '.join(list(map(str, self.container)))} -> w: {self.w} r: {self.r} f: {self.f}"
-
-
 class ProcessingElement(Module):
-    def __init__(self, mult_num: int, chunk_size: int, fifo_capacity: int, fetch_disabled: bool=False):
+    def __init__(self, mult_num: int, chunk_size: int, fifo_capacity: int):
         super(ProcessingElement, self).__init__()
 
         # Configuration
         self.mult_num = mult_num  # number of multipliers
         self.chunk_size = chunk_size  # size of the vector
         self.fifo_capacity = fifo_capacity  # capacity of the FIFO
-        self.fetch_disabled = fetch_disabled
 
         # FIFO
-        self.w_d_fifo = AsyncFIFO_ThreePtr(chunk_size=self.chunk_size, capacity=self.fifo_capacity, ignore_fetch_ptr=self.fetch_disabled)  # weight data FIFO
-        self.w_m_fifo = AsyncFIFO_ThreePtr(chunk_size=1, capacity=math.ceil(self.fifo_capacity / self.chunk_size), ignore_fetch_ptr=self.fetch_disabled)  # weight mask FIFO
-        self.a_d_fifo = []  # activation data FIFO
+        self.w_fifo   = []  # weight data FIFO
+        self.w_m_fifo = []  # weight mask FIFO
+        self.a_fifo   = []  # activation data FIFO
         self.a_m_fifo = []  # activation mask FIFO
-        self.con_fifo = AsyncFIFO_ThreePtr(chunk_size=1, capacity=math.ceil(self.fifo_capacity / self.chunk_size), ignore_fetch_ptr=self.fetch_disabled)  # control queue
+        self.con_fifo = []  # control queue
+
+        self.w_d_packet = []  # weight data packet FIFO (just for simulation)
+        self.w_m_packet = []  # weight mask packet FIFO (just for simulation)
+        self.w_c_packet = []  # weight control packet FIFO (just for simulation)
 
         # Variables
         self.c_mask = None    # variable that stores compared mask
@@ -282,11 +218,15 @@ class ProcessingElement(Module):
     @Module.always('posedge clk', 'negedge reset_n')
     def main(self):
         if self.reset_n == 0:
-            self.w_d_fifo = AsyncFIFO_ThreePtr(chunk_size=self.chunk_size, capacity=self.fifo_capacity, ignore_fetch_ptr=self.fetch_disabled)
-            self.w_m_fifo = AsyncFIFO_ThreePtr(chunk_size=1, capacity=math.ceil(self.fifo_capacity / self.chunk_size), ignore_fetch_ptr=self.fetch_disabled)
-            self.a_d_fifo = []
+            self.w_fifo   = []
+            self.w_m_fifo = []
+            self.a_fifo   = []
             self.a_m_fifo = []
-            self.con_fifo = AsyncFIFO_ThreePtr(chunk_size=1, capacity=math.ceil(self.fifo_capacity / self.chunk_size), ignore_fetch_ptr=self.fetch_disabled)
+            self.con_fifo   = []
+
+            self.w_d_packet = []
+            self.w_m_packet = []
+            self.w_c_packet = []
 
             self.c_mask = None  # variable that stores compared mask
             self.w_prefix = None  # weight prefix sum
@@ -310,48 +250,53 @@ class ProcessingElement(Module):
         else:
             # Store input weight and activation data
             if self.w_d_valid == 1:
-                self.w_d_fifo.write(*list(self.w_d_in.get_raw()))
+                self.w_fifo += list(self.w_d_in.get_raw())
+                self.w_d_packet.append(self.w_d_in.get_raw())
             if self.w_m_valid == 1:
-                self.w_m_fifo.write(self.w_m_in.get_raw())
-                self.con_fifo.write(self.control.get_raw())
+                self.w_m_fifo.append(self.w_m_in.get_raw())
+                self.w_m_packet.append(self.w_m_in.get_raw())
+                self.w_c_packet.append(self.control.get_raw())
+                self.con_fifo.append(self.control.get_raw())
             if self.a_d_valid == 1:
-                self.a_d_fifo += list(self.a_d_in.get_raw())
+                self.a_fifo += list(self.a_d_in.get_raw())
             if self.a_m_valid == 1:
                 self.a_m_fifo.append(self.a_m_in.get_raw())
 
-            # Activation data transfer toward PE
+            # Activation data transfer toward VE
             self.a_d_in_required_reg <<= 1 if self.is_a_d_in_available() else 0
             self.a_m_in_required_reg <<= 1 if self.is_a_m_in_available() else 0
 
-            # Weight data transfer between adjacent PE
-            self.w_d_in_required_reg <<= 1 if self.is_w_d_in_available() else 0
+            # Weight data transfer between adjacent VEs
             self.w_m_in_required_reg <<= 1 if self.is_w_m_in_available() else 0
+            self.w_d_in_required_reg <<= 1 if self.is_w_d_in_available() else 0
 
-            # Weight fetched from adjacent PE
-            if (self.w_d_out_required == 1) and self.w_d_fifo.fetch_available():
-                self.w_d_out_reg <<= np.array(self.w_d_fifo.fetch(), dtype='int32')
-                self.w_d_out_valid_reg <<= 1
-            else:
-                self.w_d_out_valid_reg <<= 0
-
-            if (self.w_m_out_required == 1) and self.w_m_fifo.fetch_available():
-                self.w_m_out_reg <<= self.w_m_fifo.fetch()
-                self.control_out_reg <<= self.con_fifo.fetch()
+            if self.w_m_out_required == 1 and len(self.w_m_packet) > 0:
+                self.w_m_out_reg <<= self.w_m_packet[0]
+                self.control_out_reg <<= self.w_c_packet[0]
                 self.w_m_out_valid_reg <<= 1
+                del self.w_m_packet[0]
+                del self.w_c_packet[0]
             else:
                 self.w_m_out_valid_reg <<= 0
+
+            if self.w_d_out_required == 1 and len(self.w_d_packet) > 0:
+                self.w_d_out_reg <<= self.w_d_packet[0]
+                self.w_d_out_valid_reg <<= 1
+                del self.w_d_packet[0]
+            else:
+                self.w_d_out_valid_reg <<= 0
 
             # If previous output was valid, then next will be initially be invalid
             if self.ps_valid_reg == 1:
                 self.ps_valid_reg <<= 0
 
             # If there are data available and sufficient amount of elements inside the data FIFO
-            if self.w_m_fifo.has_plenty(1) and len(self.a_m_fifo) != 0:
+            if not (len(self.w_m_fifo) == 0 or len(self.a_m_fifo) == 0):
                 # Generate compared mask and prefix sum of the mask
-                w_mask = self.w_m_fifo.read(0)
+                w_mask = self.w_m_fifo[0]
                 a_mask = self.a_m_fifo[0]
 
-                if self.w_d_fifo.has_plenty(int(np.sum(w_mask))) and len(self.a_d_fifo) >= np.sum(a_mask):
+                if len(self.w_fifo) >= np.sum(w_mask) and len(self.a_fifo) >= np.sum(a_mask):
                     if self.c_mask is None or np.count_nonzero(self.c_mask) == 0:
                         self.c_mask = np.logical_and(w_mask, a_mask)
                         self.w_prefix = np.array([np.sum(w_mask[:i]) for i in range(len(w_mask))])
@@ -364,43 +309,44 @@ class ProcessingElement(Module):
                             cidx = np.where(self.c_mask == True)[0][0]
                             widx, aidx = self.w_prefix[cidx], self.a_prefix[cidx]
 
-                            wv, av = self.w_d_fifo.read(widx), self.a_d_fifo[aidx]
+                            wv, av = self.w_fifo[widx], self.a_fifo[aidx]
                             self.c_mask[cidx] = False
                             mac_result += (wv * av)
 
                     # Define temporary buffer
-                    if np.count_nonzero(self.c_mask) == 0 and self.con_fifo.read(0) == 1:
+                    if np.count_nonzero(self.c_mask) == 0 and self.con_fifo[0] == 1:
                         self.ps_tmp_reg <<= 0
                     else:
                         self.ps_tmp_reg <<= mac_result
 
                     # Remove used operands from the FIFO
                     if np.count_nonzero(self.c_mask) == 0:
-                        # Remove used activations
+                        for _ in range(np.sum(w_mask)):
+                            del self.w_fifo[0]
+                        del self.w_m_fifo[0]
+
                         for _ in range(np.sum(a_mask)):
-                            del self.a_d_fifo[0]
+                            del self.a_fifo[0]
                         del self.a_m_fifo[0]
 
                         # If control signal is 1, then the MAC operation result must be valid
-                        if self.con_fifo.read(0) == 1:
+                        if self.con_fifo[0] == 1:
                             self.ps_valid_reg <<= 1
                             self.ps_out_reg <<= mac_result
 
-                        self.w_d_fifo.remove(int(np.sum(w_mask)))
-                        self.w_m_fifo.remove(1)
-                        self.con_fifo.remove(1)
+                        del self.con_fifo[0]
                 
     def is_w_d_in_available(self):
-        return self.w_d_fifo.write_available()
+        return len(self.w_fifo) <= (self.fifo_capacity - self.chunk_size) # and len(self.w_d_packet) < math.floor(self.fifo_capacity / self.chunk_size)
 
     def is_a_d_in_available(self):
-        return len(self.a_d_fifo) <= (self.fifo_capacity - self.chunk_size)
+        return len(self.a_fifo) <= (self.fifo_capacity - self.chunk_size)
 
     def is_w_m_in_available(self):
-        return self.w_m_fifo.write_available()
+        return len(self.w_m_fifo) < math.floor(self.fifo_capacity / self.chunk_size) # and len(self.w_m_packet) < math.floor(self.fifo_capacity / self.chunk_size)
 
     def is_a_m_in_available(self):
-        return len(self.a_m_fifo) < (math.floor(self.fifo_capacity / self.chunk_size) - 1)
+        return len(self.a_m_fifo) < math.floor(self.fifo_capacity / self.chunk_size)
 
     def is_idle(self):
         return len(self.w_m_fifo) == 0 and len(self.a_m_fifo) == 0
@@ -452,8 +398,8 @@ class CompressedAccelerator(Module):
 
         # VE array
         self.pe_array = [ProcessingElement(
-            mult_num=mult_num, chunk_size=chunk_size, fifo_capacity=fifo_capacity, fetch_disabled=False if idx < self.pe_num-1 else True
-        ) for idx in range(self.pe_num)]
+            mult_num=mult_num, chunk_size=chunk_size, fifo_capacity=fifo_capacity
+        ) for _ in range(self.pe_num)]
 
         for vidx, ve in enumerate(self.pe_array):
             ve.assign(
@@ -494,12 +440,10 @@ class CompressedAccelerator(Module):
 
     def is_idle(self):
         return np.count_nonzero(np.logical_not(np.array([len(ve.w_m_fifo) == 0 and len(ve.a_m_fifo) == 0 for ve in self.pe_array]))) == 0
-        # return np.count_nonzero(np.logical_not(np.array([len(ve.w_m_fifo) == 0 for ve in self.pe_array]))) == 0
 
 
 # Testbench for CompressedAccelerator
 if __name__ == '__main__':
-    import time
     from simulation.accelerators.systolic_array_only_cycles import systolic_array_cycles_ws
 
     # Verbose options
@@ -507,14 +451,14 @@ if __name__ == '__main__':
     np.set_printoptions(linewidth=np.inf)
 
     # Simulation setup
-    act_shape = (8, 8)  # shape of activation matrix
-    wgt_shape = (8, 8)  # shape of weight matrix
+    act_shape = (32, 64)  # shape of activation matrix
+    wgt_shape = (64, 32)  # shape of weight matrix
     out_shape = (wgt_shape[0], act_shape[1])  # shape of output matrix
 
     # Systolic array cycles
     print(f"systolic array cycles: {systolic_array_cycles_ws(arr_shape=(8, 8), wgt_shape=wgt_shape, act_shape=act_shape)}")
 
-    pe_num = 8        # number of VEs
+    pe_num = 32        # number of VEs
     mult_num = 2       # number of multipliers per PE
     chunk_size = 4     # size of a chunk
     fifo_capacity = 8  # capacity of FIFO inside the PE
@@ -581,16 +525,7 @@ if __name__ == '__main__':
                 # sys.stdout.write(
                 #     f"\rcycle: {cycle_cnt}  "
                 #     f"ps_out: {np.array([ps.get_raw() for ps in ca_unit.ps_out_arr])}  "
-                #     f"wgt fifos: {np.array([len(pe.w_m_fifo) for pe in ca_unit.pe_array])}  "
-                #     f"act fifos: {np.array([len(pe.a_m_fifo) for pe in ca_unit.pe_array])}  "
-                #     f"valid: {np.array([va.get_raw() for va in ca_unit.ps_valid_arr])}  "
-                #     f"w favail: {np.array([pe.w_m_fifo.fetch_available() for pe in ca_unit.pe_array], dtype='int8')}  "
-                #     f"w wavail: {np.array([pe.w_m_fifo.write_available() for pe in ca_unit.pe_array], dtype='int8')}  "
-                #     f"w inreq: {np.array([pe.w_m_in_required == 1 for pe in ca_unit.pe_array], dtype='int8')}  "
-                #     f"w len: {len(weight_masks)}  "
-                #     f"wgt fifos: {', '.join([str(pe.w_m_fifo) for pe in ca_unit.pe_array])}"
-                # )
-                # time.sleep(0.1)
+                #     f"valid: {np.array([va.get_raw() for va in ca_unit.ps_valid_arr])}")
                 sys.stdout.write(
                     f"\rcycle: {cycle_cnt}  "
                     f"ps_out: {np.array([ps.get_raw() for ps in ca_unit.ps_out_arr])}")
@@ -626,11 +561,8 @@ if __name__ == '__main__':
 
             cycle_cnt += 1
 
-        try:
-            orig_result = np.matmul(weight_matrix, activation_matrix)
-            test_result = restore_activation_mat(np.array(output_act, dtype='int32').T, out_shape=out_shape)
-        except:
-            print(f"  [ERROR] shapes: {[len(i) for i in output_act]}  ", end='')
+        orig_result = np.matmul(weight_matrix, activation_matrix)
+        test_result = restore_activation_mat(np.array(output_act, dtype='int32').T, out_shape=out_shape)
 
         if verbose:
             print("\nweight matrix")
