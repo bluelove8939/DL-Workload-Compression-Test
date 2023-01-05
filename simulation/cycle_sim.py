@@ -104,9 +104,9 @@ class CompressedAcceleratorCycleSim(Sim):
                 sample_cnt = 0
                 total_tmul = (iw // itw) * (wh // wth) * (ww // wtw)
 
-                # print(f"- calculating tiled multiplication with systolic array (tile shape: {self.sa_config.sa_shape})")
-                # cycles[1] += run_systolic_array_only_cycles(weight_tensor, input_tensor, config=self.sa_config, tile_index=sample_cnt, verbose=True)
-                # print(f"- systolic array cycles: {cycles[1]}")
+                print(f"- calculating tiled multiplication with systolic array (tile shape: {self.sa_config.sa_shape})")
+                cycles[1] += run_systolic_array_only_cycles(weight_tensor, input_tensor, config=self.sa_config, tile_index=sample_cnt, verbose=True)
+                print(f"- systolic array cycles: {cycles[1]}")
 
                 print(f"- calculating tiled multiplication with compressed accelerator (total tile multiplications: {total_tmul})\n"
                       f"- weight shape: {weight_tensor.shape}  input shape:  {input_tensor.shape}")
@@ -123,22 +123,22 @@ class CompressedAcceleratorCycleSim(Sim):
                             input_tile = input_tensor[tidx*ith:(tidx+1)*ith, iidx*itw:(iidx+1)*itw]
                             weight_tile = weight_tensor[widx*wth:(widx+1)*wth, tidx*wtw:(tidx+1)*wtw]
 
-                            sa_cycle = run_systolic_array_only_cycles(weight_tile, input_tile, config=self.sa_config, tile_index=sample_cnt, verbose=True)
-                            cycles[1] += sa_cycle
+                            # sa_cycle = run_systolic_array_only_cycles(weight_tile, input_tile, config=self.sa_config, tile_index=sample_cnt, verbose=True)
+                            # cycles[1] += sa_cycle
 
                             ca_cycle = run_compressed_accelerator(weight_tile, input_tile, config=self.ca_config, tile_index=sample_cnt+1, verbose=True)
                             cycles[0] += ca_cycle
                             sample_cnt += 1
 
-                            # print(f"  tile {sample_cnt}  "
-                            #       f"weight sparsity: {(1 - np.count_nonzero(weight_tile) / np.size(weight_tile))*100:5.2f}%  "
-                            #       f"input sparsity: {(1 - np.count_nonzero(input_tile) / np.size(input_tile))*100:5.2f}%  "
-                            #       f"cycles: {ca_cycle}({cycles[0] // sample_cnt})  "
-                            #       f"expected gain: {cycles[1] / ((cycles[0] // sample_cnt) * total_tmul):.6f}")
+                            print(f"  tile {sample_cnt}  "
+                                  f"weight sparsity: {(1 - np.count_nonzero(weight_tile) / np.size(weight_tile))*100:5.2f}%  "
+                                  f"input sparsity: {(1 - np.count_nonzero(input_tile) / np.size(input_tile))*100:5.2f}%  "
+                                  f"cycles: {ca_cycle}({cycles[0] // sample_cnt})  "
+                                  f"expected gain: {cycles[1] / ((cycles[0] // sample_cnt) * total_tmul):.6f}")
 
 
                 cycles[0] = (cycles[0] // sample_cnt) * total_tmul
-                cycles[1] = (cycles[1] // sample_cnt) * total_tmul
+                # cycles[1] = (cycles[1] // sample_cnt) * total_tmul
 
             self.result[key] = cycles
 

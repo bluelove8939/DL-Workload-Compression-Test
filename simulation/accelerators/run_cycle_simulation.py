@@ -133,8 +133,8 @@ if __name__ == '__main__':
         sa_config = SystolicArrayWSConfig(sa_shape=(8, 8))
         ca_config = CompressedAcceleratorConfig(engine_num=4, pe_num=16, mult_num=1, chunk_size=4, fifo_capacity=8)
 
-        weight_tensor = np.random.randint(0, 256, size=(64, 576), dtype='int32')
-        input_tensor = np.random.randint(0, 256, size=(576, 3136), dtype='int32')
+        weight_tensor = np.random.randint(0, 256, size=(256, 2304), dtype='int32')
+        input_tensor = np.random.randint(0, 256, size=(2304, 169), dtype='int32')
 
         sa_cycle = run_systolic_array_only_cycles(weight_tensor, input_tensor, config=sa_config, tile_index=t, verbose=True)
 
