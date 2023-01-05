@@ -204,11 +204,16 @@ class ProcessingElement(Module):
         self.fetch_disabled = fetch_disabled
 
         # FIFO
-        self.w_d_fifo = AsyncFIFO_ThreePtr(chunk_size=self.chunk_size, capacity=self.fifo_capacity, ignore_fetch_ptr=self.fetch_disabled)  # weight data FIFO
-        self.w_m_fifo = AsyncFIFO_ThreePtr(chunk_size=1, capacity=math.ceil(self.fifo_capacity / self.chunk_size), ignore_fetch_ptr=self.fetch_disabled)  # weight mask FIFO
-        self.a_d_fifo = AsyncFIFO_ThreePtr(chunk_size=self.chunk_size, capacity=self.fifo_capacity, ignore_fetch_ptr=True)  # activation data FIFO
-        self.a_m_fifo = AsyncFIFO_ThreePtr(chunk_size=1, capacity=math.ceil(self.fifo_capacity / self.chunk_size), ignore_fetch_ptr=True)  # activation mask FIFO
-        self.con_fifo = AsyncFIFO_ThreePtr(chunk_size=1, capacity=math.ceil(self.fifo_capacity / self.chunk_size), ignore_fetch_ptr=self.fetch_disabled)  # control queue
+        self.w_d_fifo = AsyncFIFO_ThreePtr(
+            chunk_size=self.chunk_size, capacity=self.fifo_capacity, ignore_fetch_ptr=self.fetch_disabled)  # weight data FIFO
+        self.w_m_fifo = AsyncFIFO_ThreePtr(
+            chunk_size=1, capacity=math.ceil(self.fifo_capacity / self.chunk_size), ignore_fetch_ptr=self.fetch_disabled)  # weight mask FIFO
+        self.a_d_fifo = AsyncFIFO_ThreePtr(
+            chunk_size=self.chunk_size, capacity=self.fifo_capacity, ignore_fetch_ptr=True)  # activation data FIFO
+        self.a_m_fifo = AsyncFIFO_ThreePtr(
+            chunk_size=1, capacity=math.ceil(self.fifo_capacity / self.chunk_size), ignore_fetch_ptr=True)  # activation mask FIFO
+        self.con_fifo = AsyncFIFO_ThreePtr(
+            chunk_size=1, capacity=math.ceil(self.fifo_capacity / self.chunk_size), ignore_fetch_ptr=self.fetch_disabled)  # control queue
 
         # Variables
         self.c_mask = None    # variable that stores compared mask

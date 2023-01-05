@@ -12,9 +12,9 @@ from models.tools.imagenet_utils.dataset_loader import val_dataset, val_sampler
 
 
 parser = argparse.ArgumentParser(description='Compressed Accelerator Performance Simulation')
-parser.add_argument('-en',  '--engine-num',      default=1,        help='Number of compressed accelerator engines',               dest='engine_num',      type=int)
+parser.add_argument('-en',  '--engine-num',      default=2,        help='Number of compressed accelerator engines',               dest='engine_num',      type=int)
 parser.add_argument('-pn',  '--pe-num',          default=32,       help='Number of processing element within an engine',          dest='pe_num',          type=int)
-parser.add_argument('-mn',  '--multiplier-num',  default=2,        help='Number of multipliers within a processing element',      dest='mult_num',        type=int)
+parser.add_argument('-mn',  '--multiplier-num',  default=1,        help='Number of multipliers within a processing element',      dest='mult_num',        type=int)
 parser.add_argument('-cs',  '--chunk-size',      default=4,        help='Size of a chunk',                                        dest='chunk_size',      type=int)
 parser.add_argument('-fc',  '--fifo-capacity',   default=12,       help='Capacity of the fifo',                                   dest='fifo_capacity',   type=int)
 parser.add_argument('-ss',  '--sa-shape',        default=(8, 8),   help='Shape of the systolic array',                            dest='sa_shape',        type=int, nargs=2)
