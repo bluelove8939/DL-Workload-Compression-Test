@@ -67,28 +67,28 @@ def validate_compressed_accelerator(config: CompressedAcceleratorConfig,
             else:
                 sys.stdout.write(
                     f"\rcycle: {cycle_cnt}  "
-                    # f"ps_out: {np.array([ps.get_raw() for ps in ca_unit.ps_out_arr])}  "
-                    f"w_m_in_required: {np.array([pe.w_d_in_required.get_raw() for pe in ca_unit.pe_array])}  "
-                    f"w_m_out_valid: {np.array([pe.w_m_out_valid.get_raw() for pe in ca_unit.pe_array])}  "
-                    f"cmask: {', '.join([''.join(list(map(str, pe.c_mask.astype('int32') if pe.c_mask is not None else '00'))) for pe in ca_unit.pe_array])}  "
-
-                    f"wflen: {np.array([pe.w_d_fifo.w - pe.w_m_fifo.f for pe in ca_unit.pe_array])}  "
-                    f"wrlen: {np.array([pe.w_d_fifo.w - pe.w_m_fifo.r for pe in ca_unit.pe_array])}  "
-
-                    f"aflen: {np.array([pe.a_d_fifo.w - pe.a_m_fifo.f for pe in ca_unit.pe_array])}  "
-                    f"arlen: {np.array([pe.a_d_fifo.w - pe.a_m_fifo.r for pe in ca_unit.pe_array])}  "
-
-                    # f"wflen: {np.array([pe.w_m_fifo.w - pe.w_m_fifo.f for pe in ca_unit.pe_array])}  "
-                    # f"wrlen: {np.array([pe.w_m_fifo.w - pe.w_m_fifo.r for pe in ca_unit.pe_array])}  "
+                    f"ps_out: {np.array([ps.get_raw() for ps in ca_unit.ps_out_arr])}  "
+                    # f"w_m_in_required: {np.array([pe.w_d_in_required.get_raw() for pe in ca_unit.pe_array])}  "
+                    # f"w_m_out_valid: {np.array([pe.w_m_out_valid.get_raw() for pe in ca_unit.pe_array])}  "
+                    # f"cmask: {', '.join([''.join(list(map(str, pe.c_mask.astype('int32') if pe.c_mask is not None else '00'))) for pe in ca_unit.pe_array])}  "
                     #
-                    # f"aflen: {np.array([pe.a_m_fifo.w - pe.a_m_fifo.f for pe in ca_unit.pe_array])}  "
-                    # f"arlen: {np.array([pe.a_m_fifo.w - pe.a_m_fifo.r for pe in ca_unit.pe_array])}  "
-                    
-                    f"w_d_fifo: {[(pe.w_d_fifo.w, pe.w_d_fifo.r, pe.w_d_fifo.f) for pe in ca_unit.pe_array]}  "
-                    f"a_d_fifo: {[(pe.a_d_fifo.w, pe.a_d_fifo.r, pe.a_d_fifo.f) for pe in ca_unit.pe_array]}  "
-
-                    # f"w_m_fifo: {[(pe.w_m_fifo.w, pe.w_m_fifo.r, pe.w_m_fifo.f) for pe in ca_unit.pe_array]}  "
-                    # f"a_m_fifo: {[(pe.a_m_fifo.w, pe.a_m_fifo.r, pe.a_m_fifo.f) for pe in ca_unit.pe_array]}  "
+                    # f"wflen: {np.array([pe.w_d_fifo.w - pe.w_m_fifo.f for pe in ca_unit.pe_array])}  "
+                    # f"wrlen: {np.array([pe.w_d_fifo.w - pe.w_m_fifo.r for pe in ca_unit.pe_array])}  "
+                    #
+                    # f"aflen: {np.array([pe.a_d_fifo.w - pe.a_m_fifo.f for pe in ca_unit.pe_array])}  "
+                    # f"arlen: {np.array([pe.a_d_fifo.w - pe.a_m_fifo.r for pe in ca_unit.pe_array])}  "
+                    #
+                    # # f"wflen: {np.array([pe.w_m_fifo.w - pe.w_m_fifo.f for pe in ca_unit.pe_array])}  "
+                    # # f"wrlen: {np.array([pe.w_m_fifo.w - pe.w_m_fifo.r for pe in ca_unit.pe_array])}  "
+                    # #
+                    # # f"aflen: {np.array([pe.a_m_fifo.w - pe.a_m_fifo.f for pe in ca_unit.pe_array])}  "
+                    # # f"arlen: {np.array([pe.a_m_fifo.w - pe.a_m_fifo.r for pe in ca_unit.pe_array])}  "
+                    #
+                    # f"w_d_fifo: {[(pe.w_d_fifo.w, pe.w_d_fifo.r, pe.w_d_fifo.f) for pe in ca_unit.pe_array]}  "
+                    # f"a_d_fifo: {[(pe.a_d_fifo.w, pe.a_d_fifo.r, pe.a_d_fifo.f) for pe in ca_unit.pe_array]}  "
+                    #
+                    # # f"w_m_fifo: {[(pe.w_m_fifo.w, pe.w_m_fifo.r, pe.w_m_fifo.f) for pe in ca_unit.pe_array]}  "
+                    # # f"a_m_fifo: {[(pe.a_m_fifo.w, pe.a_m_fifo.r, pe.a_m_fifo.f) for pe in ca_unit.pe_array]}  "
                 )
 
             if ca_unit.w_d_in_required == 1 and len(weight_queue):
@@ -149,6 +149,6 @@ def validate_compressed_accelerator(config: CompressedAcceleratorConfig,
 if __name__ == '__main__':
     sparsity = 0
 
-    ca_config = CompressedAcceleratorConfig(engine_num=4, pe_num=16, mult_num=1, chunk_size=4, fifo_capacity=4)
+    ca_config = CompressedAcceleratorConfig(engine_num=4, pe_num=16, mult_num=1, chunk_size=4, fifo_capacity=8)
 
     validate_compressed_accelerator(config=ca_config, wgt_shape=(32, 32), act_shape=(32, 32), sparsity=sparsity, testcase=5, verbose=False)

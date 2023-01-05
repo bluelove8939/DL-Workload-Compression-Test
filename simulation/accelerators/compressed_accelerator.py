@@ -340,13 +340,6 @@ class ProcessingElement(Module):
             if self.a_m_valid == 1:
                 self.a_m_fifo.write(self.a_m_in.get_raw())
 
-            # Indicate whether there is enough space inside the FIFO
-            self.a_d_in_required_reg <<= 1 if self.is_a_d_in_available() else 0
-            self.a_m_in_required_reg <<= 1 if self.is_a_m_in_available() else 0
-
-            self.w_d_in_required_reg <<= 1 if self.is_w_d_in_available() else 0
-            self.w_m_in_required_reg <<= 1 if self.is_w_m_in_available() else 0
-
             # If previous output was valid, then next will be initially be invalid
             if self.ps_valid_reg == 1:
                 self.ps_valid_reg <<= 0
@@ -392,6 +385,13 @@ class ProcessingElement(Module):
                         self.a_d_fifo.remove(int(np.sum(a_mask)))
                         self.a_m_fifo.remove(1)
                         self.con_fifo.remove(1)
+
+            # Indicate whether there is enough space inside the FIFO
+            self.a_d_in_required_reg <<= 1 if self.is_a_d_in_available() else 0
+            self.a_m_in_required_reg <<= 1 if self.is_a_m_in_available() else 0
+
+            self.w_d_in_required_reg <<= 1 if self.is_w_d_in_available() else 0
+            self.w_m_in_required_reg <<= 1 if self.is_w_m_in_available() else 0
                 
     def is_w_d_in_available(self):
         return self.w_d_fifo.write_available()
