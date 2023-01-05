@@ -19,9 +19,6 @@ def run_compressed_accelerator(weight_tensor, input_tensor, config: CompressedAc
         weight=weight_tensor, activation=input_tensor, pe_num=config.pe_num, chunk_size=config.chunk_size,
     )
 
-    if verbose:
-        print((f'\r[tile {tile_index}]  ' if tile_index != -1 else '') + f'- weight mappings: {len(weight_masks)}  activation mappings: {len(activation_masks_arr[0])}',end='')
-
     ca_unit = config.generate()
     ca_unit.run(reset_n=1)
     ca_unit.run(reset_n=0)
