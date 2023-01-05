@@ -114,9 +114,9 @@ class CompressedAcceleratorCycleSim(Sim):
                 if ww != ih:
                     print(f"- [WARNING] shape mismatch  weight: {weight_tensor.shape}  input: {input_tensor.shape}")
 
-                for iidx in range(0, iw // itw, 4):
-                    for widx in range(0, wh // wth, 1):
-                        for tidx in range(0, ww // wtw, 2):
+                for iidx in range(0, iw // itw):
+                    for widx in range(0, wh // wth):
+                        for tidx in range(0, ww // wtw):
                             if self.sampling_factor != 0 and sample_cnt > self.sampling_factor:
                                 break
 
