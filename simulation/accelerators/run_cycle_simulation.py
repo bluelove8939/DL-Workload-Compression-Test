@@ -55,6 +55,7 @@ def run_compressed_accelerator(weight_tensor, input_tensor, config: CompressedAc
         if verbose:
             sys.stdout.write(
                 (f"\r[tile {tile_index}]  " if tile_index != -1 else '\r') +
+                f"[{np.sum(np.array(output_num)) / (target_output_num*len(output_num)):5.2f}%]  "
                 f"cycle: {ca_cycle}  "
                 f"ps_out: {np.array([ps.get_raw() for ps in ca_unit.ps_out_arr])}  " + ' ' * 20)
 
