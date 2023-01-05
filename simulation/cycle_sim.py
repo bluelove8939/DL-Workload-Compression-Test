@@ -103,8 +103,8 @@ class CompressedAcceleratorCycleSim(Sim):
                 sample_cnt = 0
                 total_tmul = (iw // itw) * (wh // wth) * (ww // wtw)
 
-                print(f"- calculating tiled multiplication with systolic array (tile shape: {self.sa_shape})")
-                cycles[1] += systolic_array_cycles_ws(arr_shape=self.sa_shape, act_shape=input_tensor.shape, wgt_shape=weight_tensor.shape)
+                # print(f"- calculating tiled multiplication with systolic array (tile shape: {self.sa_shape})")
+                # cycles[1] += systolic_array_cycles_ws(arr_shape=self.sa_shape, act_shape=input_tensor.shape, wgt_shape=weight_tensor.shape)
 
                 print(f"- calculating tiled multiplication with compressed accelerator (total tile multiplications: {total_tmul})\n"
                       f"- weight shape: {weight_tensor.shape}  input shape:  {input_tensor.shape}")
@@ -120,17 +120,15 @@ class CompressedAcceleratorCycleSim(Sim):
 
                             input_tile = input_tensor[tidx*ith:(tidx+1)*ith, iidx*itw:(iidx+1)*itw]
                             weight_tile = weight_tensor[widx*wth:(widx+1)*wth, tidx*wtw:(tidx+1)*wtw]
-
-                            # ith, itw = input_tile.shape
-                            # if itw < self.pe_num:
-                            #     input_tile = np.pad(input_tile, ((0, 0), (0, self.pe_num - itw)), 'constant', constant_values=0)
-
+                            sa_cycle = systolic_array_cycles_ws(arr_shape=self.sa_shape, act_shape=input_tensor.shape, wgt_shape=weight_tensor.shape)
                             ca_cycle = self._run_compressed_accelerator(input_tile, weight_tile, tile_index=sample_cnt)
 
                             cycles[0] += ca_cycle
+                            cycles[1] += sa_cycle
                             sample_cnt += 1
 
                 cycles[0] = ((cycles[0] // sample_cnt) * total_tmul) // self.engine_num
+                cycles[1] = (cycles[1] // sample_cnt) * total_tmul
 
             self.result[key] = cycles
 
