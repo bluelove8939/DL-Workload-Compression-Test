@@ -8,7 +8,7 @@ def systolic_array_cycles_ws(arr_shape, wgt_shape, act_shape):
 
     sta_tile_num = (ww // sw) * (wh // sh)
     sta_input_cycle = sh * sta_tile_num
-    str_input_cycle = (aw + sh - 1) * sta_tile_num
+    str_input_cycle = (aw + sh + sw - 2) * sta_tile_num
 
     return sta_input_cycle + str_input_cycle
 
@@ -26,11 +26,11 @@ def compressed_accelerator_cycles_os(wgt_shape, act_shape, pe_num, mult_num, chu
 
 if __name__ == '__main__':
     arr_shape = (8, 8)
-    wgt_shape = (64, 4096)
-    act_shape = (4096, 128)
+    wgt_shape = (64, 576)
+    act_shape = (576, 3136)
 
     sa_cycle = systolic_array_cycles_ws(arr_shape, wgt_shape, act_shape)
-    ca_cycle = compressed_accelerator_cycles_os(wgt_shape, act_shape, pe_num=32, mult_num=2, chunk_size=4)
+    ca_cycle = compressed_accelerator_cycles_os(wgt_shape, act_shape, pe_num=16, mult_num=1, chunk_size=4)
 
     print(sa_cycle)
     print(ca_cycle)

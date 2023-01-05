@@ -98,6 +98,32 @@ def run_compressed_accelerator(weight_tensor, input_tensor, config: CompressedAc
     return ca_cycle
 
 
+# if __name__ == '__main__':
+#     weight_sparsity = 0.5
+#     input_sparsity = 0.0
+#     testcase = 5
+#
+#     for t in range(testcase):
+#         sa_config = SystolicArrayWSConfig(sa_shape=(8, 8))
+#         ca_config = CompressedAcceleratorConfig(engine_num=4, pe_num=16, mult_num=1, chunk_size=4, fifo_capacity=8)
+#
+#         weight_tensor = np.random.randint(0, 256, size=(64, 32), dtype='int32')
+#         input_tensor = np.random.randint(0, 256, size=(32, 64), dtype='int32')
+#
+#         input_tensor[np.random.choice(2, size=input_tensor.shape, p=[1 - input_sparsity, input_sparsity]).astype('bool')] = 0
+#         weight_tensor[np.random.choice(2, size=weight_tensor.shape, p=[1 - weight_sparsity, weight_sparsity]).astype('bool')] = 0
+#
+#         sa_cycle = run_systolic_array_only_cycles(weight_tensor, input_tensor, config=sa_config, tile_index=t, verbose=True)
+#         ca_cycle = run_compressed_accelerator(weight_tensor, input_tensor, config=ca_config, tile_index=t, verbose=True)
+#
+#         print(f"Case #{t+1}  "
+#               f"weight sparsity: {(1 - np.count_nonzero(weight_tensor) / np.size(weight_tensor))*100:.2f}%  "
+#               f"input sparsity: {(1 - np.count_nonzero(input_tensor) / np.size(input_tensor))*100:.2f}%  "
+#               f"compressed accelerator: {ca_cycle}  "
+#               f"systolic array: {sa_cycle}  "
+#               f"performance gain: {sa_cycle / ca_cycle:.6f}")
+
+
 if __name__ == '__main__':
     weight_sparsity = 0.5
     input_sparsity = 0.0
@@ -107,18 +133,9 @@ if __name__ == '__main__':
         sa_config = SystolicArrayWSConfig(sa_shape=(8, 8))
         ca_config = CompressedAcceleratorConfig(engine_num=4, pe_num=16, mult_num=1, chunk_size=4, fifo_capacity=8)
 
-        weight_tensor = np.random.randint(0, 256, size=(64, 32), dtype='int32')
-        input_tensor = np.random.randint(0, 256, size=(32, 64), dtype='int32')
-
-        input_tensor[np.random.choice(2, size=input_tensor.shape, p=[1 - input_sparsity, input_sparsity]).astype('bool')] = 0
-        weight_tensor[np.random.choice(2, size=weight_tensor.shape, p=[1 - weight_sparsity, weight_sparsity]).astype('bool')] = 0
+        weight_tensor = np.random.randint(0, 256, size=(64, 576), dtype='int32')
+        input_tensor = np.random.randint(0, 256, size=(576, 3136), dtype='int32')
 
         sa_cycle = run_systolic_array_only_cycles(weight_tensor, input_tensor, config=sa_config, tile_index=t, verbose=True)
-        ca_cycle = run_compressed_accelerator(weight_tensor, input_tensor, config=ca_config, tile_index=t, verbose=True)
 
-        print(f"Case #{t+1}  "
-              f"weight sparsity: {(1 - np.count_nonzero(weight_tensor) / np.size(weight_tensor))*100:.2f}%  "
-              f"input sparsity: {(1 - np.count_nonzero(input_tensor) / np.size(input_tensor))*100:.2f}%  "
-              f"compressed accelerator: {ca_cycle}  "
-              f"systolic array: {sa_cycle}  "
-              f"performance gain: {sa_cycle / ca_cycle:.6f}")
+        print(f"{sa_cycle}")
