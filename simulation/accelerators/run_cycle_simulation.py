@@ -15,90 +15,113 @@ def run_compressed_accelerator(weight_tensor, input_tensor, config: CompressedAc
         np.set_printoptions(threshold=np.inf)
         np.set_printoptions(linewidth=np.inf)
 
-    weight_queue, weight_masks, weight_controls, activation_queue_arr, activation_masks_arr = auto_config_matrices(
-        weight=weight_tensor, activation=input_tensor, pe_num=config.pe_num, chunk_size=config.chunk_size,
-    )
+    # mapping weight matrix into multiple engines
+    wh, ww = weight_tensor.shape
+    if ww % config.engine_num != 0:
+        weight_tensor = np.pad(weight_tensor, ((0, 0), (0, ww % config.engine_num)), 'constant', constant_values=0)
+    sww = weight_tensor.shape[1] // config.engine_num
 
-    ca_unit = config.generate()
-    ca_unit.run(reset_n=1)
-    ca_unit.run(reset_n=0)
-    ca_unit.run(reset_n=1)
+    weight_tensors = [weight_tensor[:, i*sww:(i+1)*sww] for i in range(config.engine_num)]
 
-    w_m_valid, a_m_valid = 1, [1] * config.pe_num
-    w_d_valid, a_d_valid = 1, [1] * config.pe_num
+    # mapping input activation matrix into multiple engines
+    ih, iw = input_tensor.shape
+    if ih % config.engine_num != 0:
+        input_tensor = np.pad(input_tensor, ((0, ih % config.engine_num), (0, 0)), 'constant', constant_values=0)
+    sih = input_tensor.shape[0] // config.engine_num
 
-    ca_cycle = 0
-    target_output_num = np.count_nonzero(weight_controls)
-    output_num = np.zeros(shape=config.pe_num)
+    input_tensors = [input_tensor[i*sih:(i+1)*sih, :] for i in range(config.engine_num)]
 
-    while True:
-        ca_unit.run(
-            clk=0,
-            control=0 if len(weight_controls) == 0 else weight_controls[0],
-            w_d_valid=w_d_valid,
-            w_m_valid=w_m_valid,
-            a_d_valid_arr=a_d_valid,
-            a_m_valid_arr=a_m_valid,
-            w_d_in=np.zeros(shape=config.chunk_size) if len(weight_queue) == 0 else weight_queue[0],
-            w_m_in=0 if len(weight_masks) == 0 else weight_masks[0],
-            a_d_in_arr=[np.zeros(shape=config.chunk_size) if len(aq) == 0 else aq[0] for aq in activation_queue_arr],
-            a_m_in_arr=[0 if len(am) == 0 else am[0] for am in activation_masks_arr],
+    ca_cycles = []
+
+    for eidx, (wmat, imat) in enumerate(zip(weight_tensors, input_tensors)):
+        weight_queue, weight_masks, weight_controls, activation_queue_arr, activation_masks_arr = auto_config_matrices(
+            weight=wmat, activation=imat, pe_num=config.pe_num, chunk_size=config.chunk_size,
         )
-        ca_unit.run(clk=1)
 
-        for ps_idx, ps_valid in enumerate(ca_unit.ps_valid_arr):
-            if ps_valid.get() == 1:
-                output_num[ps_idx] += 1
-        if verbose:
-            sys.stdout.write(
-                (f"\r[tile {tile_index}]  " if tile_index != -1 else '\r') +
-                f"[{np.sum(np.array(output_num)) / (target_output_num*len(output_num))*100:5.2f}%]  "
-                f"cycle: {ca_cycle}  "
-                # f"ps_out: {np.array([ps.get_raw() for ps in ca_unit.ps_out_arr])}  " + ' ' * 20
+        ca_unit = config.generate()
+        ca_unit.run(reset_n=1)
+        ca_unit.run(reset_n=0)
+        ca_unit.run(reset_n=1)
+
+        w_m_valid, a_m_valid = 1, [1] * config.pe_num
+        w_d_valid, a_d_valid = 1, [1] * config.pe_num
+
+        ca_cycle = 0
+        target_output_num = np.count_nonzero(weight_controls)
+        output_num = np.zeros(shape=config.pe_num)
+
+        while True:
+            ca_unit.run(
+                clk=0,
+                control=0 if len(weight_controls) == 0 else weight_controls[0],
+                w_d_valid=w_d_valid,
+                w_m_valid=w_m_valid,
+                a_d_valid_arr=a_d_valid,
+                a_m_valid_arr=a_m_valid,
+                w_d_in=np.zeros(shape=config.chunk_size) if len(weight_queue) == 0 else weight_queue[0],
+                w_m_in=0 if len(weight_masks) == 0 else weight_masks[0],
+                a_d_in_arr=[np.zeros(shape=config.chunk_size) if len(aq) == 0 else aq[0] for aq in activation_queue_arr],
+                a_m_in_arr=[0 if len(am) == 0 else am[0] for am in activation_masks_arr],
             )
+            ca_unit.run(clk=1)
 
-        if ca_unit.w_d_in_required == 1 and len(weight_queue):
-            del weight_queue[0]
-            w_d_valid = 1 if len(weight_queue) else 0
-        else:
-            w_d_valid = 0
+            for ps_idx, ps_valid in enumerate(ca_unit.ps_valid_arr):
+                if ps_valid.get() == 1:
+                    output_num[ps_idx] += 1
+            if verbose:
+                sys.stdout.write(
+                    (f"\r[tile {tile_index}] " if tile_index != -1 else '\r') +
+                    f"[Engine {eidx:2d}] "
+                    f"[{np.sum(np.array(output_num)) / (target_output_num*len(output_num))*100:5.2f}%]  "
+                    f"cycle: {ca_cycle}  "
+                    # f"ps_out: {np.array([ps.get_raw() for ps in ca_unit.ps_out_arr])}  " + ' ' * 20
+                )
 
-        if ca_unit.w_m_in_required == 1 and len(weight_masks):
-            del weight_masks[0]
-            del weight_controls[0]
-            w_m_valid = 1 if len(weight_masks) else 0
-        else:
-            w_m_valid = 0
-
-        for vidx in range(config.pe_num):
-            if ca_unit.a_d_in_required_arr[vidx] == 1 and len(activation_queue_arr[vidx]):
-                del activation_queue_arr[vidx][0]
-                a_d_valid[vidx] = 1 if len(activation_queue_arr[vidx]) else 0
+            if ca_unit.w_d_in_required == 1 and len(weight_queue):
+                del weight_queue[0]
+                w_d_valid = 1 if len(weight_queue) else 0
             else:
-                a_d_valid[vidx] = 0
+                w_d_valid = 0
 
-            if ca_unit.a_m_in_required_arr[vidx] == 1 and len(activation_masks_arr[vidx]):
-                del activation_masks_arr[vidx][0]
-                a_m_valid[vidx] = 1 if len(activation_masks_arr[vidx]) else 0
+            if ca_unit.w_m_in_required == 1 and len(weight_masks):
+                del weight_masks[0]
+                del weight_controls[0]
+                w_m_valid = 1 if len(weight_masks) else 0
             else:
-                a_m_valid[vidx] = 0
+                w_m_valid = 0
 
-        if np.count_nonzero(np.array(output_num) != target_output_num) == 0:
-            break
+            for vidx in range(config.pe_num):
+                if ca_unit.a_d_in_required_arr[vidx] == 1 and len(activation_queue_arr[vidx]):
+                    del activation_queue_arr[vidx][0]
+                    a_d_valid[vidx] = 1 if len(activation_queue_arr[vidx]) else 0
+                else:
+                    a_d_valid[vidx] = 0
 
-        ca_cycle += 1
+                if ca_unit.a_m_in_required_arr[vidx] == 1 and len(activation_masks_arr[vidx]):
+                    del activation_masks_arr[vidx][0]
+                    a_m_valid[vidx] = 1 if len(activation_masks_arr[vidx]) else 0
+                else:
+                    a_m_valid[vidx] = 0
 
-    ca_cycle //= config.engine_num
+            if np.count_nonzero(np.array(output_num) != target_output_num) == 0:
+                break
+
+            ca_cycle += 1
+
+        ca_cycles.append(ca_cycle)
+
+    # ca_cycle //= config.engine_num
 
     if verbose:
         print("\r", end='')
 
-    return ca_cycle
+    # return int(np.ceil(np.average(np.array(ca_cycles))))
+    return max(ca_cycles)
 
 
 if __name__ == '__main__':
-    weight_sparsity = 0.0
-    input_sparsity = 0.0
+    weight_sparsity = 0.7
+    input_sparsity = 0.7
     testcase = 5
 
     for t in range(testcase):
